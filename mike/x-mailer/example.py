@@ -3,7 +3,7 @@ import mailbox
 import pylab as pl
 import numpy as np
 import re
-
+import random
 
 class Sender:
     def __init__(self, email):
@@ -138,6 +138,15 @@ class Analyzer:
                 print("Distribution:")
                 for x in curr_sender.xmailer_distribution:
                     print(str(x) + ":", curr_sender.xmailer_distribution[x])
+
+def randomEmailData(mbox):
+    random_email_name = extract_name(mbox[random.randrange(len(mbox))])
+    while not random_email_name:
+        random_email_name = extract_name(mbox[random.randrange(len(mbox))])
+    random_email_xmailer = getXMailer(mbox[random.randrange(len(mbox))])
+    while not random_email_xmailer:
+        random_email_xmailer = getXMailer(mbox[random.randrange(len(mbox))])
+    return (random_email_name, random_email_xmailer)
 
 
 def extractVersion(xmailer):
