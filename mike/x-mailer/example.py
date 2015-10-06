@@ -31,8 +31,9 @@ class Analyzer:
         print("Finished Analyzing.")
 
     def analyze(self):
-        detectionCount = 0
-        random_name, random_xmailer = randomEmailData(self.box)
+        self.experiment.values["detected"] = 0
+        self.experiment.values["valid-to-detect"] = 0
+        randomEmailData = randomEmailGenerator(self.box)
         for i in range(len(self.box)):
             msg = self.box[i]
             curr_name = extract_name(msg)
@@ -62,19 +63,13 @@ class Analyzer:
                 self.experiment.values["email-count"] = self.experiment.values.get("email-count", 0) + 1
 
                 #random attack
+                random_name, random_xmailer = randomEmailData()
                 random_sender = self.names_to_senders.get(random_name, None)
-                if random_sender and random_xmailer:
+                if random_sender:
                     similar_xmailer = getSimilar(random_xmailer, random_sender.xmailer_distribution.keys())
                     if similar_xmailer == False and len(random_sender.xmailer_distribution.keys()) != 0:
-                        detectionCount += 1
-                        continue
-        print("Number Detected:", detectionCount)
-        print("Number Undetected:", self.experiment.values["email-count"] - detectionCount)
-        print("Detection Rate:", detectionCount / self.experiment.values["email-count"])
-
-
-
-
+                        self.experiment.values["detected"] += 1
+                    self.experiment.values["valid-to-detect"] += 1
 
     def getNamesToSenders(self):
         return self.names_to_senders
@@ -145,6 +140,11 @@ class Analyzer:
         print("Number of false alarms:", num_of_false_alarms)
         print("Number of emails:", num_of_emails)
         print("False alarm rate:", num_of_false_alarms / num_of_emails)
+        print("=======================================================")
+        print("Number of Detectable Emails:", self.experiment.values["valid-to-detect"])
+        print("Number Detected:", self.experiment.values["detected"])
+        print("Number Undetected:", self.experiment.values["valid-to-detect"] - self.experiment.values["detected"])
+        print("Detection Rate:", self.experiment.values["detected"] / self.experiment.values["valid-to-detect"])
 
     def inconsistentUserDistributions(self):
         senders = self.getNamesToSenders()
@@ -157,15 +157,32 @@ class Analyzer:
                 print("Distribution:")
                 for x in curr_sender.xmailer_distribution:
                     print(str(x) + ":", curr_sender.xmailer_distribution[x])
+def randomEmailGenerator(mbox):
+    name_set = set()
+    xmailer_set = set()
+    for msg in mbox:
+        currName = extract_name(msg)
+        currXmailer = getXMailer(msg)
+        if currName != None:
+            name_set.add(currName)
+        if currXmailer != None:
+            xmailer_set.add(currXmailer)
+    name_lst = list(name_set)
+    xmailer_lst = list(xmailer_set)
+    def randomEmailData():
+        randomName = name_lst[random.randrange(len(name_lst))]
+        randomXmailer = xmailer_lst[random.randrange(len(xmailer_lst))]
+        return (randomName, randomXmailer)
+    return randomEmailData
 
-def randomEmailData(mbox):
-    random_email_name = extract_name(mbox[random.randrange(len(mbox))])
-    while not random_email_name:
-        random_email_name = extract_name(mbox[random.randrange(len(mbox))])
-    random_email_xmailer = getXMailer(mbox[random.randrange(len(mbox))])
-    while not random_email_xmailer:
-        random_email_xmailer = getXMailer(mbox[random.randrange(len(mbox))])
-    return (random_email_name, random_email_xmailer)
+# def randomEmailData(mbox):
+#     random_email_name = extract_name(mbox[random.randrange(len(mbox))])
+#     while not random_email_name:
+#         random_email_name = extract_name(mbox[random.randrange(len(mbox))])
+#     random_email_xmailer = getXMailer(mbox[random.randrange(len(mbox))])
+#     while not random_email_xmailer:
+#         random_email_xmailer = getXMailer(mbox[random.randrange(len(mbox))])
+#     return (random_email_name, random_email_xmailer)
 
 
 def extractVersion(xmailer):
