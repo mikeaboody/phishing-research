@@ -31,7 +31,10 @@ class Analyzer:
         print("Finished Analyzing.")
 
     def analyze(self):
-        for msg in self.box:
+        random_name, random_xmailer = randomEmailData(self.box)
+        attack_index = random.randrange(1, len(self.box))
+        for i in range(len(self.box)):
+            msg = self.box[i]
             curr_name = extract_name(msg)
             if curr_name:
                 # initializing
@@ -57,6 +60,21 @@ class Analyzer:
                 # finalize
                 self.names_to_senders[curr_name] = curr_sender
                 self.experiment.values["email-count"] = self.experiment.values.get("email-count", 0) + 1
+
+            if i == attack_index:
+                print ("Running attack on index " + str(i) + " out of " + str(len(self.box)))
+                #RANDOM ATTACK
+                random_sender = self.names_to_senders.get(random_name, None)
+                if random_sender and random_xmailer:
+                    similar_xmailer = getSimilar(random_xmailer, random_sender.xmailer_distribution.keys())
+                    if similar_xmailer == False and len(random_sender.xmailer_distribution.keys()) != 0:
+                        print("DETECTED")
+                        continue
+                print("UNDETECTED")
+
+
+
+
     def getNamesToSenders(self):
         return self.names_to_senders
 
