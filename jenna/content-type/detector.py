@@ -25,13 +25,6 @@ class Detector(object):
         return
 
     @abc.abstractmethod
-    def check_header(self, msg):
-        """Checks if msg contains the desired email header field. ex: x-mailer.
-           input: type(msg) = mailbox.Message
-           return: boolean value. """
-        return
-    
-    @abc.abstractmethod
     def modify_phish(self, phish, msg):
         """Adds the desired email header field from msg to phish.
            input: type(msg) = mailbox.Message

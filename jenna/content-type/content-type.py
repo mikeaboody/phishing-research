@@ -8,10 +8,6 @@ class Content_Type_Detector(Detector):
         self.inbox = inbox
         self.sender_profile = self.create_sender_profile()
 
-    def check_header(self, msg):
-        ctype = msg["Content-Type"]
-        return ctype is not None
-
     def modify_phish(self, phish, msg):
         phish["Content-Type"] = msg["Content-Type"]
         return phish
@@ -25,9 +21,9 @@ class Content_Type_Detector(Detector):
     def classify(self, phish):
         sender = self.extract_from(phish)
         ctype = self.get_content_type(phish)
-        if ctype == None:
-            if len(self.sender_profile[sender]) == 0:
-                return False
+       # if ctype == None:
+       #     if len(self.sender_profile[sender]) == 0:
+       #         return False
        # finish 
         if sender in self.sender_profile.keys():
             if ctype not in self.sender_profile[sender]:
@@ -52,25 +48,19 @@ class Content_Type_Detector(Detector):
                 ct = self.get_content_type(msg) 
                 if ct == None:
                     no_content_type += 1
-                    if sender not in sender_profile.keys():
-                        sender_profile[sender] = set([])
-                    continue
+                   # if sender not in sender_profile.keys():
+                   #     sender_profile[sender] = set([])
+                   # continue
                 if ct not in content_types:
                     content_types[ct] = 1
                 else:
                     content_types[ct] += 1
-                if sender == "the_autograder" or sender == "hiring@rescomp.berkeley.edu":
-                    print("FOUNNND====")
-                    print(sender)
                 if sender in sender_profile.keys():
                     if ct not in sender_profile[sender]:
                         new_format_found += 1
                         sender_profile[sender].add(ct)
                 else:
                     sender_profile[sender] = set([ct])
-                    if sender == "the_autograder" or sender == "hiring@rescomp.berkeley.edu":
-                        print("added to senderprofile =====")
-                        print(sender)
         self.content_types = content_types
         self.emails_with_sender = emails_with_sender
         self.no_content_type = no_content_type
@@ -108,7 +98,7 @@ def printInfo(msg):
     print(msg["Content-Type"])
     print(msg["Subject"])
 
-file_name = "~/emails/Inbox500.mbox"
+file_name = "~/emails/Inbox.mbox"
 inbox = mailbox.mbox(file_name)
 d = Content_Type_Detector(inbox)
 d.interesting_stats()
