@@ -32,9 +32,6 @@ class Detector(object):
            return: phish. """
         return
                           
-    def length(self):
-        return len(self.inbox)
-   
     def extract_from(self, msg):
         from_header = msg["From"]
         if not from_header:
