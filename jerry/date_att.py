@@ -31,7 +31,6 @@ sender_to_email_map = {}
 sender_to_date_data = {}
 
 num_emails = 0
-num_detected = 0
 
 class DateFormat:
     def __init__(self, date_string):
@@ -125,14 +124,22 @@ def process_mbox(mbox):
 process_mbox(inbox)
 process_mbox(archive)
 
+num_detected = 0
+format_dist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
 for sender, emails in sender_to_email_map.items():
     date_data = DateData()
     for date in emails:
         num_emails += 1
         date_data.add_date(date)
     sender_to_date_data[sender] = date_data
-    num_detected += date_data.num_detected()
+    curr_detected = date_data.num_detected()
+    num_detected += curr_detected
 
-print (num_emails)
-print (num_detected)
-print (num_detected/num_emails)
+    num_formats = curr_detected + 1
+    format_dist[num_formats-1] += 1
+
+print ("Num Emails:", num_emails)
+print ("Num Detected:", num_detected)
+print ("False Detection:", num_detected/num_emails)
+print ("Distribution:", format_dist)
