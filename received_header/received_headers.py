@@ -44,17 +44,23 @@ class ReceivedHeader:
 		content = ""
 		for s in content_split:
 			content += s
+		content_split = content.split("\r")
+		content = ""
+		for s in content_split:
+			content += s
 		self.breakdown = {}
-		possible_fields = ["from", "by", "via", "with", "id", ";", "$"]
+		possible_fields = ["from", "by", "via", "with", "id", "for", ";", "$"]
 		for i in range(len(possible_fields)):
 			start = possible_fields[i]
 			for j in range(i+1, len(possible_fields)):
 				end = possible_fields[j]
-				r = re.search(start + ".*" + end, content)
+				r = re.search(start + "(.*)" + end, content)
 				if r:
-					match = r.group()
+					match = r.group(1)
 					self.breakdown[start] = match
 					break
+		import pdb; pdb.set_trace()
+		
 
 	def extract_ip(self, content):
 		r = re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", content)
@@ -62,7 +68,7 @@ class ReceivedHeader:
 
 
 	def __str__(self):
-		return self.content
+		return str(self.breakdown)
 		# return "SMTP ID: " + str(self.SMTP_ID) + ", SMTP IP: " + str(self.SMTP_IP) + ", date: " + str(self.date)
 
 
