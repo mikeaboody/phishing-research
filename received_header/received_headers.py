@@ -34,10 +34,28 @@ class ReceivedHeader:
 		self.analyze(content)
 		
 	def analyze(self, content):
-		self.SMTP_ID = None
-		self.SMTP_IP = None
-		self.date = None
-		self.SMTP_IP = self.extract_ip(content)
+		# self.SMTP_ID = None
+		# self.SMTP_IP = None
+		# self.date = None
+		# self.SMTP_IP = self.extract_ip(content)
+
+		#very simple breakdown scheme for receiver headers
+		content_split = content.split("\n")
+		content = ""
+		for s in content_split:
+			content += s
+		self.breakdown = {}
+		possible_fields = ["from", "by", "via", "with", "id", ";", "$"]
+		for i in range(len(possible_fields)):
+			start = possible_fields[i]
+			for j in range(i+1, len(possible_fields)):
+				end = possible_fields[j]
+				r = re.search(start + ".*" + end, content)
+				if r:
+					match = r.group()
+					self.breakdown[start] = match
+					break
+
 	def extract_ip(self, content):
 		r = re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", content)
 		return r.group()
@@ -78,7 +96,7 @@ def extract_email(msg):
         return None
     from_header = from_header.lower()
     r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
-    return r.group()
+    return r.group() if r else from_header
 
 srp = SenderReceiverProfile(sys.argv[1])
 # Need to iterate through emails and for each sender_receiver_pair we see, we create received_header objects for each received header. We create an email object for this particular email and save the received_header objects in the email's list. Lastly, we save the email in the sender_receiver_pair's email list.
