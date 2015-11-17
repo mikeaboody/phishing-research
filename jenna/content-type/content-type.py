@@ -89,21 +89,22 @@ class Content_Type_Detector(Detector):
         if len(att_val) == 1:
             # case: plain content_type
             value = attr
-            if value == "none":
+            if value == "None":
                 self.no_content_type += 1
+                value = None
             attr = "content-type"
         else:
             # case: boundary, charset, etc
             value = att_val[1]
-        #attr = self.strip_quotes(attr)
-        #value = self.strip_quotes(value)
-        return attr.lower(), value.lower()
+        return attr.lower(), None if value is None else value.lower()
         
     def classify(self, phish):
         sender = self.extract_from(phish)
         entire_ct = self.get_entire_content(phish)
         for attr in entire_ct:
             attr, value = self.get_attr_val(attr)
+            if attr == "boundary":
+                value = self.convert_to_partition(value)
             if sender in self.sender_profile.keys():
                 if attr not in self.sender_profile[sender].keys() or value not in self.sender_profile[sender][attr]:
                     return True
@@ -176,9 +177,9 @@ class Content_Type_Detector(Detector):
                         if change[0] not in most_new_attr.keys():
                             most_new_attr[change[0]] = 0
                         most_new_attr[change[0]] += 1
-                        if change[0] == "charset":
-                            print("====== next message ======")
-                            print(stuff[0])
+                       # if change[0] == "boundary":
+                       #     print("====== next message ======")
+                       #     print(stuff[0])
                     self.new_format_found += 1
                 ct = self.get_content_type(msg)
                 if ct not in self.content_types:
@@ -199,6 +200,22 @@ class Content_Type_Detector(Detector):
         while distr[len(distr)-1] == 0:
             distr = distr[:len(distr)-1]
         return distr
+
+    def analyzing_sender_profile(self):
+        num_mult_format = 0
+        num_special_format = 0
+        special_format = "@"
+        for p in self.sender_profile.values():
+            if "boundary" in p.keys():
+                formats = p["boundary"]
+                if len(formats) > 1:
+                    num_mult_format += 1
+                    if special_format in formats:
+                        num_special_format += 1
+        print("Number of senders with >1 boundary format = " + str(num_mult_format))
+        print("Number of senders with '@' as a format = " + str(num_special_format))
+        print("#@ / #>1 = %.2f" % (num_special_format / num_mult_format)) 
+
 
     def interesting_stats(self):
         num_ct_used = [0]*10
@@ -252,5 +269,6 @@ file_name = "~/emails/Inbox.mbox"
 inbox = mailbox.mbox(file_name)
 d = Content_Type_Detector(inbox)
 d.interesting_stats()
+d.analyzing_sender_profile()
 #d.graph_distribution()
 print("detection rate = " + str(d.run_trials()))
