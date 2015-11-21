@@ -26,12 +26,16 @@ class Email:
 		for rh in self.receivedHeaderList:
 			s += str(rh) + " | "
 		return s
-
+		
+FILE = open("receivedHeaders", "a")
 class ReceivedHeader:
 
 	def __init__(self, content):
 		self.content = content
+		# self.FILE = open("receivedHeaders", "a")
 		self.analyze(content)
+		# self.FILE.write("------------------------------------------------------\n")
+		# self.FILE.close()
 		
 	def analyze(self, content):
 		# self.SMTP_ID = None
@@ -59,8 +63,8 @@ class ReceivedHeader:
 					match = r.group(1)
 					self.breakdown[start] = match
 					break
-		import pdb; pdb.set_trace()
-		
+		# import pdb; pdb.set_trace()
+		FILE.write(str(self.breakdown) + "\n")
 
 	def extract_ip(self, content):
 		r = re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", content)
@@ -85,15 +89,17 @@ class SenderReceiverProfile(dict):
 
 	def appendEmail(self, msg):
 		sender = extract_email(msg)
-		receiver = "mikeaboody@berkeley.edu"
+		receiver = "nexusapoorvacus19@gmail.com"
 		if (sender, receiver) not in self:
 			self[(sender, receiver)] = SenderReceiverPair(sender, receiver)
 		srp = self[(sender, receiver)]
 		newEmail = Email()
-		for receivedHeader in msg.get_all("Received"):
-			rh = ReceivedHeader(receivedHeader)
-			newEmail.receivedHeaderList.append(rh)
-		srp.emailList.append(newEmail)
+		if (msg.get_all("Received") != None):
+			for receivedHeader in msg.get_all("Received"):
+				rh = ReceivedHeader(receivedHeader)
+				newEmail.receivedHeaderList.append(rh)
+			FILE.write("------------------------------------------------------\n")
+			srp.emailList.append(newEmail)
 
 
 def extract_email(msg):
