@@ -49,35 +49,27 @@ class ReceivedHeader:
 		content = ""
 		for s in content_split:
 			content += s
+		content_split = content.split("\t")
+		content = ""
+		for s in content_split:
+			content += s
 		breakdown = {}
 		possible_fields = ["from", "by", "via", "with", "id", "for", ";", "$"]
 		for i in range(len(possible_fields)):
 			start = possible_fields[i]
 			for j in range(i+1, len(possible_fields)):
 				end = possible_fields[j]
-				r = re.search(start + " *(.*) *" + end, content)
+				r = re.search(start + " +(.*) *" + end, content)
 				if r:
 					match = r.group(1)
 					breakdown[start] = removeSpaces(match)
 					break
 		self.breakdown = breakdown
+		if ";" in self.breakdown:
+			self.breakdown["date"] = self.breakdown[";"]
+			del self.breakdown[";"]
+
 		import pdb; pdb.set_trace()
-
-
-		# if "from" in breakdown:
-		# 	self.from_thing = breakdown["from"]
-		# if "by" in breakdown:
-		# 	self.by_thing = breakdown["by"]
-		# if "via" in breakdown:
-		# 	self.via_thing = breakdown["via"]
-		# if "with" in breakdown:
-		# 	self.type = breakdown["with"]
-		# if "id" in breakdown:
-		# 	self.id = breakdown["id"]
-		# if "for" in breakdown:
-		# 	self.for = breakdown["for"]
-		# if ";" in breakdown:
-		# 	self.date = breakdown[";"]
 
 		#id: id
 		#with: type of SMTP server
