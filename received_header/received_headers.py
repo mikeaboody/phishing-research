@@ -62,10 +62,28 @@ class ReceivedHeader:
 					break
 		self.breakdown = breakdown
 		import pdb; pdb.set_trace()
-		#by: ip
+
+
+		# if "from" in breakdown:
+		# 	self.from_thing = breakdown["from"]
+		# if "by" in breakdown:
+		# 	self.by_thing = breakdown["by"]
+		# if "via" in breakdown:
+		# 	self.via_thing = breakdown["via"]
+		# if "with" in breakdown:
+		# 	self.type = breakdown["with"]
+		# if "id" in breakdown:
+		# 	self.id = breakdown["id"]
+		# if "for" in breakdown:
+		# 	self.for = breakdown["for"]
+		# if ";" in breakdown:
+		# 	self.date = breakdown[";"]
+
 		#id: id
 		#with: type of SMTP server
 		#;: date
+		#from is domain part of the message id's
+		#from is the name server
 
 		
 
