@@ -33,15 +33,7 @@ class Detector(object):
         return
                           
     def extract_from(self, msg):
-        from_header = msg["From"]
-        if not from_header:
-            return None
-        from_header = from_header.lower()
-        r = re.compile(" *<.*> *")
-        from_header = r.sub("", from_header)
-        r = re.compile("^ +")
-        from_header = r.sub("", from_header)
-        return from_header 
+        return msg["From"]
 
     def make_phish(self):
         has_sender = None
