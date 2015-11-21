@@ -82,7 +82,7 @@ class ReceivedHeader:
 		#id: id
 		#with: type of SMTP server
 		#;: date
-		#from is domain part of the message id's
+		#by is domain part of the message id's
 		#from is the name server
 
 		
