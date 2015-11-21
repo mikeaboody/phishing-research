@@ -31,15 +31,16 @@ class ReceivedHeader:
 
 	def __init__(self, content):
 		self.content = content
-		self.analyze(content)
+		self.analyze()
 		
-	def analyze(self, content):
+	def analyze(self):
 		# self.SMTP_ID = None
 		# self.SMTP_IP = None
 		# self.date = None
 		# self.SMTP_IP = self.extract_ip(content)
 
 		#very simple breakdown scheme for receiver headers
+		content = self.content
 		content_split = content.split("\n")
 		content = ""
 		for s in content_split:
@@ -48,18 +49,24 @@ class ReceivedHeader:
 		content = ""
 		for s in content_split:
 			content += s
-		self.breakdown = {}
+		breakdown = {}
 		possible_fields = ["from", "by", "via", "with", "id", "for", ";", "$"]
 		for i in range(len(possible_fields)):
 			start = possible_fields[i]
 			for j in range(i+1, len(possible_fields)):
 				end = possible_fields[j]
-				r = re.search(start + "(.*)" + end, content)
+				r = re.search(start + " *(.*) *" + end, content)
 				if r:
 					match = r.group(1)
-					self.breakdown[start] = match
+					breakdown[start] = removeSpaces(match)
 					break
+		self.breakdown = breakdown
 		import pdb; pdb.set_trace()
+		#by: ip
+		#id: id
+		#with: type of SMTP server
+		#;: date
+
 		
 
 	def extract_ip(self, content):
@@ -103,6 +110,15 @@ def extract_email(msg):
     from_header = from_header.lower()
     r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
     return r.group() if r else from_header
+def removeSpaces(s):
+    exp = " +$"
+    r = re.compile(exp)
+    s = r.sub("", s)
+    exp = "^ +"
+    r = re.compile(exp)
+    s = r.sub("", s)
+    return s
+
 
 srp = SenderReceiverProfile(sys.argv[1])
 # Need to iterate through emails and for each sender_receiver_pair we see, we create received_header objects for each received header. We create an email object for this particular email and save the received_header objects in the email's list. Lastly, we save the email in the sender_receiver_pair's email list.
