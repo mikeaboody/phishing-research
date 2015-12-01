@@ -8,6 +8,8 @@ class SenderReceiverPair:
 		self.receiver = receiver
 		self.sender = sender
 		self.emailList = []
+
+
 	def __str__(self):
 		s = ""
 		for email in self.emailList:
@@ -21,13 +23,13 @@ class Email:
 		self.emailID = Email.count
 		Email.count += 1
 		self.receivedHeaderList = []
+
 	def __str__(self):
 		s = ""
 		for rh in self.receivedHeaderList:
 			s += str(rh) + " | "
 		return s
 		
-FILE = open("receivedHeaders", "a")
 class ReceivedHeader:
 
 	def __init__(self, content):
@@ -70,8 +72,6 @@ class ReceivedHeader:
 		if ";" in self.breakdown:
 			self.breakdown["date"] = self.breakdown[";"]
 			del self.breakdown[";"]
-
-		FILE.write(str(self.breakdown) + "\n")
 		
 		#id: id
 		#with: type of SMTP server
@@ -94,6 +94,7 @@ class SenderReceiverProfile(dict):
 	def __init__(self, inboxPath):
 		self.inbox = mailbox.mbox(inboxPath)
 		self.analyze()
+		self.writeReceivedHeadersToFile()
 
 	def analyze(self):
 		for msg in self.inbox:
@@ -112,8 +113,18 @@ class SenderReceiverProfile(dict):
 			for receivedHeader in msg.get_all("Received"):
 				rh = ReceivedHeader(receivedHeader)
 				newEmail.receivedHeaderList.append(rh)
-			FILE.write("------------------------------------------------------\n")
 			srp.emailList.append(newEmail)
+
+	def writeReceivedHeadersToFile(self):
+		FILE = open("receivedHeaders", "a")
+		for tup, srp in self.items():
+			FILE.write("SRP******************************************\n")
+			FILE.write(str(tup) + ":\n")
+			for em in srp.emailList:
+				FILE.write("@@@------------------------------------------\n")
+				for rh in em.receivedHeaderList:
+					FILE.write(str(rh) + "\n")
+			FILE.write("------------------------------------------\n")
 
 
 def extract_email(msg):
