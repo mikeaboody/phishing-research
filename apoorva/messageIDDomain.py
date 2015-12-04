@@ -24,10 +24,26 @@ class messageIDDomain_Detector(Detector):
         elif '@' not in mID:
             return mID
         return mID[mID.index('@') + 1 :-1]
+
+    # if your message ID Domain is mx.google.com --> returns google
+    def get_endMessageIDDomain(self, mID):
+        if mID == None:
+            return mID
+        if '.' in mID:
+            indexLastDot = len(mID) - mID[::-1].index(".") - 1
+            rest = mID[:indexLastDot]
+            if '.' in rest:
+                indexNextDot = len(rest) - rest[::-1].index(".") - 1
+                return mID[indexNextDot+1:]
+            else:
+                return mID
+        else:
+            return mID
+
         
     def classify(self, phish):
         sender = phish["From"]
-        mID = self.get_messageIDDomain(phish)
+        mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
 
         if "List-Unsubscribe" in phish.keys() or myEmail in phish["From"]:
                 return False
@@ -87,7 +103,7 @@ class messageIDDomain_Detector(Detector):
         part = email[indexAt+1:indexEnd]
         if "." in part:
             i = part.index(".")
-            return part[i+1:indexEnd]
+            return part[i+1:]
         return email[indexAt+1:indexEnd]
 
     def create_sender_profile(self):
@@ -101,7 +117,8 @@ class messageIDDomain_Detector(Detector):
             sender = msg["From"]
             if sender:
                 emails_with_sender += 1
-                mID = self.get_messageIDDomain(msg) 
+                mID = self.get_endMessageIDDomain(self.get_messageIDDomain(msg))
+                # import pdb; pdb.set_trace()
                 if mID == None:
                     no_messageIDDomain += 1
                     if sender not in sender_profile.keys():
@@ -112,6 +129,7 @@ class messageIDDomain_Detector(Detector):
                             if mID not in sender_profile[sender]:
                                 if self.toFlag(sender, mID):
                                     new_format_found += 1
+                                    print(sender, mID, str(sender_profile[sender]))
                                 sender_profile[sender].add(mID)
                         else:
                             sender_profile[sender] = set([mID])
@@ -123,6 +141,7 @@ class messageIDDomain_Detector(Detector):
                         if mID not in self.GLOBAL_SET[email_domain]:
                             if (self.GLOBAL_SET[email_domain]):
                                 new_format_found += 1
+                                print(sender, mID)
                                 self.GLOBAL_SET[email_domain].append(mID)
                             else:
                                 self.GLOBAL_SET[email_domain] = [mID]
@@ -133,7 +152,8 @@ class messageIDDomain_Detector(Detector):
         self.emails_with_sender = emails_with_sender
         self.no_messageIDDomain = no_messageIDDomain
         self.new_format_found = new_format_found
-        print(self.GLOBAL_SET)
+        # senderProfile = open("sender_profile", "w")
+        # senderProfile.write("Sender Profile:\n" + str(sender_profile) + "\n")
         return sender_profile
 
     def toFlag(self, sender, mID):
@@ -172,9 +192,9 @@ def printInfo(msg):
     print(msg["Message-ID"])
     print(msg["Subject"])
 
-file_name = "Inbox.mbox"
+file_name = "/home/apoorva/Documents/Research/PhishingResearch/Inbox.mbox"
 myEmail = "nexusapoorvacus19@gmail.com"
-scheme_number = 3
+scheme_number = 3 
 inbox = mailbox.mbox(file_name)
 d = messageIDDomain_Detector(inbox)
 d.interesting_stats()
