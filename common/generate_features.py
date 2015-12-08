@@ -20,11 +20,11 @@ import scipy.io as sio
 
 import feature_classes as fc
 
-# PHISHING_FILENAME = 'phish.mbox'
-PHISHING_FILENAME = 'matthew_berkeley.mbox'
-# REGULAR_FILENAME = 'regular.mbox'
-REGULAR_FILENAME = 'Inbox.mbox'
-NUM_PRE_TRAINING = 100
+PHISHING_FILENAME = 'phish.mbox'
+# PHISHING_FILENAME = 'matthew_berkeley.mbox'
+REGULAR_FILENAME = 'regular.mbox'
+# REGULAR_FILENAME = 'Inbox.mbox'
+NUM_PRE_TRAINING = 1000
 
 ############
 # FEATURES #
