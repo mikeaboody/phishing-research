@@ -1,3 +1,4 @@
+from __future__ import division
 import abc
 from random import randint
 import mailbox
