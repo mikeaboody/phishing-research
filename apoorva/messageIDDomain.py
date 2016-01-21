@@ -2,9 +2,14 @@ from detector import Detector
 import mailbox
 import pprint
 import sys
+import re
+# IPWhois
+import socket
+from ipwhois import IPWhois
 
 class messageIDDomain_Detector(Detector):
     GLOBAL_SET = {} # email domain : [MID domain 0, ...]
+    domainCompanyPairing = {} # domain : company
     def __init__(self, inbox):
         self.inbox = inbox
         self.sender_profile = self.create_sender_profile()
@@ -42,23 +47,39 @@ class messageIDDomain_Detector(Detector):
 
         
     def classify(self, phish):
-        sender = phish["From"]
+        sender = self.getEntireEmail(phish["From"])
         mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
 
-        if "List-Unsubscribe" in phish.keys() or myEmail in phish["From"]:
+        if "List-Unsubscribe" in phish.keys() or myEmail in phish["From"] or mID == None:
                 return False
 
         # Universal
         if (scheme_number >= 1 and scheme_number <= 3):
             if sender in self.sender_profile.keys():
                 if mID not in self.sender_profile[sender]:
-                    return self.toFlag(sender, mID)
+                    if self.noreplyFP(sender, phish["Message-ID"]) or self.orgGroups(sender, mID):
+                        return False
+                    else:
+                        return self.toFlag(sender, mID)
             else:
                 raise Exception("Sender was not found in sender_profile.")
         elif (scheme_number == 4):
             if self.getEmailDomain(sender) in self.GLOBAL_SET.keys():
                 if mID not in self.GLOBAL_SET[self.getEmailDomain(sender)]:
-                    return self.checkGeneralMID(sender, mID)
+                    if self.noreplyFP(sender, phish["Message-ID"]) or self.orgGroups(sender, mID):
+                        return False
+                    else:
+                        return self.checkGeneralMID(sender, mID)
+        elif (scheme_number == 5):
+            if sender in self.sender_profile.keys():
+                if mID not in self.sender_profile[sender]:
+                    if self.getEmailDomain(sender) in self.GLOBAL_SET.keys():
+                        if mID not in self.GLOBAL_SET[self.getEmailDomain(sender)]:
+                            print("here")
+                            if self.noreplyFP(sender, phish["Message-ID"]) or self.orgGroups(sender, mID):
+                                return False
+                            else:
+                                return self.checkGeneralMID(sender, mID)
         else:
             raise Exception("The scheme_number is not between 1 and 4 inclusive.")
         return False
@@ -97,7 +118,9 @@ class messageIDDomain_Detector(Detector):
             return False
         return True
 
+    # returns tdameritrade given client@notifications.tdameritrade.com
     def getEmailDomain(self, email):
+        # import pdb; pdb.set_trace()
         indexAt = email.index("@")
         indexEnd = (len(email)-indexAt) - (email[indexAt:])[::-1].index(".") + indexAt - 1
         part = email[indexAt+1:indexEnd]
@@ -105,6 +128,53 @@ class messageIDDomain_Detector(Detector):
             i = part.index(".")
             return part[i+1:]
         return email[indexAt+1:indexEnd]
+
+    # returns apoorva.dornadula@berkeley.edu given "Apoorva Dornadula <apoorva.dornadula@berkeley.edu>"
+    def getEntireEmail(self, sender):
+        if ("<" in sender and ">" in sender):
+            leftBracket = sender.index("<")
+            rightBracket = sender.index(">")
+            return sender[leftBracket+1:rightBracket]
+        return sender
+
+    # returns True if FP and email will not be flagged
+    def noreplyFP(self, sender, messageID):
+        pattern = re.compile("no.*reply")
+        if pattern.match(sender):
+            # noreply case
+            if "ismtpd" in messageID or ".mail" in messageID:
+                return True
+        return False
+
+    # returns True if FP and email will not be flagged
+    def orgGroups(self, sender, mID):
+        # import pdb; pdb.set_trace()
+        try:
+            newmID = "www." + mID
+            afterAT = "www." + sender[sender.index("@")+1:]
+
+            if newmID in self.domainCompanyPairing.keys():
+                res1 = self.domainCompanyPairing[newmID]
+            else:
+                ip1 = socket.gethostbyname(newmID)
+                obj1 = IPWhois(ip1)
+                res1 = obj1.lookup(get_referral=True)['nets'][0]['name']
+                self.domainCompanyPairing[newmID] = res1
+
+            if afterAT in self.domainCompanyPairing.keys():
+                res2 = self.domainCompanyPairing[afterAT]
+            else:
+                ip2 = socket.gethostbyname(afterAT)
+                obj2 = IPWhois(ip2)
+                res2 = obj2.lookup(get_referral=True)['nets'][0]['name']
+                self.domainCompanyPairing[afterAT] = res2
+            
+            if res1 == res2:
+                # print("FP Groups", sender, mID)
+                return True
+            return False
+        except:
+            return False
 
     def create_sender_profile(self):
         emails_with_sender = 0
@@ -114,7 +184,7 @@ class messageIDDomain_Detector(Detector):
         for msg in self.inbox:
             if "List-Unsubscribe" in msg.keys() or myEmail in msg["From"]:
                 continue
-            sender = msg["From"]
+            sender = self.getEntireEmail(msg["From"])
             if sender:
                 emails_with_sender += 1
                 mID = self.get_endMessageIDDomain(self.get_messageIDDomain(msg))
@@ -124,30 +194,38 @@ class messageIDDomain_Detector(Detector):
                     if sender not in sender_profile.keys():
                         sender_profile[sender] = set([])
                 else:
-                    if (scheme_number >= 1 and scheme_number <= 3):
+                    if (scheme_number >= 1 and scheme_number <= 5):
+                        wasntInSenderProfile = False
                         if sender in sender_profile.keys():
                             if mID not in sender_profile[sender]:
                                 if self.toFlag(sender, mID):
-                                    new_format_found += 1
-                                    print(sender, mID, str(sender_profile[sender]))
+                                    wasntInSenderProfile = True
+                                    if (scheme_number >= 1 and scheme_number <= 3):
+                                        if not (self.noreplyFP(sender, msg["Message-ID"]) or self.orgGroups(sender, mID)):
+                                            self.orgGroups(sender, mID)
+                                            new_format_found += 1
+                                            print(sender, mID, msg["Message-ID"])
                                 sender_profile[sender].add(mID)
                         else:
                             sender_profile[sender] = set([mID])
-                    elif scheme_number == 4:
+                    # elif scheme_number == 4:
                         email_domain = self.getEmailDomain(sender)
                         if email_domain not in self.GLOBAL_SET.keys():
                             self.GLOBAL_SET[email_domain] = []
 
                         if mID not in self.GLOBAL_SET[email_domain]:
                             if (self.GLOBAL_SET[email_domain]):
-                                new_format_found += 1
-                                print(sender, mID)
+                                if self.checkGeneralMID(sender, mID):
+                                    if scheme_number == 4 or (scheme_number == 5 and wasntInSenderProfile):
+                                        if not (self.noreplyFP(sender, msg["Message-ID"]) or self.orgGroups(sender, mID)):
+                                            new_format_found += 1
+                                            # print(sender, mID, msg["Message-ID"])
                                 self.GLOBAL_SET[email_domain].append(mID)
                             else:
                                 self.GLOBAL_SET[email_domain] = [mID]
                     else:
-                        sys.exit()
                         raise Exception("The scheme_number is not between 1 and 4 inclusive.")
+                        sys.exit()
                 
         self.emails_with_sender = emails_with_sender
         self.no_messageIDDomain = no_messageIDDomain
@@ -161,7 +239,7 @@ class messageIDDomain_Detector(Detector):
             return True
         elif scheme_number == 2:
             return self.checkObviousMID(sender, mID)
-        elif scheme_number == 3:
+        elif scheme_number == 3 or scheme_number == 5:
             return self.checkGeneralMID(sender, mID)
 
     def interesting_stats(self):
@@ -194,8 +272,15 @@ def printInfo(msg):
 
 file_name = "/home/apoorva/Documents/Research/PhishingResearch/Inbox.mbox"
 myEmail = "nexusapoorvacus19@gmail.com"
-scheme_number = 3 
+scheme_number = 1
 inbox = mailbox.mbox(file_name)
+print("Flagged:")
 d = messageIDDomain_Detector(inbox)
 d.interesting_stats()
+# f = open('scheme1_groups_cached', 'w')
+# f.write("SENDER PROFILE:")
+# f.write(str(d.sender_profile))
+# f.write("\n\n\nGLOBAL SET:")
+# f.write(str(messageIDDomain_Detector.GLOBAL_SET))
+# import pdb; pdb.set_trace()
 print("Detection rate = " + str(d.run_trials()))
