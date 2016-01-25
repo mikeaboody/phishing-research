@@ -1,6 +1,8 @@
+from detector import Detector
 import sys
 import mailbox
 import re
+import pdb
 
 class SenderReceiverPair:
 
@@ -94,7 +96,7 @@ class SenderReceiverProfile(dict):
 	def __init__(self, inboxPath):
 		self.inbox = mailbox.mbox(inboxPath)
 		self.analyze()
-		self.writeReceivedHeadersToFile()
+		# self.writeReceivedHeadersToFile()
 
 	def analyze(self):
 		for msg in self.inbox:
@@ -104,7 +106,7 @@ class SenderReceiverProfile(dict):
 
 	def appendEmail(self, msg):
 		sender = extract_email(msg)
-		receiver = "nexusapoorvacus19@gmail.com"
+		receiver = myEmail
 		if (sender, receiver) not in self:
 			self[(sender, receiver)] = SenderReceiverPair(sender, receiver)
 		srp = self[(sender, receiver)]
@@ -143,6 +145,93 @@ def removeSpaces(s):
     s = r.sub("", s)
     return s
 
+class receivedHeadersDetector(Detector):
+	def __init__(self):
+		self.srp = self.create_sender_profile()
 
-srp = SenderReceiverProfile(sys.argv[1])
-# Need to iterate through emails and for each sender_receiver_pair we see, we create received_header objects for each received header. We create an email object for this particular email and save the received_header objects in the email's list. Lastly, we save the email in the sender_receiver_pair's email list.
+	def modify_phish(self, phish, msg):
+		pass
+
+	def classify(self, phish):
+		pass
+
+	def create_sender_profile(self):
+		srp = SenderReceiverProfile(file_name)
+		return srp
+
+	def find_false_positives(self):
+		total_emails_flagged = 0
+		total_srp_flagged = 0
+		invalidEmails = 0 # if a received header for an email doesn't have the "by" field
+		for tup, srp in self.srp.items():
+			# {#: [[by1-1, by1-2], by2, .., by#], ...}
+			by_sequences = {}
+			flagSRP = False
+			for em in srp.emailList:
+				num_recHeaders = len(em.receivedHeaderList)
+				flagEmail = False
+				invEmail = False
+				# Check that all received headers have a "by" field
+				for recHeader in em.receivedHeaderList:
+					if not "by" in recHeader.breakdown.keys():
+						invEmail = True
+				if invEmail:
+					break
+
+				# new length of received headers seen
+				# Do not flag
+				if not num_recHeaders in by_sequences.keys():
+					store = em.receivedHeaderList[0].breakdown["by"]
+					if re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", store): # ip addr case
+						store = store[0:store[store.index(".")+1:].index(".") + store.index(".") + 1]
+					elif store.count(".") > 1 or len(store) > 15: # domain name case
+						store = store.split(".")[-2] + "." + store.split(".")[-1]
+					by_sequences[num_recHeaders] = [[store]]
+					for rh in range(1,num_recHeaders):
+						store = em.receivedHeaderList[rh].breakdown["by"]
+						if re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", store): # ip addr case
+							store = store[0:store[store.index(".")+1:].index(".") + store.index(".") + 1]
+						elif store.count(".") > 1: # domain name case
+							store = store.split(".")[-2] + "." + store.split(".")[-1]
+						by_sequences[num_recHeaders].append([store])
+				else:
+					# length of received headers seen before
+					# flag if it doesn't match what has been seen before
+					seenRecHeaders = by_sequences[num_recHeaders]
+
+					for rh in range(num_recHeaders):
+						store = em.receivedHeaderList[rh].breakdown["by"]
+						if re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", store): # ip addr case
+							store = store[0:store[store.index(".")+1:].index(".") + store.index(".") + 1]
+						elif store.count(".") > 1: # domain name case
+							store = store.split(".")[-2] + "." + store.split(".")[-1]
+						if not store in by_sequences[num_recHeaders][rh]:
+							# pdb.set_trace()
+							flagEmail = True
+							flagSRP = True
+							by_sequences[num_recHeaders][rh].append(store)
+				if flagEmail:
+					total_emails_flagged += 1
+			if flagSRP:
+				total_srp_flagged += 1
+		print("Total Number of Emails Flagged: " + str(total_emails_flagged))
+		print("Total Number of SRP's Flagged: " + str(total_srp_flagged))
+
+	
+	# Compares to see if ip1 and ip2 fall in same subnet /16
+	# returns true if they are the same
+	def compareIP16(self, ip1, ip2):
+		if ip1.count(".") == 3 and ip2.count(".") == 3:
+			prefix1 = ip1[0:ip1[ip1.index(".")+1:].index(".") + ip1.index(".") + 1]
+			prefix2 = ip2[0:ip2[ip2.index(".")+1:].index(".") + ip2.index(".") + 1]
+			return prefix1 == prefix2
+		return False
+
+file_name = "/home/apoorva/Documents/Research/PhishingResearch/Inbox.mbox"
+myEmail = "nexusapoorvacus19@gmail.com"
+detector = receivedHeadersDetector()
+detector.find_false_positives()
+
+# Results
+# Total Number of Emails Flagged: 355/4514 <-- 0.0786 --> 7.86% False Positive Rate
+# Total Number of SRP's Flagged: 157/505 <-- 0.311 --> 31.1% False Positive Rate
