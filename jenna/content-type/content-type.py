@@ -1,3 +1,4 @@
+from __future__ import division
 from detector import Detector
 import mailbox
 import re
@@ -253,7 +254,7 @@ def printInfo(msg):
     print(msg["Content-Type"])
     print(msg["Subject"])
 
-file_name = "~/emails/Inbox.mbox"
+file_name = "~/emails/Inbox500.mbox"
 inbox = mailbox.mbox(file_name)
 d = Content_Type_Detector(inbox)
 d.interesting_stats()
