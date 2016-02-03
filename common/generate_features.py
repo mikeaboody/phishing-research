@@ -43,9 +43,9 @@ defined in detector.py.
 """
 
 features = [
-    fc.MessageIdDetectorOne,
-    fc.MessageIdDetectorTwo,
-    # fc.messageIDDomain_Detector
+    # fc.MessageIdDetectorOne,
+    # fc.MessageIdDetectorTwo,
+    fc.messageIDDomain_Detector,
     fc.ContentTypeDetector,
     fc.ContentTransferEncodingDetector,
     fc.XMailerDetector
