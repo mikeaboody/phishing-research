@@ -96,7 +96,7 @@ class SenderReceiverProfile(dict):
 	def __init__(self, inboxPath):
 		self.inbox = mailbox.mbox(inboxPath)
 		self.analyze()
-		# self.writeReceivedHeadersToFile()
+		self.writeReceivedHeadersToFile()
 
 	def analyze(self):
 		for msg in self.inbox:
@@ -227,8 +227,8 @@ class receivedHeadersDetector(Detector):
 			return prefix1 == prefix2
 		return False
 
-file_name = "/home/apoorva/Documents/Research/PhishingResearch/Inbox.mbox"
-myEmail = "nexusapoorvacus19@gmail.com"
+file_name = sys.argv[1]
+myEmail = sys.argv[2]
 detector = receivedHeadersDetector()
 detector.find_false_positives()
 
