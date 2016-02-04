@@ -12,6 +12,10 @@ class SenderReceiverPair:
 		self.receiver = receiver
 		self.sender = sender
 		self.emailList = []
+		self.public_ips = set()
+		self.private_ips = set()
+		self.public_domains = set()
+		self.private_domains = set()
 
 
 	def __str__(self):
@@ -92,10 +96,6 @@ class SenderReceiverProfile(dict):
 	def __init__(self, inboxPath):
 		self.inbox = mailbox.mbox(inboxPath)
 		self.analyze()
-		self.public_ips = set()
-		self.private_ips = set()
-		self.public_domains = set()
-		self.private_domains = set()
 		# self.writeReceivedHeadersToFile()
 
 	def analyze(self):
@@ -163,13 +163,9 @@ class receivedHeadersDetector(Detector):
 		total_emails_flagged = 0
 		total_srp_flagged = 0
 		invalidEmails = 0 # if a received header for an email doesn't have the "by" field
-		public_ips = set()
-		public_domains = set()
-		private_ips = set()
-		private_domains = set()
+		count = 0
 		for tup, srp in self.srp.items():
 			# {#: [[by1-1, by1-2], by2, .., by#], ...}
-			by_sequences = {}
 			flagSRP = False
 			for em in srp.emailList:
 				num_recHeaders = len(em.receivedHeaderList)
@@ -184,70 +180,42 @@ class receivedHeadersDetector(Detector):
 
 				# new length of received headers seen
 				# Do not flag
-				if not num_recHeaders in by_sequences.keys():
-					store = em.receivedHeaderList[0].breakdown["by"]
-					if extract_ip(store): # ip addr case
-						try:
-							obj = IPWhois(store)
-							public_ips.add(store)
-						except:
-							private_ips.add(store)
-						store = store[0:store[store.index(".")+1:].index(".") + store.index(".") + 1]
-						if (store[0] != '1' and store[1] != '0'):
-							import pdb; pdb.set_trace()
-					elif store.count(".") > 1 or len(store) > 15: # domain name case
-						try:
-							if whois.query(store):
-								public_domains.add(store)
-							else:
-								private_domains.add(store)
-						except:
-							private_domains.add(store)
-						store = store.split(".")[-2] + "." + store.split(".")[-1]
-					by_sequences[num_recHeaders] = [[store]]
-					for rh in range(1,num_recHeaders):
-						store = em.receivedHeaderList[rh].breakdown["by"]
-						if extract_ip(store): # ip addr case
-							store = store[0:store[store.index(".")+1:].index(".") + store.index(".") + 1]
-						elif store.count(".") > 1: # domain name case
-							store = store.split(".")[-2] + "." + store.split(".")[-1]
-						by_sequences[num_recHeaders].append([store])
-				else:
-					# length of received headers seen before
-					# flag if it doesn't match what has been seen before
-					seenRecHeaders = by_sequences[num_recHeaders]
-
-					for rh in range(num_recHeaders):
-						store = em.receivedHeaderList[rh].breakdown["by"]
-						if extract_ip(store): # ip addr case
-							try:
-								obj = IPWhois(store)
-								public_ips.add(store)
-							except:
-								private_ips.add(store)
-							store = store[0:store[store.index(".")+1:].index(".") + store.index(".") + 1]
-						elif store.count(".") > 1: # domain name case
-							try:
-								if whois.query(store):
-									public_domains.add(store)
-								else:
-									private_domains.add(store)
-							except:
-								private_domains.add(store)
-							store = store.split(".")[-2] + "." + store.split(".")[-1]
-						if not store in by_sequences[num_recHeaders][rh]:
-							# pdb.set_trace()
+				store = em.receivedHeaderList[0].breakdown["by"]
+				if extract_ip(store): # ip addr case
+					try:
+						obj = IPWhois(store)
+						if store not in srp.public_ips:
 							flagEmail = True
 							flagSRP = True
-							by_sequences[num_recHeaders][rh].append(store)
+							srp.public_ips.add(store)
+					except:
+						if store not in srp.private_ips:
+							# flagEmail = True
+							# flagSRP = True
+							srp.private_ips.add(store)
+				else: # domain name case
+					import pdb; pdb.set_trace()
+					try:
+						if whois.query(store):
+							if store not in srp.public_domains:
+								flagEmail = True
+								flagSRP = True
+								srp.public_domains.add(store)
+						else:
+							if store not in srp.private_domains:
+								# flagEmail = True
+								# flagSRP = True
+								srp.private_domains.add(store)
+					except:
+						if store not in srp.private_domains:
+							# flagEmail = True
+							# flagSRP = True
+							srp.private_domains.add(store)
 				if flagEmail:
 					total_emails_flagged += 1
 			if flagSRP:
 				total_srp_flagged += 1
-		print("Total Number of public ip's", len(public_ips))
-		print("Total Number of private ip's", len(private_ips))
-		print("Total Number of public domains", len(public_domains))
-		print("Total Number of private domains", len(private_domains))
+		print(count)
 		print("Total Number of Emails Flagged: " + str(total_emails_flagged))
 		print("Total Number of SRP's Flagged: " + str(total_srp_flagged))
 
