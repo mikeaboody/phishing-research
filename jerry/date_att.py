@@ -5,8 +5,8 @@ import re
 PATH_TO_INBOX_MBOX = "~/Documents/Fall15/research/Inbox.mbox"
 PATH_TO_ARCHIVE_MBOX = "~/Documents/Fall15/research/Archived.mbox"
 
-#inbox = mailbox.mbox(PATH_TO_INBOX_MBOX)
-archive = mailbox.mbox(PATH_TO_ARCHIVE_MBOX)
+inbox = mailbox.mbox(PATH_TO_INBOX_MBOX)
+#archive = mailbox.mbox(PATH_TO_ARCHIVE_MBOX)
 
 #Has day of week
 att1 = re.compile("Mon|Tue|Wed|Thu|Fri|Sat|Sun")
@@ -22,6 +22,8 @@ att5 = re.compile("Date:")
 att6 = re.compile(",\s")
 #Has three spaces
 att7 = re.compile(",\s\s\s")
+#Nonstring
+NONSTRING = -1
 
 #Has leading zero
 leading_zero = re.compile("(^|\s+)0[0-9]\s+")
@@ -54,6 +56,8 @@ class DateFormat:
 
     @staticmethod
     def att_binary(date_string):
+        if not isinstance(date_string, str):
+            return NONSTRING
         att_binary = 0
         for att in [att1, att2, att3, att4, att5, att6, att7]:
             if (re.search(att, date_string) is not None):
@@ -63,6 +67,8 @@ class DateFormat:
 
     @staticmethod
     def zero_status(date_string):
+        if not isinstance(date_string, str):
+            return 0
         if (re.search(leading_zero, date_string) is not None):
             return 1
         elif (re.search(no_leading_zero, date_string) is not None):
@@ -120,7 +126,7 @@ def process_mbox(mbox):
         sender = extract_name(email)
         date = email["Date"]
 
-        if sender is None or not isinstance(date, str):
+        if sender is None:
             continue
 
         if sender not in sender_to_email_map:
@@ -140,7 +146,7 @@ class Date_Detector(Detector):
         sender = self.extract_from(phish)
         date = phish["Date"]
 
-        if sender is None or not isinstance(date, str):
+        if sender is None:
             return None
 
         if sender in sender_to_date_data:
@@ -157,17 +163,25 @@ class Date_Detector(Detector):
         return True
 
 if __name__ == "__main__":
-    #process_mbox(inbox)
-    process_mbox(archive)
+    process_mbox(inbox)
+    #process_mbox(archive)
 
     num_detected = 0
     format_dist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    format_count = {}
 
     for sender, emails in sender_to_email_map.items():
         date_data = DateData()
         for date in emails:
             num_emails += 1
             date_data.process_date(date)
+
+            date_format = DateFormat.att_binary(date)
+            if date_format in format_count:
+                format_count[date_format] += 1
+            else:
+                format_count[date_format] = 1
+
         sender_to_date_data[sender] = date_data
         curr_detected = date_data.num_detected()
         num_detected += curr_detected
@@ -178,6 +192,7 @@ if __name__ == "__main__":
     print ("Num Detected:", num_detected)
     print ("False Detection:", num_detected/num_emails * 100, "%")
     print ("Distribution:", format_dist)
+    print ("Count", format_count)
 
-    d = Date_Detector(archive)
+    d = Date_Detector(inbox)
     print("Detection Rate: ", d.run_trials(), "%")
