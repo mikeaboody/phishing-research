@@ -3,6 +3,8 @@ import sys
 import mailbox
 import re
 import pdb
+import whois
+from ipwhois import IPWhois
 
 class SenderReceiverPair:
 
@@ -81,12 +83,6 @@ class ReceivedHeader:
 		#by is domain part of the message id's
 		#from is the name server
 
-
-	def extract_ip(self, content):
-		r = re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", content)
-		return r.group()
-
-
 	def __str__(self):
 		return str(self.breakdown)
 		# return "SMTP ID: " + str(self.SMTP_ID) + ", SMTP IP: " + str(self.SMTP_IP) + ", date: " + str(self.date)
@@ -96,7 +92,11 @@ class SenderReceiverProfile(dict):
 	def __init__(self, inboxPath):
 		self.inbox = mailbox.mbox(inboxPath)
 		self.analyze()
-		self.writeReceivedHeadersToFile()
+		self.public_ips = set()
+		self.private_ips = set()
+		self.public_domains = set()
+		self.private_domains = set()
+		# self.writeReceivedHeadersToFile()
 
 	def analyze(self):
 		for msg in self.inbox:
@@ -163,6 +163,10 @@ class receivedHeadersDetector(Detector):
 		total_emails_flagged = 0
 		total_srp_flagged = 0
 		invalidEmails = 0 # if a received header for an email doesn't have the "by" field
+		public_ips = set()
+		public_domains = set()
+		private_ips = set()
+		private_domains = set()
 		for tup, srp in self.srp.items():
 			# {#: [[by1-1, by1-2], by2, .., by#], ...}
 			by_sequences = {}
@@ -182,14 +186,28 @@ class receivedHeadersDetector(Detector):
 				# Do not flag
 				if not num_recHeaders in by_sequences.keys():
 					store = em.receivedHeaderList[0].breakdown["by"]
-					if re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", store): # ip addr case
+					if extract_ip(store): # ip addr case
+						try:
+							obj = IPWhois(store)
+							public_ips.add(store)
+						except:
+							private_ips.add(store)
 						store = store[0:store[store.index(".")+1:].index(".") + store.index(".") + 1]
+						if (store[0] != '1' and store[1] != '0'):
+							import pdb; pdb.set_trace()
 					elif store.count(".") > 1 or len(store) > 15: # domain name case
+						try:
+							if whois.query(store):
+								public_domains.add(store)
+							else:
+								private_domains.add(store)
+						except:
+							private_domains.add(store)
 						store = store.split(".")[-2] + "." + store.split(".")[-1]
 					by_sequences[num_recHeaders] = [[store]]
 					for rh in range(1,num_recHeaders):
 						store = em.receivedHeaderList[rh].breakdown["by"]
-						if re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", store): # ip addr case
+						if extract_ip(store): # ip addr case
 							store = store[0:store[store.index(".")+1:].index(".") + store.index(".") + 1]
 						elif store.count(".") > 1: # domain name case
 							store = store.split(".")[-2] + "." + store.split(".")[-1]
@@ -201,9 +219,21 @@ class receivedHeadersDetector(Detector):
 
 					for rh in range(num_recHeaders):
 						store = em.receivedHeaderList[rh].breakdown["by"]
-						if re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", store): # ip addr case
+						if extract_ip(store): # ip addr case
+							try:
+								obj = IPWhois(store)
+								public_ips.add(store)
+							except:
+								private_ips.add(store)
 							store = store[0:store[store.index(".")+1:].index(".") + store.index(".") + 1]
 						elif store.count(".") > 1: # domain name case
+							try:
+								if whois.query(store):
+									public_domains.add(store)
+								else:
+									private_domains.add(store)
+							except:
+								private_domains.add(store)
 							store = store.split(".")[-2] + "." + store.split(".")[-1]
 						if not store in by_sequences[num_recHeaders][rh]:
 							# pdb.set_trace()
@@ -214,6 +244,10 @@ class receivedHeadersDetector(Detector):
 					total_emails_flagged += 1
 			if flagSRP:
 				total_srp_flagged += 1
+		print("Total Number of public ip's", len(public_ips))
+		print("Total Number of private ip's", len(private_ips))
+		print("Total Number of public domains", len(public_domains))
+		print("Total Number of private domains", len(private_domains))
 		print("Total Number of Emails Flagged: " + str(total_emails_flagged))
 		print("Total Number of SRP's Flagged: " + str(total_srp_flagged))
 
@@ -226,6 +260,10 @@ class receivedHeadersDetector(Detector):
 			prefix2 = ip2[0:ip2[ip2.index(".")+1:].index(".") + ip2.index(".") + 1]
 			return prefix1 == prefix2
 		return False
+
+def extract_ip(content):
+	r = re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", content)
+	return r.group() if r else None
 
 file_name = sys.argv[1]
 myEmail = sys.argv[2]
