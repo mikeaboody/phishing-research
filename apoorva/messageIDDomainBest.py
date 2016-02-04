@@ -139,7 +139,7 @@ class messageIDDomain_Detector(Detector):
                     no_messageIDDomain += 1
                     if sender not in sender_profile.keys():
                         sender_profile[sender] = set([])
-                    sender_profile[sender].append("None")
+                    sender_profile[sender].add("None")
                 else:
                     wasntInSenderProfile = False
                     if sender in sender_profile.keys():
