@@ -7,12 +7,15 @@ import pprint
 from random import randint
 import sys
 import matplotlib.pyplot as plt
+import numpy as np
 from Levenshtein import distance
 import editdistance
 
 class Content_Type_Detector(Detector):
-    def __init__(self, inbox):
+    def __init__(self, inbox, num_header, threshold):
         self.inbox = inbox
+        self.threshold = threshold
+        self.num_header = num_header
         self.create_sender_profile()
         # [content-type, charset, boundary]
         self.detections = {"content-type": 0, "charset": 0, "boundary": 0}
@@ -38,6 +41,16 @@ class Content_Type_Detector(Detector):
             return text[1:len(text) - 1]
         return text
         
+    def edit_distance_thresh(self, orig, curr):
+        """Returns True if ORIG and CURR are <= self.threshold edit
+           distance apart. Assumes ORIG has been converted to a list,
+           and CURR has not been. """
+        curr = self.convert_to_list(curr)
+        diff = editdistance.eval(orig, curr)
+        if diff <= self.threshold:
+            return True
+        return False
+
     def classify(self, phish):
         sender = self.extract_from(phish)
         sender = self.inbox[randint(0, len(self.inbox)-1)]['From']
@@ -45,20 +58,8 @@ class Content_Type_Detector(Detector):
         new_val = self.convert_to_list(ordering)
         phishy = True
         if sender in self.sender_profile.keys():
-            #print(ordering)
-            #print("==========vvvvvv===========")
-            #printInfo(phish)
-            #print(self.find_ordering_real(phish, name=True))
-            #print("==========^^^^^^===========")
-            #print(self.sender_profile[sender])
             for o in list(self.sender_profile[sender]):
-                existing_val = self.convert_to_list(o)
-                #print(ordering)
-                #print(o)
-                diff = editdistance.eval(new_val, existing_val)
-                #print(diff)
-                #print("=== up ===")
-                if diff <= 7:
+                if self.edit_distance_thresh(new_val, o):
                     phishy = False
                     break
         else:
@@ -77,9 +78,7 @@ class Content_Type_Detector(Detector):
             seen = list(self.sender_profile[sender])
             new_val = self.convert_to_list(value)
             for ordering in seen:
-                existing_val = self.convert_to_list(ordering)
-                diff = editdistance.eval(new_val, existing_val)
-                if diff <= 7:
+                if self.edit_distance_thresh(new_val, ordering):
                     new_format = 0
                     break
         #if value not in self.sender_profile[sender]:
@@ -145,16 +144,28 @@ class Content_Type_Detector(Detector):
     def modify_header(self, header):
         """ Edits header name before lookup/adding in header map. 
             Truncation happens here. """
-        # Case 1: use entire header
-        #return header
-        # Case 2: truncate after first dash
-        parts = header.split("-", 2)
-        return parts[0]
-        # Case 3: truncate after second dash
-        #if len(parts) == 1:
+        ## Case 1: use entire header
+        #if self.num_header > 3:
+        #    return header
+        ## Case 2: truncate after first dash
+        #parts = header.split("-", 4)
+        #if self.num_header == 1:
         #    return parts[0]
+        ## Case 3: truncate after second dash
+        #if self.num_header == 2:
+        #    if len(parts) == 1:
+        #        return parts[0]
         #else:
         #    return parts[0] + "-" + parts[1]
+        res = ""
+        parts = header.split("-")
+        for i in range(self.num_header):
+            if i > len(parts) - 1:
+                break
+            res += parts[i] + "-"
+        return res[:-1]
+
+
 
     def ordering_to_name(self, ordering):
         """ Takes ordering number string and converts to header name. """
@@ -202,7 +213,7 @@ class Content_Type_Detector(Detector):
         print_order = sorted( ((v, k) for k, v in self.entire_attribute.items()), reverse=True)
         print_named_order = sorted( ((v, k) for k, v in self.full_order.items()), reverse=True)
         print("Avg number of headers = %d" % (avg_length / self.emails_with_sender))
-
+        self.falsies = self.false_alarms / self.emails_with_sender * 100
 
         #printing all
        # for k, v in print_order:
@@ -253,7 +264,6 @@ class Content_Type_Detector(Detector):
                 one = list(ordering)[0].split(" ")
                 two = list(ordering)[1].split(" ")
                 count_diff = self.add_dict(count_diff, int(editdistance.eval(one, two)))
-                print(ordering)
         #pprint.pprint(len_ordering)
         pprint.pprint(count_diff)
 
@@ -292,12 +302,11 @@ class Content_Type_Detector(Detector):
         uniqueSenders = len(self.sender_profile.keys())
         total_emails = len(self.inbox)
         four = (functools.reduce(lambda x, y : x + y, self.ordering_used[:4])) / uniqueSenders * 100
-
         print("Total emails = " + str(total_emails))
         print("Emails with sender = " + str(self.emails_with_sender))
         print("unique Senders = " + str(uniqueSenders))
         print("distribution_of_num_ordering_used = " + str(self.ordering_used))
-        print("false alarm rate ordering format = %.2f percent" % (self.false_alarms / self.emails_with_sender * 100 ))
+        print("false alarm rate ordering format = %.2f percent" % (self.falsies))
         print("percent of senders with <=4 ordering formats used = %.3f" % (four))
 
 def printInfo(msg):
@@ -305,16 +314,70 @@ def printInfo(msg):
     print(msg["Content-Type"])
     print(msg["Subject"])
 
+
+#file_name = "~/emails/Inbox500.mbox"
+#inbox = mailbox.mbox(file_name)
+#d = Content_Type_Detector(inbox, 1)
+#d.interesting_stats()
+#d.analyzing_sender_profile()
+##d.graph_distribution()
+#print("detection rate = " + str(d.run_trials()))
+
+
+def graph_rate_file():
+    import csv
+    with open("rates_with_diff_thresh.csv", "r") as r_file:
+        reader = csv.reader(r_file, delimiter=',')
+        r_dict = {}
+        r_list = []
+        c_list = []
+        for i, row in enumerate(reader):
+            if i == 0:
+                continue
+            cond = (row[0], row[1])
+            ratio = float(row[2]) / float(row[3])
+            r_list.append(ratio)
+            c_list.append(cond)
+            r_dict[cond] = ratio
+        ind = np.argmax(r_list)
+        bestC = c_list[ind]
+        bestR = r_list[ind]
+        print(bestC)
+        print(bestR)
+        plt.plot([x for x in range(len(r_list))], r_list, 'bo', markersize=3)
+       # plt.xlabel("Total number of Orderings used")
+       # plt.ylabel("Number of Senders")
+       # plt.title("Distribution of Ordering Formats used across Senders")
+        plt.show() 
+        
+        
+
+def write_rate_files():
+    import csv
+    thresh_list = [3, 5, 7, 9, 10, 12]
+    num_heads = [1, 2, 3, 4, 100]
+    titles = ["threshold", "header_length", "detection_rates", "falsealarm_rates"]
+    with open("rates_with_diff_thresh.csv", 'w') as d_file:
+            d_writer = csv.writer(d_file, delimiter=',')
+            d_writer.writerow(titles)
+            for thresh in thresh_list:
+                for header_length in num_heads:
+                    d = Content_Type_Detector(inbox, header_length, thresh)
+                    detection_rate = str(d.run_trials())
+                    false_alarm = d.falsies
+                    print("header length = %d, threshold = %d" % (header_length, thresh))
+                    print("detection rate = " + detection_rate)
+                    print("false alarm rate = %.2f percent" % (false_alarm))
+                    d_writer.writerow([str(thresh), str(header_length), detection_rate, str(false_alarm)])
+            
 file_name = "~/emails/Inbox.mbox"
-inbox = mailbox.mbox(file_name)
-d = Content_Type_Detector(inbox)
-d.interesting_stats()
-d.analyzing_sender_profile()
-#d.graph_distribution()
-print("detection rate = " + str(d.run_trials()))
+#inbox = mailbox.mbox(file_name)
+graph_rate_file()
 
 
-edit_dist = distance("0 1 2 0 3 2 4 5 10 8 12 13", "0 1 2 0 3 2 4 5 7 10 11 8")
-print(edit_dist)
-print(editdistance.eval(["0", "1", "2", "20"], ["0", "1", "20", "8"]))
-print(editdistance.eval([0, 1, 2, 20], [0, 1, 20, 8]))
+
+
+
+"""Line 12 and 17 in rates file.
+   being stricter, higher false alarm rates, higher detection
+   more lax, lower false alarm, lower detection"""
