@@ -34,6 +34,7 @@ def test():
         score = clf.score(val_X, val_Y)
         print("Using {} training examples and {}, score is {}.".format(
             validation_index, key, score))
+    print("")
 
 def sample_data():
     for i in range(100):
@@ -52,11 +53,10 @@ def validate_data():
                     false_classify[j] += 1
         elif Y[i][0] == 1:
             total_phish += 1
-            # print X[j]
             for j in range(d):
                 if X[i][j] != Y[i][0]:
                     detection_fail[j] += 1
-    print("Total number of phishing emails: {}. Failed detection rates: {}".format(total_phish, np.divide(detection_fail, total_phish)))
+    print("Total number of phishing emails: {}. Detection rates: {}".format(total_phish, 1 - np.divide(detection_fail, total_phish)))
     print("Total number of legit emails: {}. False classify rates: {}".format(total_legit, np.divide(false_classify, total_legit)))
     """
     Total number of phishing emails: 2500. Failed detection rates: [ 0.808   0.808   0.9936  0.9988  0.9996]
@@ -64,6 +64,5 @@ def validate_data():
     Out of 2500 phish, 1013 new.
     """
 
-# test()
-# sample_data()
+test()
 validate_data()
