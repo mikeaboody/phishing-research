@@ -1,16 +1,12 @@
-from __future__ import division
-from detector import Detector
 import mailbox
 import re
-import functools
-import pprint
 import sys
-import matplotlib.pyplot as plt
 
-class Content_Type_Detector(Detector):
+from detector import Detector
+
+class ContentTypeDetector(Detector):
     def __init__(self, inbox):
         self.inbox = inbox
-        self.create_sender_profile()
         # [content-type, charset, boundary]
         self.detections = {"content-type": 0, "charset": 0, "boundary": 0}
 
@@ -74,7 +70,7 @@ class Content_Type_Detector(Detector):
         res += curr
         res = self.modify_partition(res)
         return res
-    
+
     def modify_partition(self, text):
         case1 = ['"-@-@-@=:@"', "-@-@-@=:@"]
         case2 = ['"_av-@-@-@"', '"_av-@-@"', '"_av-@"', "_av-@-@-@", "_av-@-@", "_av-@"]
@@ -108,13 +104,16 @@ class Content_Type_Detector(Detector):
         else:
             # case: boundary, charset, etc
             value = att_val[1]
-        return attr.lower(), None if value is None else value.lower() 
-    
+        return attr.lower(), None if value is None else value.lower()
+
     def classify(self, phish):
         sender = self.extract_from(phish)
         entire_ct = self.get_entire_content(phish)
         processed_ct = self.process(entire_ct)
         detect = False
+        if not processed_ct:
+            if None not in self.sender_profile[sender].keys():
+                detect = True
         for attr, value in processed_ct.items():
             if sender in self.sender_profile.keys():
                 if attr not in self.sender_profile[sender].keys() or value not in self.sender_profile[sender][attr]:
@@ -122,7 +121,8 @@ class Content_Type_Detector(Detector):
                         self.detections[attr] += 1
                     detect = True
             else:
-                print("Sender was not found in sender_profile: %s" % (sender))
+                # print("Sender was not found in sender_profile: %s" % (sender))
+                pass
         return detect
 
     def update_sender_profile(self, attr, value, sender):
@@ -151,10 +151,10 @@ class Content_Type_Detector(Detector):
         plt.xlabel("Total number of boundary formats used")
         plt.ylabel("Number of Senders")
         plt.title("Distribution of Total Boundary Formats used across Senders")
-        plt.show() 
+        plt.show()
         return
-    
-    def create_sender_profile(self):
+
+    def create_sender_profile(self, num_samples):
         self.emails_with_sender = 0
         self.no_content_type = 0
         # [content-type, charset, boundary]
@@ -163,24 +163,25 @@ class Content_Type_Detector(Detector):
         self.false_alarm = {"content-type": 0, "charset": 0, "boundary": 0}
         self.sender_profile = {}
         self.entire_attribute = {}
-        for msg in self.inbox:
+        for i in range(num_samples):
+            msg = self.inbox[i]
             sender = self.extract_from(msg)
             if sender:
                 self.emails_with_sender += 1
                 entire_ct = self.get_entire_content(msg)
                 processed_ct = self.process(entire_ct)
                 new_format = 0
+                if not processed_ct:
+                    self.update_sender_profile(None, None, sender)
                 for attr, value in processed_ct.items():
-                    new = self.update_sender_profile(attr, value, sender) 
+                    new = self.update_sender_profile(attr, value, sender)
                     new_format += new
                     if new:
                         self.false_alarm[attr] += 1
                     self.update_entire_attribute(attr, value)
             if new_format > 0:
                 self.combined_false += 1
-        pprint.pprint(self.entire_attribute)
-        print(self.false_alarm)
-        print(len(self.entire_attribute["boundary"]))
+
 
     def trim_distributions(self, distr):
         while distr[len(distr)-1] == 0:
@@ -200,67 +201,4 @@ class Content_Type_Detector(Detector):
                         num_special_format += 1
         print("Number of senders with >1 boundary format = " + str(num_mult_format))
         print("Number of senders with '@' as a format = " + str(num_special_format))
-        print("#@ / #>1 = %.2f" % (num_special_format / num_mult_format)) 
-
-
-    def interesting_stats(self):
-        num_ct_used = [0]*10
-        num_charset_used = [0]*10
-        num_boundary_format_used = [0]*10
-        troll = 0
-        for distr in self.sender_profile.values():
-            for attr in distr.keys():
-                values = distr[attr]
-                num_formats = len(values) - 1
-                if attr == "content-type":
-                    num_ct_used[num_formats] += 1
-                elif attr == "charset":
-                    num_charset_used[num_formats] += 1
-                elif attr == "boundary":
-                    total_len = len(num_boundary_format_used)
-                    if num_formats >= total_len:
-                        num_boundary_format_used.extend([0] * (num_formats - total_len + 1))
-                    num_boundary_format_used[num_formats] += 1
-        self.num_ct_used = self.trim_distributions(num_ct_used)
-        self.num_charset_used = self.trim_distributions(num_charset_used)
-        self.num_boundary_format_used = self.trim_distributions(num_boundary_format_used)
-        uniqueSenders = len(self.sender_profile.keys())
-        total_emails = len(self.inbox)
-        singleContent = self.num_ct_used[0] / uniqueSenders * 100
-        multipleContent = (functools.reduce(lambda x, y : x + y, self.num_ct_used[1:]) / uniqueSenders * 100)
-        
-        four = (functools.reduce(lambda x, y : x + y, self.num_boundary_format_used[:4])) / uniqueSenders * 100
-        ct_table = self.entire_attribute["content-type"] 
-        for k in ct_table:
-            print("%s : %d ~ %.2f" % (k, ct_table[k], ct_table[k]/total_emails * 100) + "%")
-
-        print("Total emails = " + str(total_emails))
-        print("Emails with sender = " + str(self.emails_with_sender))
-        print("Emails with no content type = " + str(self.no_content_type))
-        print("unique Senders = " + str(uniqueSenders))
-        print("distribution_of_num_ct_used = " + str(self.num_ct_used))
-        print("distribution_of_num_charset_used = " + str(self.num_charset_used))
-        print("distribution_of_num_boundary_format_used = " + str(self.num_boundary_format_used))
-        print("new_ct_formats = " + str(self.false_alarm["content-type"]))
-        print("false alarm rate Content-Type = %.2f percent" % (self.false_alarm["content-type"] / self.emails_with_sender * 100 ))
-        print("false alarm rate Charset types = %.2f percent" % (self.false_alarm["charset"] / self.emails_with_sender * 100 ))
-        print("false alarm rate Boundary format = %.2f percent" % (self.false_alarm["boundary"] / self.emails_with_sender * 100 ))
-        print("combined false alarm rate = %.2f percent" % (self.combined_false / self.emails_with_sender * 100 ))
-        print("percent of senders with only 1 CT, 1+ CT = %.3f, %.3f" % (singleContent, multipleContent))
-        print("percent of senders with <=4 boundary formats used = %.3f" % (four))
-
-def printInfo(msg):
-    print(msg["From"])
-    print(msg["Content-Type"])
-    print(msg["Subject"])
-
-file_name = "~/emails/Inbox500.mbox"
-inbox = mailbox.mbox(file_name)
-d = Content_Type_Detector(inbox)
-d.interesting_stats()
-d.analyzing_sender_profile()
-#d.graph_distribution()
-print("combined detection rate = " + str(d.run_trials()))
-print("detection for content-type = " + str(d.detections["content-type"] / 10))
-print("detection for charset = " + str(d.detections["charset"] / 10))
-print("detection for boundary = " + str(d.detections["boundary"] / 10))
+        print("#@ / #>1 = %.2f" % (num_special_format / num_mult_format))

@@ -12,9 +12,13 @@ class Detector(object):
     @abc.abstractmethod
     def create_sender_profile(self, num_samples):
         """Creates sender to profile map.
-           Ex: sender_profile = {}
-               sender_profile["jenna"] = set(["text/plain", "multipart/mixed"])
-           return: sender_profile.
+
+        Keyword arguments:
+        num_samples -- number of samples to train sender profile on.
+
+        Sets self.sender_profile to a dictionary mapping senders to profiles.
+
+        Returns self.sender_profile.
         """
         return
 
@@ -22,22 +26,44 @@ class Detector(object):
     def classify(self, phish):
         """Determine if phish is detected as a phishing email by checking if
            it is in the sender's profile.
-           input: type(phish) = mailbox.Message
-           return: boolean value. """
+
+        Keyword arguments:
+        phish -- an instance of mailbox.Message representing the message to
+        classify.
+
+        Returns True if the detector classifies phish as a phishy email, False
+        otherwise.
+        """
         return
 
     @abc.abstractmethod
     def modify_phish(self, phish, msg):
-        """Adds the desired email header field from msg to phish.
-           input: type(msg) = mailbox.Message
-           input: type(phish) = mailbox.Message
-           return: phish. """
+        """Adds the desired email header field(s) from msg to phish.
+
+        Keyword arguments:
+        msg -- an instance of mailbox.Message representing the original email.
+        phish -- an instance of mailbox.Message representing the generated
+        phishy email.
+
+        Note: Once you set an email header field in a mailbox.Message instance,
+        that key, value pair becomes immutable.
+
+        Returns phish.
+        """
         return
                           
     def extract_from(self, msg):
+        """Extracts the sender from an email.
+
+        Keyword arguments:
+        msg -- an instance of mailbox.Message
+
+        Returns the sender stored in msg's From header.
+        """
         return msg["From"]
 
     def make_phish(self):
+        """Generates a phishy email."""
         has_sender = None
         random_msg = None
         random_from = None
@@ -55,6 +81,14 @@ class Detector(object):
         return phish
     
     def run_trials(self, num_trials=1000):
+        """Determines the classification rate of this detector.
+
+        Keyword arguments:
+        num_trials -- number of trials to test on.
+
+        Returns the proportion of phishy emails that this detector successfully
+        detected.
+        """
         self.detected = 0
         for i in range(num_trials):
             phish = self.make_phish()

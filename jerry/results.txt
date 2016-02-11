@@ -1,0 +1,35 @@
+Results Using Archive (464638 emails):
+
+Timezone:
+Num Emails: 464638
+Num Detected: 381
+False Detection: 0.08199931990065384%
+Distribution: [1060, 209, 49, 11, 7, 1, 0, 0, 1, 0]
+Timezone Counts: {'-0000': 888, '+0600': 1, '+0300': 10, '+0330': 1, '+0900': 10, '+0200': 120, '+0530': 4, '+0000': 4122, '-0600': 188, '+1200': 2, '+1000': 8, '-0500': 421, '+0800': 2621, '-0400': 570, '+0100': 68, '-0700': 28074, '+0700': 11, '+0930': 1, '+1100': 4, '-0200': 1, None: 389611, '-1000': 2, '-0800': 37900}
+Detection Rate = 4.3999999999999995%
+
+Date Format:
+Num Emails: 464638
+Num Detected: 89
+False Detection: 0.019154696774693416%
+Distribution: [1266, 65, 7, 0, 0, 0, 0, 0, 0, 0]
+Count {82: 788, 78: 2, 8: 168, 74: 14286, 106: 60571, -1: 388823}
+Detection Rate:  5.3%
+
+Results Using Inbox (1090 emails):
+
+Timezone:
+Num Emails: 1090
+Num Detected: 14
+False Detection: 1.2844036697247707%
+Distribution: [118, 12, 1, 0, 0, 0, 0, 0, 0, 0]
+Timezone Counts: {'+0800': 12, '-0000': 35, '-0800': 10, '-0500': 23, '-0400': 87, '+0700': 1, '-0700': 350, '+0000': 518, '-0600': 45, None: 8, '+0900': 1}
+Detection Rate = 62.9%
+
+Date Format:
+Num Emails: 1090
+Num Detected: 6
+False Detection: 0.5504587155963303%
+Distribution: [125, 6, 0, 0, 0, 0, 0, 0, 0, 0]
+Count {8: 4, 74: 820, 82: 8, 106: 258}
+Detection Rate:  43.5%

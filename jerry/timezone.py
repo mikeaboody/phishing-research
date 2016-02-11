@@ -5,8 +5,8 @@ import re
 PATH_TO_INBOX_MBOX = "~/Documents/Fall15/research/Inbox.mbox"
 PATH_TO_ARCHIVE_MBOX = "~/Documents/Fall15/research/Archived.mbox"
 
-#inbox = mailbox.mbox(PATH_TO_INBOX_MBOX)
-archive = mailbox.mbox(PATH_TO_ARCHIVE_MBOX)
+inbox = mailbox.mbox(PATH_TO_INBOX_MBOX)
+#archive = mailbox.mbox(PATH_TO_ARCHIVE_MBOX)
 
 #Has timezone abbrev
 #att2 = re.compile("\(?[A-Z][A-Z][A-Z]\)?")
@@ -30,6 +30,8 @@ class Timezone:
 
     @staticmethod
     def convert_to_timezone_string(date_string):
+        if not isinstance(date_string, str):
+            return None
         match = re.search(timezone_re, date_string)
         if match is not None:
             return match.group(0)
@@ -77,7 +79,7 @@ def process_mbox(mbox):
         sender = extract_name(email)
         date = email["Date"]
 
-        if sender is None or not isinstance(date, str):
+        if sender is None:
             continue
 
         if sender not in sender_to_email_map:
@@ -97,7 +99,7 @@ class Date_Detector(Detector):
         sender = self.extract_from(phish)
         date = phish["Date"]
 
-        if sender is None or not isinstance(date, str):
+        if sender is None:
             return None
 
         if sender in sender_to_date_data:
@@ -114,8 +116,8 @@ class Date_Detector(Detector):
 
 
 if __name__ == "__main__":
-    #process_mbox(inbox)
-    process_mbox(archive)
+    process_mbox(inbox)
+    #process_mbox(archive)
 
     num_detected = 0
     timezone_dist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -144,8 +146,7 @@ if __name__ == "__main__":
     print ("Num Detected:", num_detected)
     print ("False Detection:", num_detected/num_emails)
     print ("Distribution:", timezone_dist)
-    print ("Timezone Counts", timezone_count)
+    print ("Timezone Counts:", timezone_count)
 
-
-    d = Date_Detector(archive)
+    d = Date_Detector(inbox)
     print("Detection Rate = " + str(d.run_trials()))

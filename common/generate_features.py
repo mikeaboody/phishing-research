@@ -8,6 +8,7 @@ Requirements:
 -Python 2.7
 -numpy ('pip install numpy')
 -scipy ('pip install scipy')
+-editdistance ('pip install editdistance')
 
 The output of your file will be a .mat file. The data will be accessible using
 the following keys:
@@ -25,13 +26,19 @@ import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
+from order_of_headers import OrderOfHeaderDetector
+from content_type import ContentTypeDetector
+from date_att import DateFormatDetector
+from timezone import DateTimezoneDetector
+
+import sys
 
 PHISHING_FILENAME = 'phish.mbox'
 REGULAR_FILENAME = 'regular.mbox'
 # REGULAR_FILENAME = 'Inbox.mbox'
 TEST_FILENAME = 'test.mbox'
 # Using 'matthew_berkeley.mbox'
-NUM_DATA = 5000
+NUM_DATA = 1000
 
 ############
 # FEATURES #
@@ -43,11 +50,12 @@ defined in detector.py.
 """
 
 features = [
-    # fc.MessageIdDetectorOne,
-    # fc.MessageIdDetectorTwo,
-    fc.messageIDDomain_Detector,
-    fc.ContentTypeDetector,
-    fc.ContentTransferEncodingDetector,
+    DateFormatDetector,
+    DateTimezoneDetector,
+    fc.MessageIdDetectorOne,
+    # fc.messageIDDomain_Detector,
+    ContentTypeDetector,
+    OrderOfHeaderDetector,
     fc.XMailerDetector
 ]
 
@@ -63,12 +71,19 @@ def make_phish(test_mbox):
     sender = None
     random_msg = None
     random_from = None
-    while not sender:
-        random_msg = test_mbox[np.random.randint(0, len(test_mbox))]
-        random_from = test_mbox[np.random.randint(0, len(test_mbox))]
+    # Want to make sure we've seen sender before.
+    while not sender or sender not in detectors[0].sender_profile:
+        i, j = np.random.randint(0, len(test_mbox)), np.random.randint(0, len(test_mbox))
+        random_msg = test_mbox[i]
+        random_from = test_mbox[j]
         sender = random_from['From']
 
+    if sender == random_msg['From']:
+        print ('repeat sender: {}'.format(sender))
     phish = mailbox.mboxMessage()
+    phish['From'] = sender
+    phish['To'] = random_msg['To']
+    phish['Subject'] = random_msg['Subject']
     for key in random_msg.keys():
         phish[key] = random_msg[key]
     phish['From'] = sender
@@ -86,7 +101,7 @@ def generate_data_matrix(phishing_mbox, regular_mbox):
         for j, detector in enumerate(detectors):
             data_matrix[row_index][j] = 1 if detector.classify(regular_mbox[i]) else 0
         row_index += 1
-    for i in range(NUM_DATA / 2):
+    for _ in range(NUM_DATA / 2):
         phish_email = phishing_mbox[i] if phishing_mbox else make_phish(regular_mbox)
         for j, detector in enumerate(detectors):
             data_matrix[row_index][j] = 1 if detector.classify(phish_email) else 0
@@ -104,7 +119,7 @@ def generate_test_matrix(test_mbox):
         for j, detector in enumerate(detectors):
             test_data_matrix[row_index][j] = 1 if detector.classify(test_mbox[i]) else 0
         row_index += 1
-    for i in range(num_test_points):
+    for _ in range(num_test_points):
         phish_email = make_phish(test_mbox)
         for j, detector in enumerate(detectors):
             test_data_matrix[row_index][j] = 1 if detector.classify(phish_email) else 0
@@ -141,22 +156,22 @@ else:
     print("No phishing emails provided.")
     phishing_emails = None
 regular_emails = mailbox.mbox(REGULAR_FILENAME)
-test_emails = mailbox.mbox(TEST_FILENAME)
+# test_emails = mailbox.mbox(TEST_FILENAME)
 NUM_PRE_TRAINING = len(regular_emails) - NUM_DATA / 2
 detectors = build_detectors(regular_emails)
 X = generate_data_matrix(phishing_emails, regular_emails)
 Y = generate_labels(phishing_emails, regular_emails)
-test_X = generate_test_matrix(test_emails)
-test_Y = generate_test_labels(test_emails)
+# test_X = generate_test_matrix(test_emails)
+# test_Y = generate_test_labels(test_emails)
 
 file_dict = {}
 file_dict['training_data'] = X
 file_dict['training_labels'] = Y
-file_dict['test_data'] = test_X
-file_dict['test_labels'] = test_Y
+# file_dict['test_data'] = test_X
+# file_dict['test_labels'] = test_Y
 sio.savemat('phishing_data.mat', file_dict)
 end_time = time.clock()
 
 print("Data matrix has been generated. There are {} total training points and {} total features.".format(len(X), len(X[0])))
-print("Test matrix has been generated. There are {} total test points and {} total features.".format(len(test_X), len(test_X[0])))
+# print("Test matrix has been generated. There are {} total test points and {} total features.".format(len(test_X), len(test_X[0])))
 print("The script took {} seconds.".format(end_time - start_time))
