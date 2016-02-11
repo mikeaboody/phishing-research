@@ -32,7 +32,7 @@ class OrderOfHeaderDetector(Detector):
     def classify(self, phish):
         sender = self.extract_from(phish)
         sender = self.inbox[randint(0, len(self.inbox)-1)]['From']
-        ordering = self.find_ordering(phish, error=True)
+        ordering = self.find_ordering(phish, error=False)
         new_val = self.convert_to_list(ordering)
         phishy = True
         if sender in self.sender_profile.keys():

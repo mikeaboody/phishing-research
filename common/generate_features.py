@@ -28,6 +28,8 @@ import scipy.io as sio
 import feature_classes as fc
 from order_of_headers import OrderOfHeaderDetector
 from content_type import ContentTypeDetector
+from date_att import DateFormatDetector
+from timezone import DateTimezoneDetector
 
 import sys
 
@@ -48,6 +50,8 @@ defined in detector.py.
 """
 
 features = [
+    DateFormatDetector,
+    DateTimezoneDetector,
     fc.MessageIdDetectorOne,
     # fc.messageIDDomain_Detector,
     ContentTypeDetector,
