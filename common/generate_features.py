@@ -8,6 +8,7 @@ Requirements:
 -Python 2.7
 -numpy ('pip install numpy')
 -scipy ('pip install scipy')
+-editdistance ('pip install editdistance')
 
 The output of your file will be a .mat file. The data will be accessible using
 the following keys:
@@ -25,11 +26,15 @@ import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
+from order_of_headers import OrderOfHeaderDetector
+from content_type import ContentTypeDetector
+
+import sys
 
 PHISHING_FILENAME = 'phish.mbox'
-REGULAR_FILENAME = 'regular.mbox'
+REGULAR_FILENAME = 'troll.mbox'
 # REGULAR_FILENAME = 'Inbox.mbox'
-TEST_FILENAME = 'test.mbox'
+TEST_FILENAME = 'troll2.mbox'
 # Using 'matthew_berkeley.mbox'
 NUM_DATA = 1000
 
@@ -45,7 +50,8 @@ defined in detector.py.
 features = [
     fc.MessageIdDetectorOne,
     # fc.messageIDDomain_Detector,
-    fc.ContentTypeDetector,
+    ContentTypeDetector,
+    OrderOfHeaderDetector,
     fc.XMailerDetector
 ]
 
