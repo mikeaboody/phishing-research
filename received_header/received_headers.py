@@ -100,8 +100,8 @@ class SenderReceiverProfile(dict):
 
 	def analyze(self):
 		for msg in self.inbox:
-			if "List-Unsubscribe" not in msg:
-				self.appendEmail(msg)
+			# if "List-Unsubscribe" not in msg:
+			self.appendEmail(msg)
 
 
 	def appendEmail(self, msg):
@@ -152,12 +152,14 @@ class receivedHeadersDetector(Detector):
 	EDIT_DISTANCE_THRESHOLD = 1
 	def __init__(self):
 		self.srp = self.create_sender_profile()
+		self.inbox = self.srp.inbox
 
 	def modify_phish(self, phish, msg):
-		msgHeaders = msg.get_all("Received")[:]
 		del phish["Received"]
-		for i in range(len(msgHeaders)):
-			phish["Received"] = msgHeaders[i]
+		if msg.get_all("Received"):
+			msgHeaders = msg.get_all("Received")[:]
+			for i in range(len(msgHeaders)):
+				phish["Received"] = msgHeaders[i]
 		return phish
 
 	def classify(self, phish):
@@ -167,38 +169,40 @@ class receivedHeadersDetector(Detector):
 		if (sender, receiver) not in self.srp:
 			raise Exception()
 		srp = self.srp[(sender, receiver)]
-		for recHeader in phish.get_all("Received"):
-			if not "from" in recHeader.breakdown.keys():
-				numRHwoFrom += 1
-				RHList.append("None")
-				continue
-			elif self.public_IP(recHeader.breakdown["from"]):
-				ip = self.public_IP(recHeader.breakdown["from"])
-			elif self.public_domain(recHeader.breakdown["from"]):
-				ip = self.public_domain(recHeader.breakdown["from"])
-			else:
-				# RHList.append("InvalidFrom")
-				RHList.append("Invalid")
-				continue
-			try:
-				# import pdb; pdb.set_trace()
-				if ip in self.seen_pairings.keys():
-					RHList.append(self.seen_pairings[ip])
+		if phish.get_all("Received"):
+			for recHeader in phish.get_all("Received"):
+				recHeader = ReceivedHeader(recHeader)
+				if not "from" in recHeader.breakdown.keys():
+					RHList.append("None")
+					continue
+				elif self.public_IP(recHeader.breakdown["from"]):
+					ip = self.public_IP(recHeader.breakdown["from"])
+				elif self.public_domain(recHeader.breakdown["from"]):
+					ip = self.public_domain(recHeader.breakdown["from"])
 				else:
-					obj = IPWhois(ip)
-					results = obj.lookup()
-					if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
-						cidr = ip + "/32"
+					# RHList.append("InvalidFrom")
+					RHList.append("Invalid")
+					continue
+				try:
+					# import pdb; pdb.set_trace()
+					if ip in self.seen_pairings.keys():
+						RHList.append(self.seen_pairings[ip])
 					else:
-						cidr = results["nets"][0]["cidr"]
-					RHList.append(cidr)
-					self.seen_pairings[ip] = cidr
-			except:
-				# RHList.append("InvalidIPWhoIs")
-				RHList.append("Invalid")
-				self.seen_pairings[ip] = "Invalid"
+						obj = IPWhois(ip)
+						results = obj.lookup()
+						if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
+							cidr = ip + "/32"
+						else:
+							cidr = results["nets"][0]["cidr"]
+						RHList.append(cidr)
+						self.seen_pairings[ip] = cidr
+				except:
+					# RHList.append("InvalidIPWhoIs")
+					RHList.append("Invalid")
+					self.seen_pairings[ip] = "Invalid"
 		if RHList not in srp.received_header_sequences:
 			return True
+		failure_breakdown[sender] = 1 + failure_breakdown.get(sender, 0)
 		return False
 
 
@@ -348,7 +352,9 @@ file_name = sys.argv[1]
 myEmail = sys.argv[2]
 detector = receivedHeadersDetector()
 detector.find_false_positives()
+failure_breakdown = {}
 print("Detection rate = " + str(detector.run_trials()))
+import pdb; pdb.set_trace()
 
 # Results
 # Total Number of Emails Flagged: 355/4514 <-- 0.0786 --> 7.86% False Positive Rate
