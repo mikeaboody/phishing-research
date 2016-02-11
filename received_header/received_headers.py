@@ -5,6 +5,8 @@ import re
 import pdb
 import whois
 from ipwhois import IPWhois
+from netaddr import IPNetwork, IPAddress
+import socket
 
 class SenderReceiverPair:
 
@@ -130,27 +132,33 @@ class SenderReceiverProfile(dict):
 
 
 def extract_email(msg):
-    from_header = msg["From"]
-    if not from_header:
-        return None
-    from_header = from_header.lower()
-    r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
-    return r.group() if r else from_header
+	from_header = msg["From"]
+	if not from_header:
+		return None
+	from_header = from_header.lower()
+	r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
+	return r.group() if r else from_header
 def removeSpaces(s):
-    exp = " +$"
-    r = re.compile(exp)
-    s = r.sub("", s)
-    exp = "^ +"
-    r = re.compile(exp)
-    s = r.sub("", s)
-    return s
+	exp = " +$"
+	r = re.compile(exp)
+	s = r.sub("", s)
+	exp = "^ +"
+	r = re.compile(exp)
+	s = r.sub("", s)
+	return s
 
 class receivedHeadersDetector(Detector):
+	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+	seen_pairings = {}
 	def __init__(self):
 		self.srp = self.create_sender_profile()
 
 	def modify_phish(self, phish, msg):
-		pass
+		msgHeaders = msg.get_all("Received")[:]
+		del phish["Received"]
+		for i in range(len(msgHeaders)):
+			phish["Received"] = msgHeaders[i]
+		return phish
 
 	def classify(self, phish):
 		pass
@@ -159,65 +167,108 @@ class receivedHeadersDetector(Detector):
 		srp = SenderReceiverProfile(file_name)
 		return srp
 
+	# returns cidr of public IP or returns false if there is no IP or if the IP is private
+	def public_IP(self, fromHeader):
+		ip = extract_ip(fromHeader)
+		if ip and not (IPAddress(ip) in IPNetwork(self.privateCIDR[0]) or IPAddress(ip) in IPNetwork(self.privateCIDR[1]) or IPAddress(ip) in IPNetwork(self.privateCIDR[2])):
+			return ip
+		return None
+
+
+	def get_endMessageIDDomain(self, domain):
+		if domain == None:
+			return domain
+		if '.' in domain:
+			indexLastDot = len(domain) - domain[::-1].index(".") - 1
+			rest = domain[:indexLastDot]
+			if '.' in rest:
+				indexNextDot = len(rest) - rest[::-1].index(".") - 1
+				return domain[indexNextDot+1:]
+		return domain
+
+	# returns false if domain is invalid or private domain
+	def public_domain(self, fromHeader):
+		domain = extract_domain(fromHeader)
+		if domain:
+			domain = self.get_endMessageIDDomain(domain)
+			try:
+				return socket.gethostbyname(domain)
+			except:
+				return False
+
 	def find_false_positives(self):
+		total_num_emails = 0
+		total_num_SRP = 0
+		total_num_RH = 0
 		total_emails_flagged = 0
 		total_srp_flagged = 0
 		invalidEmails = 0 # if a received header for an email doesn't have the "by" field
-		count = 0
+		numRHwoFrom = 0
+		priv_ip = 0
+		priv_dom = 0
+		pub_ip = 0
+		pub_dom = 0
+		fp_from = open("falsePostives_from_2", "a")
 		for tup, srp in self.srp.items():
-			# {#: [[by1-1, by1-2], by2, .., by#], ...}
 			flagSRP = False
+			seq_rh_from = []
+			total_num_SRP += 1
+			firstEmail = True
 			for em in srp.emailList:
+				# import pdb; pdb.set_trace()
+				total_num_emails += 1
 				num_recHeaders = len(em.receivedHeaderList)
 				flagEmail = False
 				invEmail = False
-				# Check that all received headers have a "by" field
+				RHList = []
 				for recHeader in em.receivedHeaderList:
-					if not "by" in recHeader.breakdown.keys():
-						invEmail = True
-				if invEmail:
-					break
-
-				# new length of received headers seen
-				# Do not flag
-				store = em.receivedHeaderList[0].breakdown["by"]
-				if extract_ip(store): # ip addr case
+					if not "from" in recHeader.breakdown.keys():
+						numRHwoFrom += 1
+						RHList.append("None")
+						continue
+					elif self.public_IP(recHeader.breakdown["from"]):
+						ip = self.public_IP(recHeader.breakdown["from"])
+					elif self.public_domain(recHeader.breakdown["from"]):
+						ip = self.public_domain(recHeader.breakdown["from"])
+					else:
+						# RHList.append("InvalidFrom")
+						RHList.append("Invalid")
+						continue
 					try:
-						obj = IPWhois(store)
-						if store not in srp.public_ips:
-							flagEmail = True
-							flagSRP = True
-							srp.public_ips.add(store)
-					except:
-						if store not in srp.private_ips:
-							# flagEmail = True
-							# flagSRP = True
-							srp.private_ips.add(store)
-				else: # domain name case
-					import pdb; pdb.set_trace()
-					try:
-						if whois.query(store):
-							if store not in srp.public_domains:
-								flagEmail = True
-								flagSRP = True
-								srp.public_domains.add(store)
+						# import pdb; pdb.set_trace()
+						if ip in self.seen_pairings.keys():
+							RHList.append(self.seen_pairings[ip])
 						else:
-							if store not in srp.private_domains:
-								# flagEmail = True
-								# flagSRP = True
-								srp.private_domains.add(store)
+							obj = IPWhois(ip)
+							results = obj.lookup()
+							if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
+								cidr = ip + "/32"
+							else:
+								cidr = results["nets"][0]["cidr"]
+							RHList.append(cidr)
+							self.seen_pairings[ip] = cidr
 					except:
-						if store not in srp.private_domains:
-							# flagEmail = True
-							# flagSRP = True
-							srp.private_domains.add(store)
+						# RHList.append("InvalidIPWhoIs")
+						RHList.append("Invalid")
+						self.seen_pairings[ip] = "Invalid"
+
+				if RHList not in seq_rh_from:
+					if seq_rh_from:
+						fp_from.write(str(tup) + " " + str(RHList) + " " + str(seq_rh_from) + "\n")
+						print(tup)
+						flagEmail = True
+						flagSRP = True
+					seq_rh_from.append(RHList)
+
+
 				if flagEmail:
 					total_emails_flagged += 1
 			if flagSRP:
 				total_srp_flagged += 1
-		print(count)
-		print("Total Number of Emails Flagged: " + str(total_emails_flagged))
-		print("Total Number of SRP's Flagged: " + str(total_srp_flagged))
+
+		print("Total number of RH w/o from: " + str(numRHwoFrom) + "/" + str(total_num_RH))
+		print("Total Number of Emails Flagged: " + str(total_emails_flagged) + "/" + str(total_num_emails))
+		print("Total Number of SRP's Flagged: " + str(total_srp_flagged) + "/" + str(total_num_SRP))
 
 	
 	# Compares to see if ip1 and ip2 fall in same subnet /16
@@ -232,6 +283,13 @@ class receivedHeadersDetector(Detector):
 def extract_ip(content):
 	r = re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", content)
 	return r.group() if r else None
+
+def extract_domain(content):
+	if ("(" in content):
+		firstParen = content.index("(")
+	else:
+		return None
+	return content[:firstParen-1]
 
 file_name = sys.argv[1]
 myEmail = sys.argv[2]
