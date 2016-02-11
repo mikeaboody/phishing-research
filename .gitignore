@@ -1,0 +1,7 @@
+# Compiled Source #
+###################
+*.pyc
+
+# Large files #
+###############
+*.mbox
