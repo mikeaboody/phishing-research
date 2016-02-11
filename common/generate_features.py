@@ -32,9 +32,9 @@ from content_type import ContentTypeDetector
 import sys
 
 PHISHING_FILENAME = 'phish.mbox'
-REGULAR_FILENAME = 'troll.mbox'
+REGULAR_FILENAME = 'regular.mbox'
 # REGULAR_FILENAME = 'Inbox.mbox'
-TEST_FILENAME = 'troll2.mbox'
+TEST_FILENAME = 'test.mbox'
 # Using 'matthew_berkeley.mbox'
 NUM_DATA = 1000
 
