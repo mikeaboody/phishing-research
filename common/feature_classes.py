@@ -2,7 +2,11 @@ import mailbox
 import re
 import sys
 
+from content_type import ContentTypeDetector
+from date_att import DateFormatDetector
 from detector import Detector
+from order_of_headers import OrderOfHeaderDetector
+from timezone import DateTimezoneDetector
 
 class MessageIdDetectorOne(Detector):
     DELIMITERS = ['.', '-', '$', '/', '%']
