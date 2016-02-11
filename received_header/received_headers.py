@@ -149,7 +149,7 @@ class receivedHeadersDetector(Detector):
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	seen_pairings = {}
 	seen_domain_ip = {}
-	EDIT_DISTANCE_THRESHOLD = 1
+	EDIT_DISTANCE_THRESHOLD = 0
 	def __init__(self):
 		self.srp = self.create_sender_profile()
 		self.inbox = self.srp.inbox
@@ -175,10 +175,10 @@ class receivedHeadersDetector(Detector):
 				if not "from" in recHeader.breakdown.keys():
 					RHList.append("None")
 					continue
-				elif self.public_IP(recHeader.breakdown["from"]):
-					ip = self.public_IP(recHeader.breakdown["from"])
 				elif self.public_domain(recHeader.breakdown["from"]):
 					ip = self.public_domain(recHeader.breakdown["from"])
+				elif self.public_IP(recHeader.breakdown["from"]):
+					ip = self.public_IP(recHeader.breakdown["from"])
 				else:
 					# RHList.append("InvalidFrom")
 					RHList.append("Invalid")
@@ -201,7 +201,16 @@ class receivedHeadersDetector(Detector):
 					RHList.append("Invalid")
 					self.seen_pairings[ip] = "Invalid"
 		if RHList not in srp.received_header_sequences:
-			return True
+			if srp.received_header_sequences:
+				bestEditDist = None
+				for lst in srp.received_header_sequences:
+					ed = editdistance.eval(RHList, lst)
+					if bestEditDist == None or bestEditDist > ed:
+						bestEditDist = ed
+				if bestEditDist > self.EDIT_DISTANCE_THRESHOLD:
+					return True
+		# if RHList not in srp.received_header_sequences:
+		# 	return True
 		failure_breakdown[sender] = 1 + failure_breakdown.get(sender, 0)
 		return False
 
@@ -276,10 +285,10 @@ class receivedHeadersDetector(Detector):
 						numRHwoFrom += 1
 						RHList.append("None")
 						continue
-					elif self.public_IP(recHeader.breakdown["from"]):
-						ip = self.public_IP(recHeader.breakdown["from"])
 					elif self.public_domain(recHeader.breakdown["from"]):
 						ip = self.public_domain(recHeader.breakdown["from"])
+					elif self.public_IP(recHeader.breakdown["from"]):
+						ip = self.public_IP(recHeader.breakdown["from"])
 					else:
 						# RHList.append("InvalidFrom")
 						RHList.append("Invalid")
@@ -309,7 +318,7 @@ class receivedHeadersDetector(Detector):
 							ed = editdistance.eval(RHList, lst)
 							if bestEditDist == None or bestEditDist > ed:
 								bestEditDist = ed
-						if ed > self.EDIT_DISTANCE_THRESHOLD:
+						if bestEditDist > self.EDIT_DISTANCE_THRESHOLD:
 							fp_from.write(str(tup) + " " + "ED: " + str(ed)+ " - " + str(RHList) + " " + str(seq_rh_from) + "\n")
 							print(tup)
 							flagEmail = True
