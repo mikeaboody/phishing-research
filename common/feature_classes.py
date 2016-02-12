@@ -50,6 +50,7 @@ class MessageIdDetectorOne(Detector):
 
     def create_sender_profile(self, num_samples):
         self.sender_profile = {}
+        self.sender_count = {}
         for i in range(num_samples):
             msg = self.inbox[i]
             sender = self.extract_from(msg)
@@ -70,8 +71,10 @@ class MessageIdDetectorOne(Detector):
                 is_valid = self.partition_within_error(self.sender_profile[sender], features, fudge_factor=2)
                 if not is_valid:
                     self.sender_profile[sender].add(features)
+                self.sender_count[sender] += 1
             else:
                 self.sender_profile[sender] = set([features])
+                self.sender_count[sender] = 1
         return self.sender_profile
 
     def classify(self, phish):
@@ -91,6 +94,10 @@ class MessageIdDetectorOne(Detector):
         features = (common_delimiter, delimiter_count, partition_sizes)
         if sender in self.sender_profile:
             is_valid = self.partition_within_error(self.sender_profile[sender], features, fudge_factor=0)
+            # if is_valid:
+            #     return -self.sender_count[sender]
+            # else:
+            #     return self.sender_count[sender]
             return not is_valid
         else:
             return False
@@ -123,9 +130,30 @@ class MessageIdDetectorTwo(MessageIdDetectorOne):
                 self.sender_profile[sender] = set([features])
         return self.sender_profile
 
+class MessageIdDetectorThree(MessageIdDetectorOne):
+    """Non-binary version"""
+    def classify(self, phish):
+        sender = self.extract_from(phish)
+        message_id = phish["Message-ID"]
+        split_msg_id = message_id.split('@')
+        if len(split_msg_id) < 2:
+            print("Message-ID misformatted: {}".format(message_id))
+            return False
+        domain = split_msg_id[1][:-1]
+        uid = split_msg_id[0][1:]
+        common_delimiter, delimiter_count = self.most_common_delimiter(uid)
+        partition_sizes = self.partition_length(uid, common_delimiter, delimiter_count)
+        features = (common_delimiter, delimiter_count, partition_sizes)
+        if sender in self.sender_profile:
+            is_valid = self.partition_within_error(self.sender_profile[sender], features, fudge_factor=0)
+            if is_valid:
+                return -self.sender_count[sender]
+            else:
+                return self.sender_count[sender]
+        else:
+            return False
 
 class ContentTransferEncodingDetector(Detector):
-
     def __init__(self, inbox):
         self.inbox = inbox
 
