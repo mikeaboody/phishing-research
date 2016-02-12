@@ -46,7 +46,7 @@ class messageIDDomain_Detector(Detector):
         sender = self.getEntireEmail(phish["From"])
         mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
 
-        if "List-Unsubscribe" in phish.keys() or myEmail in phish["From"] or mID == None:
+        if "List-Unsubscribe" in phish.keys() or mID == None:
                 return False
         
         if sender in self.sender_profile.keys():
@@ -129,7 +129,7 @@ class messageIDDomain_Detector(Detector):
         new_format_found = 0
         sender_profile = {}
         for msg in self.inbox:
-            if "List-Unsubscribe" in msg.keys() or myEmail in msg["From"]:
+            if "List-Unsubscribe" in msg.keys():
                 continue
             sender = self.getEntireEmail(msg["From"])
             if sender:
@@ -200,7 +200,7 @@ def printInfo(msg):
     print(msg["Subject"])
 
 file_name = "/home/apoorva/Documents/Research/PhishingResearch/Inbox.mbox"
-myEmail = "nexusapoorvacus19@gmail.com"
+# myEmail = "nexusapoorvacus19@gmail.com"
 inbox = mailbox.mbox(file_name)
 d = messageIDDomain_Detector(inbox)
 d.interesting_stats()

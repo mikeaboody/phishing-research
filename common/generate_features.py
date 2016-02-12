@@ -30,6 +30,7 @@ from order_of_headers import OrderOfHeaderDetector
 from content_type import ContentTypeDetector
 from date_att import DateFormatDetector
 from timezone import DateTimezoneDetector
+from message_ID_domain import messageIDDomain_Detector
 
 import sys
 
@@ -54,6 +55,7 @@ features = [
     DateTimezoneDetector,
     fc.MessageIdDetectorOne,
     # fc.messageIDDomain_Detector,
+    messageIDDomain_Detector,
     ContentTypeDetector,
     OrderOfHeaderDetector,
     fc.XMailerDetector
