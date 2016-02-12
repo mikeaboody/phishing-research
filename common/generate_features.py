@@ -27,7 +27,6 @@ import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
-<<<<<<< HEAD
 from order_of_headers import OrderOfHeaderDetector
 from content_type import ContentTypeDetector
 from date_att import DateFormatDetector
@@ -35,8 +34,7 @@ from timezone import DateTimezoneDetector
 from message_ID_domain import messageIDDomain_Detector
 
 import sys
-=======
->>>>>>> e6344be66e390304ced1a0ef6960d0f624948f8b
+
 
 PHISHING_FILENAME = 'phish.mbox'
 REGULAR_FILENAME = 'regular.mbox'
