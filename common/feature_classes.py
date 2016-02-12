@@ -135,6 +135,9 @@ class MessageIdDetectorThree(MessageIdDetectorOne):
     def classify(self, phish):
         sender = self.extract_from(phish)
         message_id = phish["Message-ID"]
+        if (message_id == None):
+            print("No message ID found")
+            return False
         split_msg_id = message_id.split('@')
         if len(split_msg_id) < 2:
             print("Message-ID misformatted: {}".format(message_id))

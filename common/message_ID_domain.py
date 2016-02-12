@@ -70,6 +70,8 @@ class messageIDDomain_Detector(Detector):
     def getEmailDomain(self, email):
         # import pdb; pdb.set_trace()
         indexAt = email.index("@")
+        if "." not in (email[indexAt:])[::-1]:
+            return email[indexAt+1:]
         indexEnd = (len(email)-indexAt) - (email[indexAt:])[::-1].index(".") + indexAt - 1
         part = email[indexAt+1:indexEnd]
         if "." in part:
