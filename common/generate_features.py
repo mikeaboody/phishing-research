@@ -20,12 +20,14 @@ the following keys:
 
 import mailbox
 import os
+import sys
 import time
 
 import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
+<<<<<<< HEAD
 from order_of_headers import OrderOfHeaderDetector
 from content_type import ContentTypeDetector
 from date_att import DateFormatDetector
@@ -33,6 +35,8 @@ from timezone import DateTimezoneDetector
 from message_ID_domain import messageIDDomain_Detector
 
 import sys
+=======
+>>>>>>> e6344be66e390304ced1a0ef6960d0f624948f8b
 
 PHISHING_FILENAME = 'phish.mbox'
 REGULAR_FILENAME = 'regular.mbox'
@@ -51,8 +55,8 @@ defined in detector.py.
 """
 
 features = [
-    DateFormatDetector,
-    DateTimezoneDetector,
+    fc.DateFormatDetector,
+    fc.DateTimezoneDetector,
     fc.MessageIdDetectorOne,
     # fc.messageIDDomain_Detector,
     messageIDDomain_Detector,
@@ -101,12 +105,12 @@ def generate_data_matrix(phishing_mbox, regular_mbox):
     row_index = 0
     for i in range(NUM_PRE_TRAINING, len(regular_mbox)):
         for j, detector in enumerate(detectors):
-            data_matrix[row_index][j] = 1 if detector.classify(regular_mbox[i]) else 0
+            data_matrix[row_index][j] = float(detector.classify(regular_mbox[i]))
         row_index += 1
     for _ in range(NUM_DATA / 2):
         phish_email = phishing_mbox[i] if phishing_mbox else make_phish(regular_mbox)
         for j, detector in enumerate(detectors):
-            data_matrix[row_index][j] = 1 if detector.classify(phish_email) else 0
+            data_matrix[row_index][j] = float(detector.classify(phish_email))
         row_index += 1
     return data_matrix
 
@@ -119,12 +123,12 @@ def generate_test_matrix(test_mbox):
     row_index = 0
     for i in range(num_test_points):
         for j, detector in enumerate(detectors):
-            test_data_matrix[row_index][j] = 1 if detector.classify(test_mbox[i]) else 0
+            test_data_matrix[row_index][j] = float(detector.classify(test_mbox[i]))
         row_index += 1
     for _ in range(num_test_points):
         phish_email = make_phish(test_mbox)
         for j, detector in enumerate(detectors):
-            test_data_matrix[row_index][j] = 1 if detector.classify(phish_email) else 0
+            test_data_matrix[row_index][j] = float(detector.classify(phish_email))
         row_index += 1
     return test_data_matrix
 
