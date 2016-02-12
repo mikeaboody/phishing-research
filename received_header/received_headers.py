@@ -93,8 +93,8 @@ class ReceivedHeader:
 
 
 class SenderReceiverProfile(dict):
-	def __init__(self, inboxPath):
-		self.inbox = mailbox.mbox(inboxPath)
+	def __init__(self, inbox):
+		self.inbox = inbox
 		self.analyze()
 		# self.writeReceivedHeadersToFile()
 
@@ -145,14 +145,14 @@ def removeSpaces(s):
 	s = r.sub("", s)
 	return s
 
-class receivedHeadersDetector(Detector):
+class ReceivedHeadersDetector(Detector):
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	seen_pairings = {}
 	seen_domain_ip = {}
-	EDIT_DISTANCE_THRESHOLD = 0
-	def __init__(self):
+	EDIT_DISTANCE_THRESHOLD = 1
+	def __init__(self, inbox):
+		self.inbox = inbox
 		self.srp = self.create_sender_profile()
-		self.inbox = self.srp.inbox
 
 	def modify_phish(self, phish, msg):
 		del phish["Received"]
@@ -209,15 +209,14 @@ class receivedHeadersDetector(Detector):
 						bestEditDist = ed
 				if bestEditDist > self.EDIT_DISTANCE_THRESHOLD:
 					return True
-		# if RHList not in srp.received_header_sequences:
-		# 	return True
-		failure_breakdown[sender] = 1 + failure_breakdown.get(sender, 0)
 		return False
 
 
 
 	def create_sender_profile(self):
-		srp = SenderReceiverProfile(file_name)
+		srp = SenderReceiverProfile(self.inbox)
+		self.srp = srp
+		self.find_false_positives()
 		return srp
 
 	# returns cidr of public IP or returns false if there is no IP or if the IP is private
@@ -267,7 +266,7 @@ class receivedHeadersDetector(Detector):
 		priv_dom = 0
 		pub_ip = 0
 		pub_dom = 0
-		fp_from = open("falsePostives_from_3", "a")
+		# fp_from = open("falsePostives_from_3", "a")
 		for tup, srp in self.srp.items():
 			flagSRP = False
 			seq_rh_from = []
@@ -319,7 +318,7 @@ class receivedHeadersDetector(Detector):
 							if bestEditDist == None or bestEditDist > ed:
 								bestEditDist = ed
 						if bestEditDist > self.EDIT_DISTANCE_THRESHOLD:
-							fp_from.write(str(tup) + " " + "ED: " + str(ed)+ " - " + str(RHList) + " " + str(seq_rh_from) + "\n")
+							# fp_from.write(str(tup) + " " + "ED: " + str(ed)+ " - " + str(RHList) + " " + str(seq_rh_from) + "\n")
 							print(tup)
 							flagEmail = True
 							flagSRP = True
@@ -359,9 +358,8 @@ def extract_domain(content):
 
 file_name = sys.argv[1]
 myEmail = sys.argv[2]
-detector = receivedHeadersDetector()
-detector.find_false_positives()
-failure_breakdown = {}
+theinbox = mailbox.mbox(file_name)
+detector = ReceivedHeadersDetector(theinbox)
 print("Detection rate = " + str(detector.run_trials()))
 import pdb; pdb.set_trace()
 
