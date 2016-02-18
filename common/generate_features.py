@@ -32,6 +32,7 @@ from content_type import ContentTypeDetector
 from date_att import DateFormatDetector
 from timezone import DateTimezoneDetector
 from message_ID_domain import messageIDDomain_Detector
+from received_headers import ReceivedHeadersDetector
 
 import sys
 
@@ -39,7 +40,7 @@ import sys
 PHISHING_FILENAME = 'phish.mbox'
 REGULAR_FILENAME = 'regular.mbox'
 # REGULAR_FILENAME = 'Inbox.mbox'
-TEST_FILENAME = 'test.mbox'
+TEST_FILENAME = 'regular.mbox'
 # Using 'matthew_berkeley.mbox'
 NUM_DATA = 2000
 
@@ -53,15 +54,16 @@ defined in detector.py.
 """
 
 features = [
-    fc.DateFormatDetector,
-    fc.DateTimezoneDetector,
-    fc.MessageIdDetectorOne,
-    fc.MessageIdDetectorThree,
+    # fc.DateFormatDetector,
+    # fc.DateTimezoneDetector,
+    # fc.MessageIdDetectorOne,
+    # fc.MessageIdDetectorThree,
     # fc.messageIDDomain_Detector,
-    messageIDDomain_Detector,
-    ContentTypeDetector,
-    OrderOfHeaderDetector,
-    fc.XMailerDetector
+    # messageIDDomain_Detector,
+    # ContentTypeDetector,
+    # OrderOfHeaderDetector,
+    fc.XMailerDetector,
+    ReceivedHeadersDetector
 ]
 
 def build_detectors(regular_mbox):

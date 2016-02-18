@@ -93,15 +93,19 @@ class ReceivedHeader:
 
 
 class SenderReceiverProfile(dict):
-	def __init__(self, inbox):
+	def __init__(self, inbox, num_samples):
 		self.inbox = inbox
-		self.analyze()
+		self.analyze(num_samples)
 		# self.writeReceivedHeadersToFile()
 
-	def analyze(self):
+	def analyze(self, num_samples):
+		count = 0
 		for msg in self.inbox:
 			# if "List-Unsubscribe" not in msg:
 			self.appendEmail(msg)
+			count += 1
+			if count >= num_samples:
+				break
 
 
 	def appendEmail(self, msg):
@@ -149,10 +153,10 @@ class ReceivedHeadersDetector(Detector):
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	seen_pairings = {}
 	seen_domain_ip = {}
-	EDIT_DISTANCE_THRESHOLD = 1
+	EDIT_DISTANCE_THRESHOLD = 0
 	def __init__(self, inbox):
 		self.inbox = inbox
-		self.srp = self.create_sender_profile()
+		# self.srp = self.create_sender_profile()
 
 	def modify_phish(self, phish, msg):
 		del phish["Received"]
@@ -213,8 +217,8 @@ class ReceivedHeadersDetector(Detector):
 
 
 
-	def create_sender_profile(self):
-		srp = SenderReceiverProfile(self.inbox)
+	def create_sender_profile(self, num_samples):
+		srp = SenderReceiverProfile(self.inbox, num_samples)
 		self.srp = srp
 		self.find_false_positives()
 		return srp

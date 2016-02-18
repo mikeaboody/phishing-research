@@ -37,11 +37,13 @@ def test():
         clf.fit(train_X, train_Y.ravel())
 
         score = clf.score(val_X, val_Y)
-        print("Using {} training examples and {}, score is {}.".format(
-            validation_index, key, score))
+        # print("Using {} training examples and {}, score is {}.".format(
+        #     validation_index, key, score))
+        print("Using", str(validation_index), "training examples and", str(key), ", score is", str(score))
         detect_rate, false_classify_rate = score2(clf, val_X, val_Y.ravel())
-        print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n").format(
-            validation_index, key, detect_rate, false_classify_rate)
+        # print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n").format(
+        #     validation_index, key, detect_rate, false_classify_rate)
+        print("Using", str(validation_index), "training examples and", str(key), ", detection rate is", str(detect_rate), "and false rate is", str(false_classify_rate))
 
 def score2(classifier, val_X, val_Y):
     """Returns detection rate and false_classification rate."""
@@ -57,7 +59,7 @@ def score2(classifier, val_X, val_Y):
 
 def sample_data():
     for i in range(100):
-        print X[i], Y[i]
+        print(X[i], Y[i])
 
 def validate_data():
     total_phish = 0
