@@ -27,13 +27,21 @@ import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
+from order_of_headers import OrderOfHeaderDetector
+from content_type import ContentTypeDetector
+from date_att import DateFormatDetector
+from timezone import DateTimezoneDetector
+from message_ID_domain import messageIDDomain_Detector
+
+import sys
+
 
 PHISHING_FILENAME = 'phish.mbox'
 REGULAR_FILENAME = 'regular.mbox'
 # REGULAR_FILENAME = 'Inbox.mbox'
 TEST_FILENAME = 'test.mbox'
 # Using 'matthew_berkeley.mbox'
-NUM_DATA = 1000
+NUM_DATA = 2000
 
 ############
 # FEATURES #
@@ -48,9 +56,11 @@ features = [
     fc.DateFormatDetector,
     fc.DateTimezoneDetector,
     fc.MessageIdDetectorOne,
+    fc.MessageIdDetectorThree,
     # fc.messageIDDomain_Detector,
-    fc.ContentTypeDetector,
-    fc.OrderOfHeaderDetector,
+    messageIDDomain_Detector,
+    ContentTypeDetector,
+    OrderOfHeaderDetector,
     fc.XMailerDetector
 ]
 
@@ -94,12 +104,14 @@ def generate_data_matrix(phishing_mbox, regular_mbox):
     row_index = 0
     for i in range(NUM_PRE_TRAINING, len(regular_mbox)):
         for j, detector in enumerate(detectors):
-            data_matrix[row_index][j] = float(detector.classify(regular_mbox[i]))
+            heuristic = detector.classify(regular_mbox[i])
+            data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
         row_index += 1
     for _ in range(NUM_DATA / 2):
         phish_email = phishing_mbox[i] if phishing_mbox else make_phish(regular_mbox)
         for j, detector in enumerate(detectors):
-            data_matrix[row_index][j] = float(detector.classify(phish_email))
+            heuristic = detector.classify(phish_email)
+            data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
         row_index += 1
     return data_matrix
 

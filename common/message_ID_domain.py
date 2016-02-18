@@ -12,7 +12,7 @@ class messageIDDomain_Detector(Detector):
     domainCompanyPairing = {} # domain : company
     def __init__(self, inbox):
         self.inbox = inbox
-        self.sender_profile = self.create_sender_profile()
+        # self.sender_profile = self.create_sender_profile()
 
     def check_header(self, msg):
         mID = msg["Message-ID"]
@@ -46,8 +46,8 @@ class messageIDDomain_Detector(Detector):
         sender = self.getEntireEmail(phish["From"])
         mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
 
-        if "List-Unsubscribe" in phish.keys() or mID == None:
-                return False
+        # if "List-Unsubscribe" in phish.keys() or mID == None:
+        #         return False
         
         if sender in self.sender_profile.keys():
             if mID not in self.sender_profile[sender]:
@@ -70,6 +70,8 @@ class messageIDDomain_Detector(Detector):
     def getEmailDomain(self, email):
         # import pdb; pdb.set_trace()
         indexAt = email.index("@")
+        if "." not in (email[indexAt:])[::-1]:
+            return email[indexAt+1:]
         indexEnd = (len(email)-indexAt) - (email[indexAt:])[::-1].index(".") + indexAt - 1
         part = email[indexAt+1:indexEnd]
         if "." in part:
@@ -123,32 +125,34 @@ class messageIDDomain_Detector(Detector):
         except:
             return False
 
-    def create_sender_profile(self):
+    def create_sender_profile(self, numSamples):
         emails_with_sender = 0
         no_messageIDDomain = 0
         new_format_found = 0
-        sender_profile = {}
-        for msg in self.inbox:
-            if "List-Unsubscribe" in msg.keys():
-                continue
+        self.sender_profile = {}
+        # for msg in self.inbox:
+        for i in range(numSamples):
+            msg = self.inbox[i]
+            # if "List-Unsubscribe" in msg.keys():
+            #     continue
             sender = self.getEntireEmail(msg["From"])
             if sender:
                 emails_with_sender += 1
                 mID = self.get_endMessageIDDomain(self.get_messageIDDomain(msg))
                 if mID == None:
                     no_messageIDDomain += 1
-                    if sender not in sender_profile.keys():
-                        sender_profile[sender] = set([])
-                    sender_profile[sender].add("None")
+                    if sender not in self.sender_profile.keys():
+                        self.sender_profile[sender] = set([])
+                    self.sender_profile[sender].add("None")
                 else:
                     wasntInSenderProfile = False
-                    if sender in sender_profile.keys():
-                        if mID not in sender_profile[sender]:
+                    if sender in self.sender_profile.keys():
+                        if mID not in self.sender_profile[sender]:
                             if self.toFlag(sender, mID):
                                 wasntInSenderProfile = True
-                            sender_profile[sender].add(mID)
+                            self.sender_profile[sender].add(mID)
                     else:
-                        sender_profile[sender] = set([mID])
+                        self.sender_profile[sender] = set([mID])
                     email_domain = self.getEmailDomain(sender)
                     if email_domain not in self.GLOBAL_SET.keys():
                         self.GLOBAL_SET[email_domain] = []
@@ -166,7 +170,7 @@ class messageIDDomain_Detector(Detector):
         self.emails_with_sender = emails_with_sender
         self.no_messageIDDomain = no_messageIDDomain
         self.new_format_found = new_format_found
-        return sender_profile
+        return self.sender_profile
 
     def toFlag(self, sender, mID):
         return self.checkGeneralMID(sender, mID)
@@ -199,9 +203,9 @@ def printInfo(msg):
     print(msg["Message-ID"])
     print(msg["Subject"])
 
-file_name = "/home/apoorva/Documents/Research/PhishingResearch/Inbox.mbox"
+# file_name = "/home/apoorva/Documents/Research/PhishingResearch/Inbox.mbox"
 # myEmail = "nexusapoorvacus19@gmail.com"
-inbox = mailbox.mbox(file_name)
-d = messageIDDomain_Detector(inbox)
-d.interesting_stats()
-print("Detection rate = " + str(d.run_trials()))
+# inbox = mailbox.mbox(file_name)
+# d = messageIDDomain_Detector(inbox)
+# d.interesting_stats()
+# print("Detection rate = " + str(d.run_trials()))
