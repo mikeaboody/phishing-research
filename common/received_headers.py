@@ -110,7 +110,7 @@ class SenderReceiverProfile(dict):
 
 	def appendEmail(self, msg):
 		sender = extract_email(msg, "From")
-		receiver = extract_email(msg, "To")
+		receiver = ""
 		if (sender, receiver) not in self:
 			self[(sender, receiver)] = SenderReceiverPair(sender, receiver)
 		srp = self[(sender, receiver)]
@@ -153,9 +153,10 @@ class ReceivedHeadersDetector(Detector):
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	seen_pairings = {}
 	seen_domain_ip = {}
-	EDIT_DISTANCE_THRESHOLD = 0
+	srp = None
 	def __init__(self, inbox):
 		self.inbox = inbox
+		self.EDIT_DISTANCE_THRESHOLD = 0
 		# self.srp = self.create_sender_profile()
 
 	def modify_phish(self, phish, msg):
@@ -169,7 +170,7 @@ class ReceivedHeadersDetector(Detector):
 	def classify(self, phish):
 		RHList = []
 		sender = extract_email(phish, "From")
-		receiver = extract_email(phish, "To")
+		receiver = ""
 		if (sender, receiver) not in self.srp:
 			return False
 		srp = self.srp[(sender, receiver)]
@@ -219,7 +220,7 @@ class ReceivedHeadersDetector(Detector):
 
 	def create_sender_profile(self, num_samples):
 		srp = SenderReceiverProfile(self.inbox, num_samples)
-		self.srp = srp
+		ReceivedHeadersDetector.srp = srp
 		self.find_false_positives()
 		return srp
 
@@ -361,6 +362,23 @@ def extract_domain(content):
 	else:
 		return None
 	return content[:firstParen-1]
+
+class ReceivedHeadersDetector2(ReceivedHeadersDetector):
+	def __init__(self, inbox):
+		self.inbox = inbox
+		self.EDIT_DISTANCE_THRESHOLD = 1
+	def create_sender_profile(self, num_samples):
+		self.srp = ReceivedHeadersDetector.srp
+		return self.srp
+
+class ReceivedHeadersDetector3(ReceivedHeadersDetector):
+	def __init__(self, inbox):
+		self.inbox = inbox
+		self.EDIT_DISTANCE_THRESHOLD = 2
+	def create_sender_profile(self, num_samples):
+		self.srp = ReceivedHeadersDetector.srp
+		return self.srp
+
 
 # file_name = sys.argv[1]
 # theinbox = mailbox.mbox(file_name)

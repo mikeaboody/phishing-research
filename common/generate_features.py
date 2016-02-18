@@ -33,6 +33,8 @@ from date_att import DateFormatDetector
 from timezone import DateTimezoneDetector
 from message_ID_domain import messageIDDomain_Detector
 from received_headers import ReceivedHeadersDetector
+from received_headers import ReceivedHeadersDetector2
+from received_headers import ReceivedHeadersDetector3
 
 import sys
 
@@ -63,7 +65,9 @@ features = [
     # ContentTypeDetector,
     # OrderOfHeaderDetector,
     fc.XMailerDetector,
-    ReceivedHeadersDetector
+    ReceivedHeadersDetector,
+    ReceivedHeadersDetector2,
+    ReceivedHeadersDetector3
 ]
 
 def build_detectors(regular_mbox):
