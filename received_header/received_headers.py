@@ -105,8 +105,8 @@ class SenderReceiverProfile(dict):
 
 
 	def appendEmail(self, msg):
-		sender = extract_email(msg)
-		receiver = myEmail
+		sender = extract_email(msg, "From")
+		receiver = extract_email(msg, "To")
 		if (sender, receiver) not in self:
 			self[(sender, receiver)] = SenderReceiverPair(sender, receiver)
 		srp = self[(sender, receiver)]
@@ -129,8 +129,8 @@ class SenderReceiverProfile(dict):
 			FILE.write("------------------------------------------\n")
 
 
-def extract_email(msg):
-	from_header = msg["From"]
+def extract_email(msg, header):
+	from_header = msg[header]
 	if not from_header:
 		return None
 	from_header = from_header.lower()
@@ -149,7 +149,7 @@ class ReceivedHeadersDetector(Detector):
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	seen_pairings = {}
 	seen_domain_ip = {}
-	EDIT_DISTANCE_THRESHOLD = 1
+	EDIT_DISTANCE_THRESHOLD = 3
 	def __init__(self, inbox):
 		self.inbox = inbox
 		self.srp = self.create_sender_profile()
@@ -164,10 +164,10 @@ class ReceivedHeadersDetector(Detector):
 
 	def classify(self, phish):
 		RHList = []
-		sender = extract_email(phish)
-		receiver = myEmail
+		sender = extract_email(phish, "From")
+		receiver = extract_email(phish, "To")
 		if (sender, receiver) not in self.srp:
-			raise Exception()
+			return False
 		srp = self.srp[(sender, receiver)]
 		if phish.get_all("Received"):
 			for recHeader in phish.get_all("Received"):
@@ -266,6 +266,7 @@ class ReceivedHeadersDetector(Detector):
 		priv_dom = 0
 		pub_ip = 0
 		pub_dom = 0
+		count = 0
 		# fp_from = open("falsePostives_from_3", "a")
 		for tup, srp in self.srp.items():
 			flagSRP = False
@@ -273,6 +274,7 @@ class ReceivedHeadersDetector(Detector):
 			total_num_SRP += 1
 			firstEmail = True
 			for em in srp.emailList:
+				count += 1
 				# import pdb; pdb.set_trace()
 				total_num_emails += 1
 				num_recHeaders = len(em.receivedHeaderList)
@@ -319,7 +321,7 @@ class ReceivedHeadersDetector(Detector):
 								bestEditDist = ed
 						if bestEditDist > self.EDIT_DISTANCE_THRESHOLD:
 							# fp_from.write(str(tup) + " " + "ED: " + str(ed)+ " - " + str(RHList) + " " + str(seq_rh_from) + "\n")
-							print(tup)
+							print(str(count) + ":", tup)
 							flagEmail = True
 							flagSRP = True
 					seq_rh_from.append(RHList)
@@ -357,7 +359,6 @@ def extract_domain(content):
 	return content[:firstParen-1]
 
 file_name = sys.argv[1]
-myEmail = sys.argv[2]
 theinbox = mailbox.mbox(file_name)
 detector = ReceivedHeadersDetector(theinbox)
 print("Detection rate = " + str(detector.run_trials()))
