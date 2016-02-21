@@ -54,11 +54,20 @@ features = [
 
 num_features = sum([feature.NUM_HEURISTICS for feature in features])
 
+def progress_bar(index, last_val, num_bars=20, msg='Progress'):
+    percent = (float(index) + 1) / last_val
+    hashes = '#' * int(round(percent * num_bars))
+    spaces = ' ' * (num_bars - len(hashes))
+    sys.stdout.write("\r{0}: [{1}] {2}%".format(msg, hashes + spaces, int(round(percent * 100))))
+    sys.stdout.flush()
+
 def build_detectors(regular_mbox):
     detectors = [Detector(regular_mbox) for Detector in features]
     print("Building sender profiles for each feature...")
-    for detector in detectors:
+    for i, detector in enumerate(detectors):
         detector.create_sender_profile(NUM_PRE_TRAINING)
+        progress_bar(i, len(detectors))
+    print('')
     return detectors
 
 # Generates a single pseudo-phishing email.
@@ -97,6 +106,8 @@ def generate_data_matrix(phishing_mbox, regular_mbox):
             else:
                 data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                 j += 1
+        if row_index % 10 == 0:
+            progress_bar(row_index, NUM_DATA)
         row_index += 1
     for _ in range(NUM_DATA / 2):
         phish_email = phishing_mbox[i] if phishing_mbox else make_phish(regular_mbox)
@@ -110,7 +121,10 @@ def generate_data_matrix(phishing_mbox, regular_mbox):
             else:
                 data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                 j += 1
+        if row_index % 10 == 0:
+            progress_bar(row_index, NUM_DATA)
         row_index += 1
+    print('')
     return data_matrix
 
 def generate_test_matrix(test_mbox):
@@ -130,6 +144,8 @@ def generate_test_matrix(test_mbox):
             else:
                 test_data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                 j += 1
+        if row_index % 10 == 0:
+            progress_bar(row_index, 2 * num_test_points)
         row_index += 1
     for _ in range(num_test_points):
         phish_email = make_phish(test_mbox)
@@ -143,7 +159,10 @@ def generate_test_matrix(test_mbox):
             else:
                 test_data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                 j += 1
+        if row_index % 10 == 0:
+            progress_bar(row_index, 2 * num_test_points)
         row_index += 1
+    print('')
     return test_data_matrix
 
 def generate_labels(phishing_mbox, regular_mbox):
@@ -153,6 +172,9 @@ def generate_labels(phishing_mbox, regular_mbox):
     print("Generating label matrix...")
     for i in range(NUM_DATA):
         label_matrix[i][0] = 0 if i < NUM_DATA / 2 else 1
+        if i % 10 == 0:
+            progress_bar(i, NUM_DATA)
+    print('')
     return label_matrix
 
 def generate_test_labels(test_mbox):
@@ -162,6 +184,9 @@ def generate_test_labels(test_mbox):
     print("Generating test label matrix...")
     for i in range(2 * num_test_points):
         test_label_matrix[i][0] = 0 if i < num_test_points else 1
+        if i % 10 == 0:
+            progress_bar(i, 2 * num_test_points)
+    print('')
     return test_label_matrix
 
 
