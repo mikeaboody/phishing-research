@@ -9,11 +9,13 @@ from ipwhois import IPWhois
 from content_type import ContentTypeDetector
 from date_att import DateFormatDetector
 from detector import Detector
+from message_ID_domain import messageIDDomain_Detector
 from order_of_headers import OrderOfHeaderDetector
 from timezone import DateTimezoneDetector
 
 class MessageIdDetectorOne(Detector):
     DELIMITERS = ['.', '-', '$', '/', '%']
+    NUM_HEURISTICS = 2
 
     def __init__(self, regular_mbox):
         self.inbox = regular_mbox
@@ -94,13 +96,11 @@ class MessageIdDetectorOne(Detector):
         features = (common_delimiter, delimiter_count, partition_sizes)
         if sender in self.sender_profile:
             is_valid = self.partition_within_error(self.sender_profile[sender], features, fudge_factor=0)
-            # if is_valid:
-            #     return -self.sender_count[sender]
-            # else:
-            #     return self.sender_count[sender]
-            return not is_valid
+            h1 = float(not is_valid)
+            h2 = -self.sender_count[sender] if is_valid else self.sender_count[sender]
+            return [h1, h2]
         else:
-            return False
+            return [0.0, 0.0]
 
     def modify_phish(self, phish, msg):
         phish['Message-ID'] = msg['Message-ID']
@@ -129,75 +129,6 @@ class MessageIdDetectorTwo(MessageIdDetectorOne):
             else:
                 self.sender_profile[sender] = set([features])
         return self.sender_profile
-
-class MessageIdDetectorThree(MessageIdDetectorOne):
-    """Non-binary version"""
-    def classify(self, phish):
-        sender = self.extract_from(phish)
-        message_id = phish["Message-ID"]
-        if (message_id == None):
-            print("No message ID found")
-            return False
-        split_msg_id = message_id.split('@')
-        if len(split_msg_id) < 2:
-            print("Message-ID misformatted: {}".format(message_id))
-            return False
-        domain = split_msg_id[1][:-1]
-        uid = split_msg_id[0][1:]
-        common_delimiter, delimiter_count = self.most_common_delimiter(uid)
-        partition_sizes = self.partition_length(uid, common_delimiter, delimiter_count)
-        features = (common_delimiter, delimiter_count, partition_sizes)
-        if sender in self.sender_profile:
-            is_valid = self.partition_within_error(self.sender_profile[sender], features, fudge_factor=0)
-            if is_valid:
-                return -self.sender_count[sender]
-            else:
-                return self.sender_count[sender]
-        else:
-            return False
-
-class ContentTransferEncodingDetector(Detector):
-    def __init__(self, inbox):
-        self.inbox = inbox
-
-    def create_sender_profile(self, num_samples):
-        self.sender_profile = {}
-        for i in range(num_samples):
-            msg = self.inbox[i]
-            curr_sender = self.extract_from(msg)
-            if curr_sender:
-                # per sender
-                curr_profile = self.sender_profile.get(curr_sender, set())
-                curr_cte = self.getCTE(msg)
-                similar_cte = self.getSimilar(curr_cte, curr_profile)
-                if similar_cte == False:
-                    curr_profile.add(curr_cte)
-                self.sender_profile[curr_sender] = curr_profile
-        count = 0
-
-    def classify(self, phish):
-        curr_sender = self.extract_from(phish)
-        curr_cte = self.getCTE(phish)
-        curr_profile = self.sender_profile.get(curr_sender, None)
-        if not curr_profile:
-            return False
-        similar_cte = self.getSimilar(curr_cte, curr_profile)
-        return similar_cte == False
-
-    def modify_phish(self, phish, msg):
-        phish["Content-Transfer-Encoding"] = msg["Content-Transfer-Encoding"]
-        return phish
-
-    def getCTE(self, msg):
-        cte = msg["Content-Transfer-Encoding"]
-        return cte
-
-    def getSimilar(self, given_str, given_set):
-        for s in given_set:
-            # if s and given_str and Levenshtein.ratio(given_str, s) > 0.9:
-            if (not s and not given_str) or (s and given_str and given_str.lower() == s.lower()):
-                return s
-        return False
 
 class XMailerDetector(Detector):
     def __init__(self, inbox):

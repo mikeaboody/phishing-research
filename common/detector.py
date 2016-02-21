@@ -5,6 +5,8 @@ import re
 
 class Detector(object):
     __metaclass__ = abc.ABCMeta
+    """Length of list returned by classify()."""
+    NUM_HEURISTICS = 1
 
     def __init__(self, regular_mbox):
         self.inbox = regular_mbox
@@ -31,8 +33,13 @@ class Detector(object):
         phish -- an instance of mailbox.Message representing the message to
         classify.
 
-        Returns True if the detector classifies phish as a phishy email, False
-        otherwise.
+        Returns a Python list of floats representing scores from various
+        heuristics.
+
+        (Soon to be deprecated)
+        For backwards compatibility, also supports returning a single boolean if
+        there is only 1 heuristic. This support will be removed in future
+        versions.
         """
         return
 
@@ -79,19 +86,3 @@ class Detector(object):
         phish = self.modify_phish(phish, random_msg)
         phish.set_payload("This is the body for a generated phishing email.\n")
         return phish
-    
-    def run_trials(self, num_trials=1000):
-        """Determines the classification rate of this detector.
-
-        Keyword arguments:
-        num_trials -- number of trials to test on.
-
-        Returns the proportion of phishy emails that this detector successfully
-        detected.
-        """
-        self.detected = 0
-        for i in range(num_trials):
-            phish = self.make_phish()
-            if self.classify(phish):
-                self.detected += 1
-        return float(self.detected) / num_trials * 100
