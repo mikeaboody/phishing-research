@@ -17,8 +17,8 @@ validation_index = int((1 - VALIDATION_PERCENT) * N)
 # test_Y = data['test_labels']
 
 weights = {
-    1.0: .001,
-    0.0: 1
+    1.0: 1,
+    0.0: 100
 }
 
 test_methods = {
@@ -54,7 +54,7 @@ def score2(classifier, val_X, val_Y):
     fn = np.count_nonzero(np.logical_and(predictions == 0, val_Y == 1))
     print(tp, fp, tn, fn)
 
-    return float(tp) / (tp + fn), float(fp) / (fp + tn)
+    return tp / (tp + fn), fp / (fp + tn)
 
 
 def sample_data():

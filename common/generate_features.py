@@ -56,14 +56,14 @@ defined in detector.py.
 """
 
 features = [
-    # fc.DateFormatDetector,
-    # fc.DateTimezoneDetector,
-    # fc.MessageIdDetectorOne,
-    # fc.MessageIdDetectorThree,
+    fc.DateFormatDetector,
+    fc.DateTimezoneDetector,
+    fc.MessageIdDetectorOne,
+    fc.MessageIdDetectorThree,
     # fc.messageIDDomain_Detector,
-    # messageIDDomain_Detector,
-    # ContentTypeDetector,
-    # OrderOfHeaderDetector,
+    messageIDDomain_Detector,
+    ContentTypeDetector,
+    OrderOfHeaderDetector,
     fc.XMailerDetector,
     ReceivedHeadersDetector,
     ReceivedHeadersDetector2,
@@ -75,6 +75,7 @@ def build_detectors(regular_mbox):
     print("Building sender profiles for each feature...")
     for detector in detectors:
         detector.create_sender_profile(NUM_PRE_TRAINING)
+        print("Done with " + detector.__class__.__name__)
     return detectors
 
 # Generates a single pseudo-phishing email.

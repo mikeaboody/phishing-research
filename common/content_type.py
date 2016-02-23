@@ -177,7 +177,8 @@ class ContentTypeDetector(Detector):
                     new = self.update_sender_profile(attr, value, sender)
                     new_format += new
                     if new:
-                        self.false_alarm[attr] += 1
+                        if attr in self.false_alarm:
+                            self.false_alarm[attr] += 1
                     self.update_entire_attribute(attr, value)
             if new_format > 0:
                 self.combined_false += 1
