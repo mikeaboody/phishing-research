@@ -41,7 +41,7 @@ class OrderOfHeaderDetector(Detector):
                     phishy = False
                     break
         else:
-            print("Sender was not found in sender_profile: %s" % (sender))
+            return False
         return phishy
 
     def convert_to_list(self, ordering):
