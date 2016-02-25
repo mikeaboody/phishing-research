@@ -10,7 +10,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import editdistance
 
+NUM_EMAILS = 1
+FORMATS = 0
+
 class OrderOfHeaderDetector(Detector):
+    NUM_HEURISTICS = 3
     def __init__(self, inbox):
         self.inbox = inbox
         self.threshold = 7
@@ -30,19 +34,23 @@ class OrderOfHeaderDetector(Detector):
         return False
 
     def classify(self, phish):
+        # total, emails, editdistance
         sender = self.extract_from(phish)
-        sender = self.inbox[randint(0, len(self.inbox)-1)]['From']
+        detect = [1, 0, 0]
         ordering = self.find_ordering(phish, error=False)
         new_val = self.convert_to_list(ordering)
-        phishy = True
         if sender in self.sender_profile.keys():
-            for o in list(self.sender_profile[sender]):
+            orderings = list(self.sender_profile[sender][FORMATS])
+            for o in orderings:
                 if self.edit_distance_thresh(new_val, o):
-                    phishy = False
+                    # phishy? Nope.
+                    detect[0] = 0
                     break
+            detect[1] = self.sender_profile[sender][NUM_EMAILS]
+            detect[2] = len(orderings)
         else:
-            return False
-        return phishy
+            detect[0] = 0
+        return detect
 
     def convert_to_list(self, ordering):
         return ordering.split(" ")
@@ -50,10 +58,11 @@ class OrderOfHeaderDetector(Detector):
     def update_sender_profile(self, value, sender):
         new_format = 1
         if sender not in self.sender_profile.keys():
-            self.sender_profile[sender] = set([value])
+            self.sender_profile[sender] = [set([value]), 1]
             new_format = 0
         else:
-            seen = list(self.sender_profile[sender])
+            self.sender_profile[sender][NUM_EMAILS] += 1
+            seen = list(self.sender_profile[sender][FORMATS])
             new_val = self.convert_to_list(value)
             for ordering in seen:
                 if self.edit_distance_thresh(new_val, ordering):
@@ -61,7 +70,7 @@ class OrderOfHeaderDetector(Detector):
                     break
         #if value not in self.sender_profile[sender]:
         #    new_format = 1
-        self.sender_profile[sender].add(value)
+        self.sender_profile[sender][FORMATS].add(value)
         return new_format
 
     def update_entire_attribute(self, value):
@@ -186,6 +195,7 @@ class OrderOfHeaderDetector(Detector):
                 self.false_alarms += new
                 self.emails_with_sender += 1
                 self.update_entire_attribute(order)
+
         self.falsies = self.false_alarms / self.emails_with_sender * 100
 
     def trim_distributions(self, distr):
@@ -198,7 +208,7 @@ class OrderOfHeaderDetector(Detector):
         count = 1
         for sender in self.sender_profile.keys():
             len_ordering[sender] = {}
-            for ordering in self.sender_profile[sender]:
+            for ordering in self.sender_profile[sender][FORMATS]:
                 num = len(ordering.split(" "))
                 if num not in len_ordering[sender].keys():
                     len_ordering[sender][num] = 1
@@ -208,6 +218,7 @@ class OrderOfHeaderDetector(Detector):
         # key: diff val: number of times I've seen
         count_diff = {}
         for sender, ordering in self.sender_profile.items():
+            ordering = ordering[FORMATS]
             if len(ordering) > 1:
                 one = list(ordering)[0].split(" ")
                 two = list(ordering)[1].split(" ")
@@ -224,7 +235,7 @@ class OrderOfHeaderDetector(Detector):
     def interesting_stats(self):
         ordering_used = [0]*20
         for ordering in self.sender_profile.values():
-            num_formats = len(ordering) - 1
+            num_formats = len(ordering[FORMATS]) - 1
             total_len = len(ordering_used)
             if num_formats >= total_len:
                 ordering_used.extend([0] * (num_formats - total_len + 1))

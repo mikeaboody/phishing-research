@@ -20,25 +20,18 @@ the following keys:
 
 import mailbox
 import os
+import sys
 import time
 
 import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
-from order_of_headers import OrderOfHeaderDetector
-from content_type import ContentTypeDetector
-from date_att import DateFormatDetector
-from timezone import DateTimezoneDetector
-
-import sys
 
 PHISHING_FILENAME = 'phish.mbox'
 REGULAR_FILENAME = 'regular.mbox'
-# REGULAR_FILENAME = 'Inbox.mbox'
 TEST_FILENAME = 'test.mbox'
-# Using 'matthew_berkeley.mbox'
-NUM_DATA = 1000
+NUM_DATA = 2000
 
 ############
 # FEATURES #
@@ -50,20 +43,31 @@ defined in detector.py.
 """
 
 features = [
-    DateFormatDetector,
-    DateTimezoneDetector,
+    fc.DateFormatDetector,
+    fc.DateTimezoneDetector,
     fc.MessageIdDetectorOne,
-    # fc.messageIDDomain_Detector,
-    ContentTypeDetector,
-    OrderOfHeaderDetector,
+    fc.messageIDDomain_Detector,
+    fc.ContentTypeDetector,
+    fc.OrderOfHeaderDetector,
     fc.XMailerDetector
 ]
+
+num_features = sum([feature.NUM_HEURISTICS for feature in features])
+
+def progress_bar(index, last_val, num_bars=20, msg='Progress'):
+    percent = (float(index) + 1) / last_val
+    hashes = '#' * int(round(percent * num_bars))
+    spaces = ' ' * (num_bars - len(hashes))
+    sys.stdout.write("\r{0}: [{1}] {2}%".format(msg, hashes + spaces, int(round(percent * 100))))
+    sys.stdout.flush()
 
 def build_detectors(regular_mbox):
     detectors = [Detector(regular_mbox) for Detector in features]
     print("Building sender profiles for each feature...")
-    for detector in detectors:
+    for i, detector in enumerate(detectors):
         detector.create_sender_profile(NUM_PRE_TRAINING)
+        progress_bar(i, len(detectors))
+    print('')
     return detectors
 
 # Generates a single pseudo-phishing email.
@@ -78,52 +82,87 @@ def make_phish(test_mbox):
         random_from = test_mbox[j]
         sender = random_from['From']
 
-    if sender == random_msg['From']:
-        print ('repeat sender: {}'.format(sender))
     phish = mailbox.mboxMessage()
     phish['From'] = sender
-    phish['To'] = random_msg['To']
-    phish['Subject'] = random_msg['Subject']
     for key in random_msg.keys():
         phish[key] = random_msg[key]
-    phish['From'] = sender
     phish.set_payload("This is the body for a generated phishing email.\n")
     return phish
 
 def generate_data_matrix(phishing_mbox, regular_mbox):
     assert len(regular_mbox) > NUM_PRE_TRAINING, "Not enough data points."
-    num_features = len(features)
     data_matrix = np.empty(shape=(NUM_DATA, num_features))
 
     print("Generating data matrix...")
     row_index = 0
     for i in range(NUM_PRE_TRAINING, len(regular_mbox)):
-        for j, detector in enumerate(detectors):
-            data_matrix[row_index][j] = 1 if detector.classify(regular_mbox[i]) else 0
+        j = 0
+        for detector in detectors:
+            heuristic = detector.classify(regular_mbox[i])
+            if type(heuristic) == list:
+                for h in heuristic:
+                    data_matrix[row_index][j] = float(h)
+                    j += 1
+            else:
+                data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
+                j += 1
+        if row_index % 10 == 0:
+            progress_bar(row_index, NUM_DATA)
         row_index += 1
     for _ in range(NUM_DATA / 2):
         phish_email = phishing_mbox[i] if phishing_mbox else make_phish(regular_mbox)
-        for j, detector in enumerate(detectors):
-            data_matrix[row_index][j] = 1 if detector.classify(phish_email) else 0
+        j = 0
+        for detector in detectors:
+            heuristic = detector.classify(phish_email)
+            if type(heuristic) == list:
+                for h in heuristic:
+                    data_matrix[row_index][j] = float(h)
+                    j += 1
+            else:
+                data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
+                j += 1
+        if row_index % 10 == 0:
+            progress_bar(row_index, NUM_DATA)
         row_index += 1
+    print('')
     return data_matrix
 
 def generate_test_matrix(test_mbox):
-    num_features = len(features)
     num_test_points = len(test_mbox)
     test_data_matrix = np.empty(shape=(2 * num_test_points, num_features))
 
     print("Generating test data matrix...")
     row_index = 0
     for i in range(num_test_points):
-        for j, detector in enumerate(detectors):
-            test_data_matrix[row_index][j] = 1 if detector.classify(test_mbox[i]) else 0
+        j = 0
+        for detector in detectors:
+            heuristic = detector.classify(test_mbox[i])
+            if type(heuristic) == list:
+                for h in heuristic:
+                    test_data_matrix[row_index][j] = float(h)
+                    j += 1
+            else:
+                test_data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
+                j += 1
+        if row_index % 10 == 0:
+            progress_bar(row_index, 2 * num_test_points)
         row_index += 1
     for _ in range(num_test_points):
         phish_email = make_phish(test_mbox)
-        for j, detector in enumerate(detectors):
-            test_data_matrix[row_index][j] = 1 if detector.classify(phish_email) else 0
+        j = 0
+        for detector in detectors:
+            heuristic = detector.classify(phish_email)
+            if type(heuristic) == list:
+                for h in heuristic:
+                    test_data_matrix[row_index][j] = float(h)
+                    j += 1
+            else:
+                test_data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
+                j += 1
+        if row_index % 10 == 0:
+            progress_bar(row_index, 2 * num_test_points)
         row_index += 1
+    print('')
     return test_data_matrix
 
 def generate_labels(phishing_mbox, regular_mbox):
@@ -133,6 +172,9 @@ def generate_labels(phishing_mbox, regular_mbox):
     print("Generating label matrix...")
     for i in range(NUM_DATA):
         label_matrix[i][0] = 0 if i < NUM_DATA / 2 else 1
+        if i % 10 == 0:
+            progress_bar(i, NUM_DATA)
+    print('')
     return label_matrix
 
 def generate_test_labels(test_mbox):
@@ -142,6 +184,9 @@ def generate_test_labels(test_mbox):
     print("Generating test label matrix...")
     for i in range(2 * num_test_points):
         test_label_matrix[i][0] = 0 if i < num_test_points else 1
+        if i % 10 == 0:
+            progress_bar(i, 2 * num_test_points)
+    print('')
     return test_label_matrix
 
 
@@ -156,22 +201,22 @@ else:
     print("No phishing emails provided.")
     phishing_emails = None
 regular_emails = mailbox.mbox(REGULAR_FILENAME)
-# test_emails = mailbox.mbox(TEST_FILENAME)
+test_emails = mailbox.mbox(TEST_FILENAME)
 NUM_PRE_TRAINING = len(regular_emails) - NUM_DATA / 2
 detectors = build_detectors(regular_emails)
 X = generate_data_matrix(phishing_emails, regular_emails)
 Y = generate_labels(phishing_emails, regular_emails)
-# test_X = generate_test_matrix(test_emails)
-# test_Y = generate_test_labels(test_emails)
+test_X = generate_test_matrix(test_emails)
+test_Y = generate_test_labels(test_emails)
 
 file_dict = {}
 file_dict['training_data'] = X
 file_dict['training_labels'] = Y
-# file_dict['test_data'] = test_X
-# file_dict['test_labels'] = test_Y
+file_dict['test_data'] = test_X
+file_dict['test_labels'] = test_Y
 sio.savemat('phishing_data.mat', file_dict)
 end_time = time.clock()
 
 print("Data matrix has been generated. There are {} total training points and {} total features.".format(len(X), len(X[0])))
-# print("Test matrix has been generated. There are {} total test points and {} total features.".format(len(test_X), len(test_X[0])))
+print("Test matrix has been generated. There are {} total test points and {} total features.".format(len(test_X), len(test_X[0])))
 print("The script took {} seconds.".format(end_time - start_time))
