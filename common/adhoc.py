@@ -45,7 +45,6 @@ def test():
 
 def test2(): 
     for key, value in test_methods.items():
-        import pdb; pdb.set_trace()
         clf = value
         clf.fit(X, Y.ravel())
 

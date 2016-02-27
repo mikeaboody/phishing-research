@@ -172,8 +172,11 @@ class ReceivedHeadersDetector(Detector):
 		RHList = []
 		sender = extract_email(phish, "From")
 		receiver = ""
+		edit_distances = [0, 1, 2]
+		feature_vector = [0 for _ in range(len(edit_distances))]
 		if (sender, receiver) not in self.srp:
-			return False
+			validate(feature_vector)
+			return feature_vector
 		srp = self.srp[(sender, receiver)]
 		if phish.get_all("Received"):
 			for recHeader in phish.get_all("Received"):
@@ -206,8 +209,8 @@ class ReceivedHeadersDetector(Detector):
 					# RHList.append("InvalidIPWhoIs")
 					RHList.append("Invalid")
 					self.seen_pairings[ip] = "Invalid"
-		edit_distances = [0, 1, 2]
-		feature_vector = [0 for _ in range(len(edit_distances))]
+		
+		
 		for i, threshold in enumerate(edit_distances):
 			flagged = False
 			if RHList not in srp.received_header_sequences:
@@ -219,6 +222,7 @@ class ReceivedHeadersDetector(Detector):
 							bestEditDist = ed
 					if bestEditDist > threshold:
 						feature_vector[i] = 1
+		validate(feature_vector)
 		return feature_vector
 
 
@@ -367,6 +371,12 @@ def extract_domain(content):
 	else:
 		return None
 	return content[:firstParen-1]
+
+def validate(lst):
+	for i in range(len(lst)):
+		if lst[i] != 0 and lst[i] != 1:
+			print("found")
+			import pdb; pdb.set_trace()
 
 
 
