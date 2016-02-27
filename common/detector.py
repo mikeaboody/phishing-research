@@ -81,7 +81,7 @@ class Detector(object):
             
         phish = mailbox.mboxMessage()
         phish['From'] = random_from['From']
-        phish['To'] = random_from['To']
+        phish['To'] = random_msg['To']
         phish['Subject'] = random_msg['Subject'] 
         phish = self.modify_phish(phish, random_msg)
         phish.set_payload("This is the body for a generated phishing email.\n")

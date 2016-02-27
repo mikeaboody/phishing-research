@@ -40,18 +40,17 @@ def test():
         print("Using {} training examples and {}, score is {}.".format(
             validation_index, key, score))
         detect_rate, false_classify_rate = score2(clf, val_X, val_Y.ravel())
-        print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n".format(
-            validation_index, key, detect_rate, false_classify_rate))
+        print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n").format(
+            validation_index, key, detect_rate, false_classify_rate)
 
-def test2(): 
+def test2():
     for key, value in test_methods.items():
-        import pdb; pdb.set_trace()
         clf = value
         clf.fit(X, Y.ravel())
 
         detect_rate, false_classify_rate = score2(clf, test_X, test_Y.ravel())
-        print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n".format(
-            N, key, detect_rate, false_classify_rate))
+        print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n").format(
+            N, key, detect_rate, false_classify_rate)
 
 def score2(classifier, val_X, val_Y):
     """Returns detection rate and false_classification rate."""
@@ -99,4 +98,5 @@ def validate_data():
     Total number of legit emails: 2500. False classify rates: [ 0.1984  0.1984  0.0288  0.008   0.004 ]
     Out of 2500 phish, 1013 new.
     """
+
 test2()

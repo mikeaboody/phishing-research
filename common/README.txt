@@ -8,6 +8,7 @@ Requirements:
 - Python 2.7
 - numpy ('pip install numpy')
 - scipy ('pip install scipy')
+- editdistance ('pip install editdistance')
 
 Setup:
 ------

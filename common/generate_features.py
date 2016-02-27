@@ -43,14 +43,13 @@ defined in detector.py.
 """
 
 features = [
-    # fc.DateFormatDetector,
-    # fc.DateTimezoneDetector,
-    # fc.MessageIdDetectorOne,
-    # fc.messageIDDomain_Detector,
-    # fc.ContentTypeDetector,
-    # fc.OrderOfHeaderDetector,
-    fc.XMailerDetector,
-    fc.ReceivedHeadersDetector
+    fc.DateFormatDetector,
+    fc.DateTimezoneDetector,
+    fc.MessageIdDetectorOne,
+    fc.messageIDDomain_Detector,
+    fc.ContentTypeDetector,
+    fc.OrderOfHeaderDetector,
+    fc.XMailerDetector
 ]
 
 num_features = sum([feature.NUM_HEURISTICS for feature in features])
