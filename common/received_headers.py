@@ -154,6 +154,7 @@ class ReceivedHeadersDetector(Detector):
 	seen_pairings = {}
 	seen_domain_ip = {}
 	srp = None
+	NUM_HEURISTICS = 3
 	def __init__(self, inbox):
 		self.inbox = inbox
 		self.EDIT_DISTANCE_THRESHOLD = 0
@@ -205,16 +206,20 @@ class ReceivedHeadersDetector(Detector):
 					# RHList.append("InvalidIPWhoIs")
 					RHList.append("Invalid")
 					self.seen_pairings[ip] = "Invalid"
-		if RHList not in srp.received_header_sequences:
-			if srp.received_header_sequences:
-				bestEditDist = None
-				for lst in srp.received_header_sequences:
-					ed = editdistance.eval(RHList, lst)
-					if bestEditDist == None or bestEditDist > ed:
-						bestEditDist = ed
-				if bestEditDist > self.EDIT_DISTANCE_THRESHOLD:
-					return True
-		return False
+		edit_distances = [0, 1, 2]
+		feature_vector = [0 for _ in range(len(edit_distances))]
+		for i, threshold in enumerate(edit_distances):
+			flagged = False
+			if RHList not in srp.received_header_sequences:
+				if srp.received_header_sequences:
+					bestEditDist = None
+					for lst in srp.received_header_sequences:
+						ed = editdistance.eval(RHList, lst)
+						if bestEditDist == None or bestEditDist > ed:
+							bestEditDist = ed
+					if bestEditDist > threshold:
+						feature_vector[i] = 1
+		return feature_vector
 
 
 
@@ -363,21 +368,6 @@ def extract_domain(content):
 		return None
 	return content[:firstParen-1]
 
-class ReceivedHeadersDetector2(ReceivedHeadersDetector):
-	def __init__(self, inbox):
-		self.inbox = inbox
-		self.EDIT_DISTANCE_THRESHOLD = 1
-	def create_sender_profile(self, num_samples):
-		self.srp = ReceivedHeadersDetector.srp
-		return self.srp
-
-class ReceivedHeadersDetector3(ReceivedHeadersDetector):
-	def __init__(self, inbox):
-		self.inbox = inbox
-		self.EDIT_DISTANCE_THRESHOLD = 2
-	def create_sender_profile(self, num_samples):
-		self.srp = ReceivedHeadersDetector.srp
-		return self.srp
 
 
 # file_name = sys.argv[1]

@@ -13,19 +13,19 @@ Y = data['training_labels']
 X, Y = shuffle(X, Y)
 N, d = len(X), len(X[0])
 validation_index = int((1 - VALIDATION_PERCENT) * N)
-# test_X = data['test_data']
-# test_Y = data['test_labels']
+test_X = data['test_data']
+test_Y = data['test_labels']
 
 weights = {
-    1.0: 1,
-    0.0: 100
+    1.0: .5,
+    0.0: 1
 }
 
 test_methods = {
     'linear svm': svm.LinearSVC(dual=False, class_weight=weights),
-    'logistic regression': linear_model.LogisticRegression(),
-    'nearest centroid': neighbors.KNeighborsClassifier(n_neighbors=5),
-    'random forest': ensemble.RandomForestClassifier(n_estimators=10)
+    'logistic regression': linear_model.LogisticRegression(class_weight=weights),
+    # 'nearest centroid': neighbors.KNeighborsClassifier(n_neighbors=5, class_weight=weights),
+    'random forest': ensemble.RandomForestClassifier(n_estimators=10, class_weight=weights)
     # 'neural network': neural_network.MLPClassifier()
 }
 
@@ -37,13 +37,21 @@ def test():
         clf.fit(train_X, train_Y.ravel())
 
         score = clf.score(val_X, val_Y)
-        # print("Using {} training examples and {}, score is {}.".format(
-        #     validation_index, key, score))
-        print("Using", str(validation_index), "training examples and", str(key), ", score is", str(score))
+        print("Using {} training examples and {}, score is {}.".format(
+            validation_index, key, score))
         detect_rate, false_classify_rate = score2(clf, val_X, val_Y.ravel())
-        # print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n").format(
-        #     validation_index, key, detect_rate, false_classify_rate)
-        print("Using", str(validation_index), "training examples and", str(key), ", detection rate is", str(detect_rate), "and false rate is", str(false_classify_rate))
+        print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n".format(
+            validation_index, key, detect_rate, false_classify_rate))
+
+def test2(): 
+    for key, value in test_methods.items():
+        import pdb; pdb.set_trace()
+        clf = value
+        clf.fit(X, Y.ravel())
+
+        detect_rate, false_classify_rate = score2(clf, test_X, test_Y.ravel())
+        print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n".format(
+            N, key, detect_rate, false_classify_rate))
 
 def score2(classifier, val_X, val_Y):
     """Returns detection rate and false_classification rate."""
@@ -52,14 +60,21 @@ def score2(classifier, val_X, val_Y):
     fp = np.count_nonzero(np.logical_and(predictions == 1, val_Y == 0))
     tn = np.count_nonzero(np.logical_and(predictions == 0, val_Y == 0))
     fn = np.count_nonzero(np.logical_and(predictions == 0, val_Y == 1))
-    print(tp, fp, tn, fn)
+    dr = float(tp) / (tp + fn)
+    fcr = float(fp) / (fp + tn)
+    print(("True positives: {}\n"
+           "False positives: {}\n"
+           "True negatives: {}\n"
+           "False negatives: {}\n"
+           "Detection rate: {}\n"
+           "False classification rate: {}\n"
+           .format(tp, fp, tn, fn, dr, fcr)))
 
-    return tp / (tp + fn), fp / (fp + tn)
-
+    return dr, fcr
 
 def sample_data():
     for i in range(100):
-        print(X[i], Y[i])
+        print (X[i], Y[i])
 
 def validate_data():
     total_phish = 0
@@ -84,6 +99,4 @@ def validate_data():
     Total number of legit emails: 2500. False classify rates: [ 0.1984  0.1984  0.0288  0.008   0.004 ]
     Out of 2500 phish, 1013 new.
     """
-
-test()
-validate_data()
+test2()
