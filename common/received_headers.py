@@ -175,7 +175,6 @@ class ReceivedHeadersDetector(Detector):
 		edit_distances = [0, 1, 2]
 		feature_vector = [0 for _ in range(len(edit_distances))]
 		if (sender, receiver) not in self.srp:
-			validate(feature_vector)
 			return feature_vector
 		srp = self.srp[(sender, receiver)]
 		if phish.get_all("Received"):
@@ -222,7 +221,6 @@ class ReceivedHeadersDetector(Detector):
 							bestEditDist = ed
 					if bestEditDist > threshold:
 						feature_vector[i] = 1
-		validate(feature_vector)
 		return feature_vector
 
 
@@ -372,11 +370,6 @@ def extract_domain(content):
 		return None
 	return content[:firstParen-1]
 
-def validate(lst):
-	for i in range(len(lst)):
-		if lst[i] != 0 and lst[i] != 1:
-			print("found")
-			import pdb; pdb.set_trace()
 
 
 
