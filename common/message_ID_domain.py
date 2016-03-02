@@ -68,8 +68,7 @@ class messageIDDomain_Detector(Detector):
 
     # returns tdameritrade given client@notifications.tdameritrade.com
     def getEmailDomain(self, email):
-        if "@" not in email:
-            return email
+        # import pdb; pdb.set_trace()
         indexAt = email.index("@")
         if "." not in (email[indexAt:])[::-1]:
             return email[indexAt+1:]
