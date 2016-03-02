@@ -58,7 +58,7 @@ class Detector(object):
             phish = self.make_phish()
             if self.classify(phish):
                 self.detected += 1
-        return self.detected / num_trials * 100
+        return float(self.detected) / float(num_trials) * 100
 
 
 
