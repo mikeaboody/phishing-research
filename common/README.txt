@@ -9,6 +9,9 @@ Requirements:
 - numpy ('pip install numpy')
 - scipy ('pip install scipy')
 - editdistance ('pip install editdistance')
+- ipwhois ('pip install ipwhois')
+- whois ('pip install whois')
+- netaddr ('pip install netaddr')
 
 Setup:
 ------
