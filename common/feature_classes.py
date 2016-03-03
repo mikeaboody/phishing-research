@@ -13,6 +13,7 @@ from message_ID_domain import messageIDDomain_Detector
 from order_of_headers import OrderOfHeaderDetector
 from timezone import DateTimezoneDetector
 from received_headers import ReceivedHeadersDetector
+from received_headers import SMTPIDDetector
 
 class MessageIdDetectorOne(Detector):
     DELIMITERS = ['.', '-', '$', '/', '%']

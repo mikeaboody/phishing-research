@@ -359,6 +359,49 @@ class ReceivedHeadersDetector(Detector):
 			return prefix1 == prefix2
 		return False
 
+class SMTPIDDetector(Detector):
+	def __init__(self, inbox):
+		self.inbox = inbox
+
+	def create_sender_profile(self, num_samples):
+		srp = SenderReceiverProfile(self.inbox, num_samples)
+		self.sender_profile = {}
+		for tup, srp in srp.items():
+			sender = tup[0]
+			self.sender_profile[sender] = set()
+			for em in srp.emailList:
+				for recHeader in em.receivedHeaderList:
+					if "id" in recHeader.breakdown:
+						self.sender_profile[sender].add(recHeader.breakdown["id"])
+					else:
+						self.sender_profile[sender].add(None)
+
+
+	def classify(self, phish):
+		sender = extract_email(phish, "From")
+		if sender not in self.sender_profile:
+			return -1
+		feature = 0
+		if phish.get_all("Received"):
+			for recHeader in phish.get_all("Received"):
+				recHeader = ReceivedHeader(recHeader)
+				recHeaderID = None
+				if "id" in recHeader.breakdown:
+					recHeaderID = recHeader.breakdown["id"]
+				if recHeaderID in self.sender_profile[sender]:
+					feature += 1
+		return feature
+
+	def modify_phish(self, phish, msg):
+		del phish["Received"]
+		if msg.get_all("Received"):
+			msgHeaders = msg.get_all("Received")[:]
+			for i in range(len(msgHeaders)):
+				phish["Received"] = msgHeaders[i]
+		return phish
+
+
+
 def extract_ip(content):
 	r = re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", content)
 	return r.group() if r else None
