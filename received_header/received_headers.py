@@ -251,7 +251,7 @@ class ReceivedHeadersDetector(Detector):
 		if domain:
 			domain = self.get_endMessageIDDomain(domain)
 			try:
-				if (domain in self.seen_domain_ip):
+				if (domain in self.seen_domain_ip.keys()):
 					return self.seen_domain_ip[domain]
 				else:
 					ip = socket.gethostbyname(domain)
@@ -282,6 +282,7 @@ class ReceivedHeadersDetector(Detector):
 			total_num_SRP += 1
 			firstEmail = True
 			for em in srp.emailList:
+				print("COUNT = ", count)
 				count += 1
 				# import pdb; pdb.set_trace()
 				total_num_emails += 1
@@ -295,24 +296,29 @@ class ReceivedHeadersDetector(Detector):
 					# Gets domain from previous by if this one has no from
 					recHeader = em.receivedHeaderList[i]
 					if i > 0 and (RHList[i-1] == "None" or RHList[i-1] == "Invalid") and "by" in recHeader.breakdown.keys():
-						ip = self.public_IP(recHeader.breakdown["by"])
+						ip = self.public_domain(recHeader.breakdown["by"], "by")
 						if ip != None:
 							if ip in self.seen_pairings.keys():
+								# print("found IP in seen pairings - by")
 								RHList[i-1] = self.seen_pairings[ip]
 							else:
 								try:
+									print("need to do whois lookup - by")
 									obj = IPWhois(ip)
 									results = obj.lookup()
 									if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
 										cidr = ip + "/32"
 									else:
 										cidr = results["nets"][0]["cidr"]
-									print("filling in from past by - IP")
+									# print("filling in from past by - IP")
 									RHList[i-1] = cidr
+									self.seen_pairings[ip] = cidr
 								except:
+									# import pdb; pdb.set_trace()
+									self.seen_pairings[ip] = "Invalid"
 									print("Whois lookup failed(domain): " + str(ip) + " " + recHeader.breakdown["by"])
 						elif extract_ip(recHeader.breakdown["by"]) == None:
-							ip = self.public_domain(recHeader.breakdown["by"], "by")
+							ip = self.public_IP(recHeader.breakdown["by"])
 							if ip != None:
 								if ip in self.seen_pairings.keys():
 									RHList[i-1] = self.seen_pairings[ip]
@@ -324,9 +330,11 @@ class ReceivedHeadersDetector(Detector):
 											cidr = ip + "/32"
 										else:
 											cidr = results["nets"][0]["cidr"]
-										print("filling in from past by - domain")
+										# print("filling in from past by - domain")
 										RHList[i-1] = cidr
+										self.seen_pairings[ip] = cidr
 									except:
+										self.seen_pairings[ip] = "Invalid"
 										print("Whois lookup failed (domain): " + str(ip) + " " + recHeader.breakdown["by"])
 
 
@@ -334,10 +342,11 @@ class ReceivedHeadersDetector(Detector):
 						numRHwoFrom += 1
 						RHList.append("None")
 						continue
+					pubIP = self.public_IP(recHeader.breakdown["from"])
+					if pubIP: #self.public_domain(recHeader.breakdown["from"], "from"):
+						ip = pubIP
 					elif self.public_domain(recHeader.breakdown["from"], "from"):
 						ip = self.public_domain(recHeader.breakdown["from"], "from")
-					elif self.public_IP(recHeader.breakdown["from"]):
-						ip = self.public_IP(recHeader.breakdown["from"])
 					else:
 						# Analysis on keeping some part of private IP
 						# if extract_ip(recHeader.breakdown["from"]) != None: # private IP case
