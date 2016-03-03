@@ -12,6 +12,7 @@ from detector import Detector
 from message_ID_domain import messageIDDomain_Detector
 from order_of_headers import OrderOfHeaderDetector
 from timezone import DateTimezoneDetector
+from received_headers import ReceivedHeadersDetector
 
 class MessageIdDetectorOne(Detector):
     DELIMITERS = ['.', '-', '$', '/', '%']
