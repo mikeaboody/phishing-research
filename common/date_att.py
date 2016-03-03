@@ -65,41 +65,27 @@ class DateFormat:
         return 0
 
 class DateData:
-    def __init__(self):
-        self.dates = []
+    def __init__(self, dates=[]):
+        self.dates = dates
         self.seen_formats = {}
-        self.num_detections = 0
 
     def process_date(self, date):
         self.dates.append(date)
         curr_format = DateFormat(date)
 
-        if (len(self.dates) == 1):
-            self.seen_formats[curr_format] = 1
-            return
-            
-        is_detection = True
         is_new_format = True
         curr_zero = list(curr_format.zeros_seen)[0]
         for seen_format in self.seen_formats.keys():
             if (curr_format.same_hash(seen_format)):
-                if ((curr_zero == 0 or curr_zero in seen_format.zeros_seen) or (len(seen_format.zeros_seen) == 1 and list(seen_format.zeros_seen)[0] == 0)):
-                    is_detection = False
-                else:
-                    is_detection = True
                 is_new_format = False
                 self.seen_formats[seen_format] += 1
                 seen_format.add_zero_status(curr_zero)
                 break
-        if (is_detection):
-            self.num_detections += 1
-            if (is_new_format):
-                self.seen_formats[curr_format] = 1
-
-    def num_detected(self):
-        return self.num_detections
+        if (is_new_format):
+            self.seen_formats[curr_format] = 1
 
 class DateFormatDetector(Detector):
+    NUM_HEURISTICS = 3
 
     def __init__(self, inbox):
         self.sender_profile = {}
@@ -114,21 +100,18 @@ class DateFormatDetector(Detector):
         sender = self.extract_from(phish)
         date = phish["Date"]
 
-        if sender is None:
-            return None
-
         if sender in self.sender_to_date_data:
             test_format = DateFormat(date)
             return self.detect(self.sender_to_date_data[sender], test_format)
 
-        return None
+        return [0, 0, 0]
 
     def detect(self, date_data, test_format):
         curr_zero = list(test_format.zeros_seen)[0]
         for seen_format in date_data.seen_formats:
             if (seen_format.same_hash(test_format) and ((curr_zero == 0 or curr_zero in seen_format.zeros_seen) or (len(seen_format.zeros_seen) == 1 and list(seen_format.zeros_seen)[0] == 0))):
-                return False
-        return True
+                return [0, date_data.seen_formats[seen_format], sum(date_data.seen_formats.itervalues())]
+        return [1, 0, sum(date_data.seen_formats.itervalues())]
 
     def create_sender_profile(self, num_samples):
         for i in range(num_samples):
@@ -144,24 +127,9 @@ class DateFormatDetector(Detector):
             else:
                 self.sender_profile[sender].append(date)
 
-        num_detected = 0
-        format_dist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        format_count = {}
-    
         for sender, emails in self.sender_profile.items():
             date_data = DateData()
             for date in emails:
                 date_data.process_date(date)
-    
-                date_format = DateFormat.att_binary(date)
-                if date_format in format_count:
-                    format_count[date_format] += 1
-                else:
-                    format_count[date_format] = 1
-    
             self.sender_to_date_data[sender] = date_data
-            curr_detected = date_data.num_detected()
-            num_detected += curr_detected
     
-            format_dist[len(date_data.seen_formats)-1] += 1
-
