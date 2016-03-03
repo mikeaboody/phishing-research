@@ -16,7 +16,7 @@ class SenderReceiverPair:
 		self.sender = sender
 		self.emailList = []
 		self.received_header_sequences = []
-
+		self.received_header_by = []
 
 	def __str__(self):
 		s = ""
@@ -145,6 +145,156 @@ def removeSpaces(s):
 	s = r.sub("", s)
 	return s
 
+
+class ReceivedHeadersDetector_by(Detector):
+	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+	EDIT_DISTANCE_THRESHOLD = 1
+
+	def __init__(self, inbox):
+		self.inbox = inbox
+		self.srp = self.create_sender_profile()
+
+	def modify_phish(self, phish, msg):
+		del phish["Received"]
+		if msg.get_all("Received"):
+			msgHeaders = msg.get_all("Received")[:]
+			for i in range(len(msgHeaders)):
+				phish["Received"] = msgHeaders[i]
+		return phish
+
+	def classify(self, phish):
+		sender = extract_email(phish, "From")
+		receiver = extract_email(phish, "To")
+		if (sender, receiver) not in self.srp:
+			return False
+		srp = self.srp[(sender, receiver)]
+		if phish.get_all("Received"):
+			for recHeader in phish.get_all("Received"):
+				recHeader = ReceivedHeader(recHeader)
+				if "by" in recHeader.breakdown:
+					by = extract_ip(recHeader.breakdown["by"])
+					if by != None:
+						ip = by
+						try:
+							public = ip and not (IPAddress(ip) in IPNetwork(self.privateCIDR[0]) or IPAddress(ip) in IPNetwork(self.privateCIDR[1]) or IPAddress(ip) in IPNetwork(self.privateCIDR[2]))
+						except:
+							public = False
+						if public:
+							# public ip - do nothing
+							pass
+						else:
+							# private ip - only store first two octets
+							# ipsplit = ip.split(".")
+							# ipsplit[2], ipsplit[3] = "0", "0"
+							# ip = ".".join(ipsplit)
+							by = "private"
+					else:
+						by = self.get_endMessageIDDomain(recHeader.breakdown["by"])
+					if recHeader.breakdown["by"] in srp.received_header_by or (by != None and by in srp.received_header_by):
+						continue
+					else:
+						return True
+		return False
+				
+
+	def create_sender_profile(self):
+		srp = SenderReceiverProfile(self.inbox)
+		self.srp = srp
+		self.find_false_positives()
+		return srp
+
+	def get_endMessageIDDomain(self, domain):
+		if domain == None:
+			return domain
+		if '.' in domain:
+			indexLastDot = len(domain) - domain[::-1].index(".") - 1
+			rest = domain[:indexLastDot]
+			if '.' in rest:
+				indexNextDot = len(rest) - rest[::-1].index(".") - 1
+				return domain[indexNextDot+1:]
+		return domain
+
+	def find_false_positives(self):
+		total_num_emails = 0
+		total_num_SRP = 0
+		total_num_RH = 0
+		total_emails_flagged = 0
+		total_srp_flagged = 0
+		invalidEmails = 0 # if a received header for an email doesn't have the "by" field
+		numRHwoBy = 0
+		priv_ip = 0
+		priv_dom = 0
+		pub_ip = 0
+		pub_dom = 0
+		count = 0
+		# fp_from = open("falsePostives_from_3", "a")
+		for tup, srp in self.srp.items():
+			flagSRP = False
+			# seq_rh_from = []
+			total_num_SRP += 1
+			firstEmail = True
+			RHList = []
+			for em in srp.emailList:
+				print("COUNT = ", count)
+				count += 1
+				# import pdb; pdb.set_trace()
+				total_num_emails += 1
+				num_recHeaders = len(em.receivedHeaderList)
+				flagEmail = False
+				invEmail = False
+				# RHList = []
+				# for recHeader in em.receivedHeaderList:
+				for i in range(len(em.receivedHeaderList)):
+					total_num_RH += 1
+					recHeader = em.receivedHeaderList[i]
+					if "by" in recHeader.breakdown:
+						by = extract_ip(recHeader.breakdown["by"])
+						if by != None:
+							try:
+								ip = by
+								public = ip and not (IPAddress(ip) in IPNetwork(self.privateCIDR[0]) or IPAddress(ip) in IPNetwork(self.privateCIDR[1]) or IPAddress(ip) in IPNetwork(self.privateCIDR[2]))
+							except:
+								public = False
+							if public:
+								# public ip - do nothing
+								pass
+							else:
+								# private ip - only store first two octets
+								# ip = by
+								# ipsplit = ip.split(".")
+								# ipsplit[2], ipsplit[3] = "0", "0"
+								# ip = ".".join(ipsplit)
+								by = "private"
+						else:
+							by = self.get_endMessageIDDomain(recHeader.breakdown["by"])
+						if firstEmail:
+							if by != None:
+								RHList.append(by)
+							else:
+								RHList.append(recHeader.breakdown["by"])
+						elif recHeader.breakdown["by"] in RHList or (by != None and by in RHList):
+							continue
+						else:
+							import pdb; pdb.set_trace()
+							if by != None:
+								RHList.append(by)
+							else:
+								RHList.append(recHeader.breakdown["by"])
+							flagEmail = True
+							flagSRP = True
+					else:
+						numRHwoBy += 1
+				firstEmail = False
+				if flagEmail:
+					total_emails_flagged += 1
+			srp.received_header_by = RHList
+			if flagSRP:
+				total_srp_flagged += 1
+		print("Total number of RH w/o by: " + str(numRHwoBy) + "/" + str(total_num_RH))
+		print("Total Number of Emails Flagged: " + str(total_emails_flagged) + "/" + str(total_num_emails))
+		print("Total Number of SRP's Flagged: " + str(total_srp_flagged) + "/" + str(total_num_SRP))
+
+
 class ReceivedHeadersDetector(Detector):
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	seen_pairings = {}
@@ -172,7 +322,7 @@ class ReceivedHeadersDetector(Detector):
 		if phish.get_all("Received"):
 			for recHeader in phish.get_all("Received"):
 				recHeader = ReceivedHeader(recHeader)
-				if not "from" in recHeader.breakdown.keys():
+				if not "from" in recHeader.breakdown:
 					RHList.append("None")
 					continue
 				elif self.public_domain(recHeader.breakdown["from"], "from"):
@@ -185,12 +335,12 @@ class ReceivedHeadersDetector(Detector):
 					continue
 				try:
 					# import pdb; pdb.set_trace()
-					if ip in self.seen_pairings.keys():
+					if ip in self.seen_pairings:
 						RHList.append(self.seen_pairings[ip])
 					else:
 						obj = IPWhois(ip)
 						results = obj.lookup()
-						if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
+						if "nets" not in results or "cidr" not in results["nets"][0]:
 							cidr = ip + "/32"
 						else:
 							cidr = results["nets"][0]["cidr"]
@@ -251,7 +401,7 @@ class ReceivedHeadersDetector(Detector):
 		if domain:
 			domain = self.get_endMessageIDDomain(domain)
 			try:
-				if (domain in self.seen_domain_ip.keys()):
+				if domain in self.seen_domain_ip:
 					return self.seen_domain_ip[domain]
 				else:
 					ip = socket.gethostbyname(domain)
@@ -295,50 +445,50 @@ class ReceivedHeadersDetector(Detector):
 
 					# Gets domain from previous by if this one has no from
 					recHeader = em.receivedHeaderList[i]
-					if i > 0 and (RHList[i-1] == "None" or RHList[i-1] == "Invalid") and "by" in recHeader.breakdown.keys():
-						ip = self.public_domain(recHeader.breakdown["by"], "by")
-						if ip != None:
-							if ip in self.seen_pairings.keys():
-								# print("found IP in seen pairings - by")
-								RHList[i-1] = self.seen_pairings[ip]
-							else:
-								try:
-									print("need to do whois lookup - by")
-									obj = IPWhois(ip)
-									results = obj.lookup()
-									if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
-										cidr = ip + "/32"
-									else:
-										cidr = results["nets"][0]["cidr"]
-									# print("filling in from past by - IP")
-									RHList[i-1] = cidr
-									self.seen_pairings[ip] = cidr
-								except:
-									# import pdb; pdb.set_trace()
-									self.seen_pairings[ip] = "Invalid"
-									print("Whois lookup failed(domain): " + str(ip) + " " + recHeader.breakdown["by"])
-						elif extract_ip(recHeader.breakdown["by"]) == None:
-							ip = self.public_IP(recHeader.breakdown["by"])
-							if ip != None:
-								if ip in self.seen_pairings.keys():
-									RHList[i-1] = self.seen_pairings[ip]
-								else:
-									try:
-										obj = IPWhois(ip)
-										results = obj.lookup()
-										if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
-											cidr = ip + "/32"
-										else:
-											cidr = results["nets"][0]["cidr"]
-										# print("filling in from past by - domain")
-										RHList[i-1] = cidr
-										self.seen_pairings[ip] = cidr
-									except:
-										self.seen_pairings[ip] = "Invalid"
-										print("Whois lookup failed (domain): " + str(ip) + " " + recHeader.breakdown["by"])
+					# if i > 0 and (RHList[i-1] == "None" or RHList[i-1] == "Invalid") and "by" in recHeader.breakdown:
+					# 	ip = self.public_domain(recHeader.breakdown["by"], "by")
+					# 	if ip != None:
+					# 		if ip in self.seen_pairings:
+					# 			# print("found IP in seen pairings - by")
+					# 			RHList[i-1] = self.seen_pairings[ip]
+					# 		else:
+					# 			try:
+					# 				print("need to do whois lookup - by")
+					# 				obj = IPWhois(ip)
+					# 				results = obj.lookup()
+					# 				if "nets" not in results or "cidr" not in results["nets"][0]:
+					# 					cidr = ip + "/32"
+					# 				else:
+					# 					cidr = results["nets"][0]["cidr"]
+					# 				# print("filling in from past by - IP")
+					# 				RHList[i-1] = cidr
+					# 				self.seen_pairings[ip] = cidr
+					# 			except:
+					# 				# import pdb; pdb.set_trace()
+					# 				self.seen_pairings[ip] = "Invalid"
+					# 				print("Whois lookup failed(domain): " + str(ip) + " " + recHeader.breakdown["by"])
+					# 	elif extract_ip(recHeader.breakdown["by"]) == None:
+					# 		ip = self.public_IP(recHeader.breakdown["by"])
+					# 		if ip != None:
+					# 			if ip in self.seen_pairings:
+					# 				RHList[i-1] = self.seen_pairings[ip]
+					# 			else:
+					# 				try:
+					# 					obj = IPWhois(ip)
+					# 					results = obj.lookup()
+					# 					if "nets" not in results or "cidr" not in results["nets"][0]:
+					# 						cidr = ip + "/32"
+					# 					else:
+					# 						cidr = results["nets"][0]["cidr"]
+					# 					# print("filling in from past by - domain")
+					# 					RHList[i-1] = cidr
+					# 					self.seen_pairings[ip] = cidr
+					# 				except:
+					# 					self.seen_pairings[ip] = "Invalid"
+					# 					print("Whois lookup failed (domain): " + str(ip) + " " + recHeader.breakdown["by"])
 
 
-					if not "from" in recHeader.breakdown.keys():
+					if not "from" in recHeader.breakdown:
 						numRHwoFrom += 1
 						RHList.append("None")
 						continue
@@ -349,25 +499,25 @@ class ReceivedHeadersDetector(Detector):
 						ip = self.public_domain(recHeader.breakdown["from"], "from")
 					else:
 						# Analysis on keeping some part of private IP
-						# if extract_ip(recHeader.breakdown["from"]) != None: # private IP case
-						# 	# add it to the seen pairings
-						# 	# import pdb; pdb.set_trace()
-						# 	ip = extract_ip(recHeader.breakdown["from"])
-						# 	ipsplit = ip.split(".")
-						# 	ipsplit[2], ipsplit[3] = "0", "0"
-						# 	ip = ".".join(ipsplit)
-						# 	self.seen_pairings[ip] = ip + "/16"
-						# else:
-						# 	print("Cannot parse from: " + recHeader.breakdown["from"])
-						RHList.append("Invalid")
-						continue
+						if extract_ip(recHeader.breakdown["from"]) != None: # private IP case
+							# add it to the seen pairings
+							# import pdb; pdb.set_trace()
+							ip = extract_ip(recHeader.breakdown["from"])
+							ipsplit = ip.split(".")
+							ipsplit[2], ipsplit[3] = "0", "0"
+							ip = ".".join(ipsplit)
+							self.seen_pairings[ip] = ip + "/16"
+						else:
+							print("Cannot parse from: " + recHeader.breakdown["from"])
+							RHList.append("Invalid")
+							continue
 					try:
-						if ip in self.seen_pairings.keys():
+						if ip in self.seen_pairings:
 							RHList.append(self.seen_pairings[ip])
 						else:
 							obj = IPWhois(ip)
 							results = obj.lookup()
-							if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
+							if "nets" not in results or "cidr" not in results["nets"][0]:
 								cidr = ip + "/32"
 							else:
 								cidr = results["nets"][0]["cidr"]
@@ -425,9 +575,12 @@ def extract_domain(content):
 
 file_name = sys.argv[1]
 theinbox = mailbox.mbox(file_name)
-detector = ReceivedHeadersDetector(theinbox)
+# detector = ReceivedHeadersDetector(theinbox)
+detector = ReceivedHeadersDetector_by(theinbox)
 print("Detection rate = " + str(detector.run_trials()))
-# import pdb; pdb.set_trace()
+
+
+
 
 # Results
 # Total Number of Emails Flagged: 355/4514 <-- 0.0786 --> 7.86% False Positive Rate
