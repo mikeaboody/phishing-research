@@ -189,11 +189,11 @@ class ContentTypeDetector(Detector):
         for i in range(num_samples):
             msg = self.inbox[i]
             sender = self.extract_from(msg)
+            new_format = 0
             if sender:
                 self.emails_with_sender += 1
                 entire_ct = self.get_entire_content(msg)
                 processed_ct = self.process(entire_ct)
-                new_format = 0
                 # No content-type header
                 if not processed_ct:
                     self.update_sender_profile(None, None, sender)
