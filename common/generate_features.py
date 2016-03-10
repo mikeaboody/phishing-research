@@ -55,6 +55,8 @@ features = [
 
 num_features = sum([feature.NUM_HEURISTICS for feature in features])
 
+feature_names = [f.__name__ + "-" + str(i) for f in features for i in range(f.NUM_HEURISTICS)]
+
 def progress_bar(index, last_val, num_bars=20, msg='Progress'):
     percent = (float(index) + 1) / last_val
     hashes = '#' * int(round(percent * num_bars))
@@ -195,7 +197,7 @@ def generate_test_labels(test_mbox):
 # Script Starts Here #
 ######################
 
-start_time = time.clock()
+start_time = time.time()
 if os.path.exists(PHISHING_FILENAME):
     phishing_emails = mailbox.mbox(PHISHING_FILENAME)
 else:
@@ -215,9 +217,10 @@ file_dict['training_data'] = X
 file_dict['training_labels'] = Y
 file_dict['test_data'] = test_X
 file_dict['test_labels'] = test_Y
+file_dict['feature_names'] = feature_names
 sio.savemat('phishing_data.mat', file_dict)
-end_time = time.clock()
+end_time = time.time()
 
 print("Data matrix has been generated. There are {} total training points and {} total features.".format(len(X), len(X[0])))
 print("Test matrix has been generated. There are {} total test points and {} total features.".format(len(test_X), len(test_X[0])))
-print("The script took {} seconds.".format(end_time - start_time))
+print("The script took {} seconds.".format(int(end_time - start_time)))

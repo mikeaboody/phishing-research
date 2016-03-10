@@ -3,6 +3,7 @@ import numpy as np
 import scipy.io as sio
 from sklearn import ensemble, linear_model, neighbors, neural_network, svm
 from sklearn.utils import shuffle
+import pprint as pp
 
 DATA_PATH = 'phishing_data.mat'
 VALIDATION_PERCENT = 0.1
@@ -15,6 +16,7 @@ N, d = len(X), len(X[0])
 validation_index = int((1 - VALIDATION_PERCENT) * N)
 test_X = data['test_data']
 test_Y = data['test_labels']
+names = data['feature_names']
 
 weights = {
     1.0: .5,
@@ -47,6 +49,33 @@ def test2():
     for key, value in test_methods.items():
         clf = value
         clf.fit(X, Y.ravel())
+        if key == "random forest":
+            #print("Features sorted by their mean decrease impurity score:")
+            #pp.pprint(sorted(zip(map(lambda x: round(x, 4), clf.feature_importances_), names), reverse=True))
+            rf = ensemble.RandomForestClassifier(n_estimators=10, class_weight=weights)
+            from sklearn.cross_validation import ShuffleSplit
+            from sklearn.metrics import accuracy_score
+            from collections import defaultdict
+            scores = defaultdict(list)
+            Yn = Y.ravel()
+            #crossvalidate the scores on a number of different random splits of the data
+            for train_idx, test_idx in ShuffleSplit(len(X), 100, .3):
+                X_train, X_test = X[train_idx], X[test_idx]
+                Y_train, Y_test = Yn[train_idx], Yn[test_idx]
+                r = rf.fit(X_train, Y_train)
+                acc = accuracy_score(Y_test, rf.predict(X_test))
+                for i in range(X.shape[1]):
+                    X_t = X_test.copy()
+                    np.random.shuffle(X_t[:, i])
+                    shuff_acc = accuracy_score(Y_test, rf.predict(X_t))
+                    scores[names[i]].append((acc-shuff_acc)/acc)
+            print("Features sorted by their score:")
+            pp.pprint(sorted([(round(np.mean(score), 4), feat) for
+              feat, score in scores.items()], reverse=True))
+
+        elif key == 'logistic regression':
+            print("Feature coefficients:")
+            pp.pprint(sorted(zip(map(lambda x: round(x, 4), clf.coef_[0]), names), reverse=True))
 
         detect_rate, false_classify_rate = score2(clf, test_X, test_Y.ravel())
         print("Using {} training examples and {}, detection rate is {} and false classification rate is {}.\n".format(
