@@ -17,6 +17,7 @@ class SenderReceiverPair:
 		self.emailList = []
 		self.received_header_sequences = []
 		self.received_header_by = []
+		self.received_header_by_seq = []
 
 	def __str__(self):
 		s = ""
@@ -145,8 +146,168 @@ def removeSpaces(s):
 	s = r.sub("", s)
 	return s
 
+class ReceivedHeadersDetector_by_seq(Detector):
+	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+	EDIT_DISTANCE_THRESHOLD = 2
 
-class ReceivedHeadersDetector_by(Detector):
+	def __init__(self, inbox):
+		self.inbox = inbox
+		self.srp = self.create_sender_profile()
+
+	def modify_phish(self, phish, msg):
+		del phish["Received"]
+		if msg.get_all("Received"):
+			msgHeaders = msg.get_all("Received")[:]
+			for i in range(len(msgHeaders)):
+				phish["Received"] = msgHeaders[i]
+		return phish
+
+	def classify(self, phish):
+		RHList = []
+		sender = extract_email(phish, "From")
+		receiver = extract_email(phish, "To")
+		if (sender, receiver) not in self.srp:
+			return False
+		srp = self.srp[(sender, receiver)]
+		if phish.get_all("Received"):
+			for recHeader in phish.get_all("Received"):
+				recHeader = ReceivedHeader(recHeader)
+				if "by" in recHeader.breakdown:
+					by = extract_ip(recHeader.breakdown["by"])
+					if by != None:
+						ip = by
+						try:
+							public = ip and not (IPAddress(ip) in IPNetwork(self.privateCIDR[0]) or IPAddress(ip) in IPNetwork(self.privateCIDR[1]) or IPAddress(ip) in IPNetwork(self.privateCIDR[2]))
+						except:
+							public = False
+						if public:
+							# public ip - do nothing
+							pass
+						else:
+							# private ip - only store first two octets
+							# ipsplit = ip.split(".")
+							# ipsplit[2], ipsplit[3] = "0", "0"
+							# ip = ".".join(ipsplit)
+							by = "private"
+					if by != None:
+						RHList.append(by)
+					else:
+						RHList.append(recHeader.breakdown["by"])
+				else:
+					RHList.append("None")
+			# import pdb; pdb.set_trace()
+			bestEditDist = None
+			for lst in srp.received_header_by_seq:
+				ed = editdistance.eval(RHList, lst)
+				if bestEditDist == None or bestEditDist > ed:
+					bestEditDist = ed
+			if bestEditDist > self.EDIT_DISTANCE_THRESHOLD:
+				return True
+		return False
+				
+
+	def create_sender_profile(self):
+		srp = SenderReceiverProfile(self.inbox)
+		self.srp = srp
+		self.find_false_positives()
+		return srp
+
+	def get_endMessageIDDomain(self, domain):
+		if domain == None:
+			return domain
+		if '.' in domain:
+			indexLastDot = len(domain) - domain[::-1].index(".") - 1
+			rest = domain[:indexLastDot]
+			if '.' in rest:
+				indexNextDot = len(rest) - rest[::-1].index(".") - 1
+				return domain[indexNextDot+1:]
+		return domain
+
+	def find_false_positives(self):
+		total_num_emails = 0
+		total_num_SRP = 0
+		total_num_RH = 0
+		total_emails_flagged = 0
+		total_srp_flagged = 0
+		invalidEmails = 0 # if a received header for an email doesn't have the "by" field
+		numRHwoBy = 0
+		priv_ip = 0
+		priv_dom = 0
+		pub_ip = 0
+		pub_dom = 0
+		count = 0
+		# fp_from = open("falsePostives_from_3", "a")
+		for tup, srp in self.srp.items():
+			flagSRP = False
+			seq_rh_by = []
+			total_num_SRP += 1
+			for em in srp.emailList:
+				print("COUNT = ", count)
+				count += 1
+				# import pdb; pdb.set_trace()
+				total_num_emails += 1
+				num_recHeaders = len(em.receivedHeaderList)
+				flagEmail = False
+				invEmail = False
+				RHList = []
+				# for recHeader in em.receivedHeaderList:
+				for i in range(len(em.receivedHeaderList)):
+					total_num_RH += 1
+					recHeader = em.receivedHeaderList[i]
+					if "by" in recHeader.breakdown:
+						by = extract_ip(recHeader.breakdown["by"])
+						if by != None:
+							try:
+								ip = by
+								public = ip and not (IPAddress(ip) in IPNetwork(self.privateCIDR[0]) or IPAddress(ip) in IPNetwork(self.privateCIDR[1]) or IPAddress(ip) in IPNetwork(self.privateCIDR[2]))
+							except:
+								public = False
+							if public:
+								# public ip - do nothing
+								pass
+							else:
+								# private ip - only store first two octets
+								# ip = by
+								# ipsplit = ip.split(".")
+								# ipsplit[2], ipsplit[3] = "0", "0"
+								# ip = ".".join(ipsplit)
+								by = "private"
+						else:
+							by = self.get_endMessageIDDomain(recHeader.breakdown["by"])
+
+						# create RHList
+						if by != None:
+							RHList.append(by)
+						else:
+							RHList.append(recHeader.breakdown["by"])
+					else:
+						RHList.append("None")
+						numRHwoBy += 1
+				if RHList not in seq_rh_by:
+					if seq_rh_by:
+						bestEditDist = None
+						for lst in seq_rh_by:
+							ed = editdistance.eval(RHList, lst)
+							if bestEditDist == None or bestEditDist > ed:
+								bestEditDist = ed
+						if bestEditDist > self.EDIT_DISTANCE_THRESHOLD:
+							print(str(count) + ":", tup)
+							flagEmail = True
+							flagSRP = True
+					seq_rh_by.append(RHList)
+
+				if flagEmail:
+					total_emails_flagged += 1
+			srp.received_header_by_seq = seq_rh_by
+			# import pdb; pdb.set_trace()
+			if flagSRP:
+				total_srp_flagged += 1
+		print("Total number of RH w/o by: " + str(numRHwoBy) + "/" + str(total_num_RH))
+		print("Total Number of Emails Flagged: " + str(total_emails_flagged) + "/" + str(total_num_emails))
+		print("Total Number of SRP's Flagged: " + str(total_srp_flagged) + "/" + str(total_num_SRP))
+
+
+class ReceivedHeadersDetector_by_cluster(Detector):
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	EDIT_DISTANCE_THRESHOLD = 1
 
@@ -275,7 +436,6 @@ class ReceivedHeadersDetector_by(Detector):
 						elif recHeader.breakdown["by"] in RHList or (by != None and by in RHList):
 							continue
 						else:
-							import pdb; pdb.set_trace()
 							if by != None:
 								RHList.append(by)
 							else:
@@ -576,7 +736,7 @@ def extract_domain(content):
 file_name = sys.argv[1]
 theinbox = mailbox.mbox(file_name)
 # detector = ReceivedHeadersDetector(theinbox)
-detector = ReceivedHeadersDetector_by(theinbox)
+detector = ReceivedHeadersDetector_by_seq(theinbox)
 print("Detection rate = " + str(detector.run_trials()))
 
 
