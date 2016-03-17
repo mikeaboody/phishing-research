@@ -3,8 +3,8 @@
 #empty_field	(empty)
 #unset_field	-
 #path	smtp
-#open	2016-03-08-19-55-43
-#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	trans_depth	helo	mailfrom	rcptto	date	from	to	cc	reply_to	msg_id	in_reply_to	subject	x_originating_ip	first_received	second_received	third_received	fourth_received	five_received	last_reply	path	user_agent	tls	header_order
-#types	time	string	addr	port	addr	port	count	string	string	set[string]	string	string	set[string]	set[string]	string	string	string	string	addr	string	string	string	string	string	string	vector[addr]	string	bool	string
-1254722768.219663	CDvfFd2DJbuEetm7x3	10.10.1.4	1470	74.53.140.153	25	1	GP	<gurpartap@patriots.in>	<raj_deol2002in@yahoo.co.in>	Mon, 5 Oct 2009 11:36:07 +0530	"Gurpartap Singh" <gurpartap@patriots.in>	<raj_deol2002in@yahoo.co.in>	-	-	<000301ca4581$ef9e57f0$cedb07d0$@in>	-	SMTP	-	-	-	-	-	-	250 OK id=1Mugho-0003Dg-Un	74.53.140.153,10.10.1.4	Microsoft Office Outlook 12.0	F	FROM,TO,SUBJECT,DATE,MESSAGE-ID,MIME-VERSION,CONTENT-TYPE,X-MAILER,THREAD-INDEX,CONTENT-LANGUAGE,X-CR-HASHEDPUZZLE,X-CR-PUZZLEID,CONTENT-TYPE,CONTENT-TYPE,CONTENT-TRANSFER-ENCODING,CONTENT-TYPE,CONTENT-TRANSFER-ENCODING,CONTENT-TYPE,CONTENT-TRANSFER-ENCODING,CONTENT-DISPOSITION
-#close	2016-03-08-19-55-43
+#open	2016-03-16-21-24-13
+#fields	headerKV
+#types	string
+{'FROM':'"Gurpartap Singh" <gurpartap@patriots.in>', 'TO':'<raj_deol2002in@yahoo.co.in>', 'SUBJECT':'SMTP', 'DATE':'Mon, 5 Oct 2009 11:36:07 +0530', 'MESSAGE-ID':'<000301ca4581$ef9e57f0$cedb07d0$@in>', 'MIME-VERSION':'1.0', 'CONTENT-TYPE':'multipart/mixed;\x09boundary="----=_NextPart_000_0004_01CA45B0.095693F0"', 'X-MAILER':'Microsoft Office Outlook 12.0', 'THREAD-INDEX':'AcpFgem9BvjjZEDeR1Kh8i+hUyVo0A==', 'CONTENT-LANGUAGE':'en-us', 'X-CR-HASHEDPUZZLE':'SeA= AAR2 ADaH BpiO C4G1 D1gW FNB1 FPkR Fn+W HFCP HnYJ JO7s Kum6 KytW LFcI LjUt;1;cgBhAGoAXwBkAGUAbwBsADIAMAAwADIAaQBuAEAAeQBhAGgAbwBvAC4AYwBvAC4AaQBuAA==;Sosha1_v1;7;{CAA37F59-1850-45C7-8540-AA27696B5398};ZwB1AHIAcABhAHIAdABhAHAAQABwAGEAdAByAGkAbwB0AHMALgBpAG4A;Mon, 05 Oct 2009 06:06:01 GMT;UwBNAFQAUAA=', 'X-CR-PUZZLEID':'{CAA37F59-1850-45C7-8540-AA27696B5398}', 'CONTENT-TYPE':'multipart/alternative;\x09boundary="----=_NextPart_001_0005_01CA45B0.095693F0"', 'CONTENT-TYPE':'text/plain;\x09charset="us-ascii"', 'CONTENT-TRANSFER-ENCODING':'7bit', 'CONTENT-TYPE':'text/html;\x09charset="us-ascii"', 'CONTENT-TRANSFER-ENCODING':'quoted-printable', 'CONTENT-TYPE':'text/plain;\x09name="NEWS.txt"', 'CONTENT-TRANSFER-ENCODING':'quoted-printable', 'CONTENT-DISPOSITION':'attachment;\x09filename="NEWS.txt"'}
+#close	2016-03-16-21-24-13

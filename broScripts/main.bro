@@ -9,57 +9,57 @@ export {
 
 	type Info: record {
 		## Time when the message was first seen.
-		ts:                time            &log;
+		ts:                time            ;
 		## Unique ID for the connection.
-		uid:               string          &log;
+		uid:               string          ;
 		## The connection's 4-tuple of endpoint addresses/ports.
-		id:                conn_id         &log;
+		id:                conn_id         ;
 		## A count to represent the depth of this message transaction in
 		## a single connection where multiple messages were transferred.
-		trans_depth:       count           &log;
+		trans_depth:       count           ;
 		## Contents of the Helo header.
-		helo:              string          &log &optional;
+		helo:              string          &optional;
 		## Contents of the From header.
-		mailfrom:          string          &log &optional;
+		mailfrom:          string          &optional;
 		## Contents of the Rcpt header.
-		rcptto:            set[string]     &log &optional;
+		rcptto:            set[string]     &optional;
 		## Contents of the Date header.
-		date:              string          &log &optional;
+		date:              string          &optional;
 		## Contents of the From header.
-		from:              string          &log &optional;
+		from:              string          &optional;
 		## Contents of the To header.
-		to:                set[string]     &log &optional;
+		to:                set[string]     &optional;
 		## Contents of the CC header.
-		cc:                set[string]     &log &optional;
+		cc:                set[string]     &optional;
 		## Contents of the ReplyTo header.
-		reply_to:          string          &log &optional;
+		reply_to:          string          &optional;
 		## Contents of the MsgID header.
-		msg_id:            string          &log &optional;
+		msg_id:            string          &optional;
 		## Contents of the In-Reply-To header.
-		in_reply_to:       string          &log &optional;
+		in_reply_to:       string          &optional;
 		## Contents of the Subject header.
-		subject:           string          &log &optional;
+		subject:           string          &optional;
 		## Contents of the X-Originating-IP header.
-		x_originating_ip:  addr            &log &optional;
+		x_originating_ip:  addr            &optional;
 		## Contents of the first Received header.
-		first_received:    string          &log &optional;
+		first_received:    string          &optional;
 		## Contents of the second Received header.
-		second_received:   string          &log &optional;
+		second_received:   string          &optional;
 		## Contents of the third Received header.
-		third_received:   string          &log &optional;
+		third_received:   string           &optional;
 		## Contents of the four Received header.
-		fourth_received:   string          &log &optional;
+		fourth_received:   string          &optional;
 		## Contents of the five Received header.
-		five_received:   string          &log &optional;
+		five_received:   string          &optional;
 		## The last message that the server sent to the client.
-		last_reply:        string          &log &optional;
+		last_reply:        string          &optional;
 		## The message transmission path, as extracted from the headers.
-		path:              vector of addr  &log &optional;
+		path:              vector of addr  &optional;
 		## Value of the User-Agent header from the client.
-		user_agent:        string          &log &optional;
+		user_agent:        string          &optional;
 
 		## Indicates that the connection has switched to using TLS.
-		tls:               bool            &log &default=F;
+		tls:               bool            &default=F;
 		## Indicates if the "Received: from" headers should still be
 		## processed.
 		process_received_from: bool        &default=T;
@@ -67,7 +67,7 @@ export {
 		has_client_activity:  bool            &default=F;
 
 		## Keeps track of the order that the headers came in
-		header_order:      string          &log; 
+		headerKV:      string          &log; 
 	};
 
 	type State: record {
@@ -211,90 +211,20 @@ event smtp_reply(c: connection, is_orig: bool, code: count, cmd: string,
 		}
 	}
 
-global received_header_counter = 1;
-#global received_header_table: table[int] of string;
 
 event mime_one_header(c: connection, h: mime_header_rec) &priority=5
 	{
 	if ( ! c?$smtp ) return;
 
-	# record order
-	if ( c$smtp?$header_order ){
-		c$smtp$header_order = string_cat(c$smtp$header_order, ",",h$name);
-	}else{
-		c$smtp$header_order = h$name;
-	}
 
-
-	if ( h$name == "MESSAGE-ID" )
-		c$smtp$msg_id = h$value;
-
-	else if ( h$name == "RECEIVED" )
-		{
-		if (received_header_counter == 1){
-			c$smtp$first_received = h$value;
-		}else if (received_header_counter == 2){
-			c$smtp$second_received = h$value;
-		}else if (received_header_counter == 3){
-			c$smtp$third_received = h$value;
-		}else if (received_header_counter == 4){
-			c$smtp$fourth_received = h$value;
-		}else if (received_header_counter == 5){
-			c$smtp$five_received = h$value;
+		# record order
+		if ( c$smtp?$headerKV ){
+			c$smtp$headerKV = c$smtp$headerKV[:-1];
+			c$smtp$headerKV = string_cat(c$smtp$headerKV, ", '", h$name, "':'", h$value, "'}");
+		}else{
+			c$smtp$headerKV = "{";
+			c$smtp$headerKV = string_cat(c$smtp$headerKV, "'", h$name, "':'", h$value, "'}");
 		}
-
-		#if ( c$smtp?$first_received )
-		#	c$smtp$second_received = c$smtp$first_received;
-		#c$smtp$first_received = h$value;
-		#}
-		}
-
-	else if ( h$name == "IN-REPLY-TO" )
-		c$smtp$in_reply_to = h$value;
-
-	else if ( h$name == "SUBJECT" )
-		c$smtp$subject = h$value;
-
-	else if ( h$name == "FROM" )
-		c$smtp$from = h$value;
-
-	else if ( h$name == "REPLY-TO" )
-		c$smtp$reply_to = h$value;
-
-	else if ( h$name == "DATE" )
-		c$smtp$date = h$value;
-
-	else if ( h$name == "TO" )
-		{
-		if ( ! c$smtp?$to )
-			c$smtp$to = set();
-
-		local to_parts = split_string(h$value, /[[:blank:]]*,[[:blank:]]*/);
-		for ( i in to_parts )
-			add c$smtp$to[to_parts[i]];
-		}
-
-	else if ( h$name == "CC" )
-		{
-		if ( ! c$smtp?$cc )
-			c$smtp$cc = set();
-
-		local cc_parts = split_string(h$value, /[[:blank:]]*,[[:blank:]]*/);
-		for ( i in cc_parts )
-			add c$smtp$cc[cc_parts[i]];
-		}
-
-	else if ( h$name == "X-ORIGINATING-IP" )
-		{
-		local addresses = extract_ip_addresses(h$value);
-		if ( 1 in addresses )
-			c$smtp$x_originating_ip = to_addr(addresses[1]);
-		}
-
-	else if ( h$name == "X-MAILER" ||
-	          h$name == "USER-AGENT" ||
-	          h$name == "X-USER-AGENT" )
-		c$smtp$user_agent = h$value;
 	}
 
 # This event handler builds the "Received From" path by reading the
