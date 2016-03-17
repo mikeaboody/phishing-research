@@ -1,0 +1,12 @@
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#path	weird
+#open	2016-03-16-21-43-32
+#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	name	addl	notice	peer
+#types	time	string	addr	port	addr	port	string	string	bool	string
+1458189469.403929	CwfyiS3nKeaB4nTh0i	192.30.252.86	443	10.142.38.31	57220	window_recision	-	F	bro
+1458189479.402217	CgSdJh3jq1JZZGlrNa	54.225.247.102	80	10.142.38.31	44240	window_recision	-	F	bro
+1458189479.404933	CHFXdI1TPKEJRsVVc8	50.16.201.230	443	10.142.38.31	45916	window_recision	-	F	bro
+#close	2016-03-16-21-43-32
