@@ -7,14 +7,9 @@ FILE_PATH = os.path.realpath(__file__)
 DIR_NAME = os.path.dirname(FILE_PATH)
 
 PCAP_DIRECTORY = DIR_NAME + '/input'
-# LOG_DIRECTORY = DIR_NAME + '/logs'
 OUTPUT_DIRECTORY = DIR_NAME + '/output'
 
 BRO_OUTPUT_FILE = DIR_NAME + '/smtp.log'
-
-# if not os.path.exists(LOG_DIRECTORY):
-#     print ('Creating Log Directory')
-#     os.makedirs(LOG_DIRECTORY)
 
 def clean_output():
     call(['rm', '-r', OUTPUT_DIRECTORY])
