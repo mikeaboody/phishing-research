@@ -11,8 +11,15 @@ OUTPUT_DIRECTORY = DIR_NAME + '/output'
 
 BRO_OUTPUT_FILE = DIR_NAME + '/smtp.log'
 
+total_senders = 0
+total_emails = 0
+
 def clean_output():
     call(['rm', '-r', OUTPUT_DIRECTORY])
+
+def summary_stats():
+    print("Total unique senders: {}".format(total_senders))
+    print("Total emails: {}".format(total_emails))
 
 clean_output()
 
@@ -38,6 +45,10 @@ for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
                     first_subdir, second_subdir, sender_email)
                 if not os.path.exists(sender_dir):
                     print('Creating Output Directory for {}'.format(sender_email))
+                    total_senders += 1
                     os.makedirs(sender_dir)
                 with open('{}/output.log'.format(sender_dir), 'a') as output_file:
+                    total_emails += 1
                     output_file.write(line)
+
+summary_stats()
