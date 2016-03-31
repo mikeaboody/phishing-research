@@ -33,4 +33,15 @@ class Email():
 	def __setitem__(self, key, value):
 		self.emails[key.upper()] = value
 	def get_all(self, key):
-		return self[key]
+		if type(self[key]) is list:
+			return self[key]
+		else:
+			return [self[key]]
+
+
+box = Inbox("output")
+for msg in box:
+	print(msg["From"])
+	print(msg["X-Mailer"])
+	print(msg.get_all("X-Mailer"))
+import pdb; pdb.set_trace()

@@ -3,6 +3,11 @@ from sys import argv
 import os
 import re
 import shutil
+from email.utils import parseaddr
+
+
+def is_person_empty(field):
+	return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
 root_name = argv[2]
 if os.path.exists(root_name):
@@ -15,16 +20,18 @@ for msg in mbox:
 	for header in msg.keys():
 		msg_dict[header.upper()] = msg[header]
 	sender = msg['From']
-	sender = ''.join(sender.split()) # Remove all whitespace
-	sender_email = re.findall(r'<(.*?)>', sender)
-	if len(sender_email) > 0:
-		sender_email = sender_email[0]
+	if not is_person_empty(sender):
+		name, address = parseaddr(sender)
 	else:
-		continue
-	first_subdir = sender_email[:3]
-	second_subdir = sender_email[3:6]
-	sender_dir = "{}/{}/{}/{}".format(root_name,
-					first_subdir, second_subdir, sender_email)
+		name, address = '', ''
+	if name:
+		first_subdir = name[:3]
+		second_subdir = name[3:6]
+		sender_dir = "{}/{}/{}/{}/{}".format(root_name, first_subdir, second_subdir, name, address)
+	else:
+		name = 'noname'
+		sender_dir = "{}/{}/{}".format(root_name, name, address)
+
 	if not os.path.exists(sender_dir):
 		os.makedirs(sender_dir)
 	with open('{}/output.log'.format(sender_dir), 'a') as output_file:
