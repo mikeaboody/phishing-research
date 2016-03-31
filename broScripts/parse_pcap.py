@@ -1,3 +1,4 @@
+from email.utils import parseaddr
 import glob
 import os
 import re
@@ -21,6 +22,9 @@ def summary_stats():
     print("Total unique senders: {}".format(total_senders))
     print("Total emails: {}".format(total_emails))
 
+def is_person_empty(field):
+    return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
+
 clean_output()
 
 if not os.path.exists(OUTPUT_DIRECTORY):
@@ -31,20 +35,23 @@ for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
     with open(BRO_OUTPUT_FILE) as f:
         for line in f:
             if line[0] != '#':
+                # TODO(mchow): Need to parse received headers separately
                 headers = eval(line)
                 sender = headers['FROM']
-                sender = ''.join(sender.split()) # Remove all whitespace
-                sender_email = re.findall(r'<(.*?)>', sender)
-                if len(sender_email) > 0:
-                    sender_email = sender_email[0]
+                if not is_person_empty(sender):
+                    name, address = parseaddr(sender)
                 else:
-                    continue
-                first_subdir = sender_email[:3]
-                second_subdir = sender_email[3:6]
-                sender_dir = "{}/{}/{}/{}".format(OUTPUT_DIRECTORY,
-                    first_subdir, second_subdir, sender_email)
+                    name, address = '', ''
+                if name:
+                    first_subdir = name[:3]
+                    second_subdir = name[3:6]
+                    sender_dir = "{}/{}/{}/{}/{}".format(OUTPUT_DIRECTORY,
+                        first_subdir, second_subdir, name, address)
+                else:
+                    name = 'noname'
+                    sender_dir = "{}/{}/{}".format(OUTPUT_DIRECTORY, name, address)
                 if not os.path.exists(sender_dir):
-                    print('Creating Output Directory for {}'.format(sender_email))
+                    print('Creating Output Directory for {}'.format(name))
                     total_senders += 1
                     os.makedirs(sender_dir)
                 with open('{}/output.log'.format(sender_dir), 'a') as output_file:
