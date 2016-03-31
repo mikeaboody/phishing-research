@@ -37,11 +37,3 @@ class Email():
 			return self[key]
 		else:
 			return [self[key]]
-
-
-box = Inbox("output")
-for msg in box:
-	print(msg["From"])
-	print(msg["X-Mailer"])
-	print(msg.get_all("X-Mailer"))
-import pdb; pdb.set_trace()
