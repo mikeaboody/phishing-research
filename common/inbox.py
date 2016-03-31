@@ -25,9 +25,9 @@ class Inbox():
 												currEmailDict = defaultdict(lambda: None, currEmailDict)
 												self.emails.append(currEmailDict)
 	def __getitem__(self, key):
-		return self.emails[key]
+		return self.emails[key.upper()]
 	def __setitem__(self, key, value):
-		self.emails[key] = value
+		self.emails[key.upper()] = value
 	def __len__(self):
 		return len(self.emails)
 	def __iter__(self):
