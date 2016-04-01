@@ -26,7 +26,7 @@ class Inbox():
 	def __iter__(self):
 		return iter(self.emails)
 class Email():
-	def __init__(self, emailDict):
+	def __init__(self, emailDict={}):
 		self.headers = defaultdict(lambda: None, emailDict)
 	def __getitem__(self, key):
 		return self.headers[key.upper()]
