@@ -66,8 +66,8 @@ class FeatureGenerator(object):
         self.sender_profile_size = 0
         self.data_matrix_size = 0
         self.test_matrix_size = 0
-        self.generate_data_matrix = False
-        self.generate_test_matrix = False
+        self.do_generate_data_matrix = False
+        self.do_generate_test_matrix = False
 
         self.features = features
         

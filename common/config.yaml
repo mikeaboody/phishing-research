@@ -1,6 +1,8 @@
 #Configuration file for PhishDetector
 
 root_dir:                 .
+training_filename:        regular.mbox
+test_filename:            test.mbox
 sender_profile_size:      0.1
 data_matrix_size:         0.7
 test_matrix_size:         1.0

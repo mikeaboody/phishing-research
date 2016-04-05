@@ -1,6 +1,8 @@
 import argparse
 import yaml
 
+from generate_features import FeatureGenerator
+
 class PhishDetector(object):
 
     def __init__(self):
@@ -49,24 +51,32 @@ class PhishDetector(object):
         
         args = parser.parse_args()
 
-        if all:
+        run = False
+        if args.all:
             self.generate_data_matrix = True
             self.generate_test_matrix = True
             self.generate_model = True
             self.classify = True
-        if gen_all:
+            run = True
+        if args.gen_all:
             self.generate_data_matrix = True
             self.generate_test_matrix = True
             self.generate_model = True
-        if gen_data:
+            run = True
+        if args.gen_data:
             self.generate_data_matrix = True
-        if gen_test:
+            run = True
+        if args.gen_test:
             self.generate_test_matrix = True
-        if gen_model:
+            run = True
+        if args.gen_model:
             self.generate_model = True
-        if classify:
+            run = True
+        if args.classify:
             self.classify = True
-        else:
+            run = True
+
+        if not run:
             parser.error('You must run with at least one flag')
 
     def parse_config(self):
@@ -110,8 +120,8 @@ class PhishDetector(object):
         feature_generator.sender_profile_size = self.sender_profile_size
         feature_generator.data_matrix_size = self.data_matrix_size
         feature_generator.test_matrix_size = self.test_matrix_size
-        feature_generator.generate_data_matrix = self.generate_data_matrix
-        feature_generator.generate_test_matrix = self.generate_test_matrix
+        feature_generator.do_generate_data_matrix = self.generate_data_matrix
+        feature_generator.do_generate_test_matrix = self.generate_test_matrix
 
         feature_generator.run()
 
@@ -124,8 +134,6 @@ class PhishDetector(object):
 
         if self.generate_data_matrix or self.generate_test_matrix:
             self.generate_features()
-
-
 
 if __name__ == '__main__':
     detector = PhishDetector()
