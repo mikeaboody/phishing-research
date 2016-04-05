@@ -61,16 +61,16 @@ class FeatureGenerator(object):
 
         #Get rid of this
         self.num_data = NUM_DATA
+        self.num_pre_training = 0
         #In favor of this
         self.sender_profile_size = 0
         self.data_matrix_size = 0
         self.test_matrix_size = 0
-        self.generate_data = False
-        self.generate_test = False
+        self.generate_data_matrix = False
+        self.generate_test_matrix = False
 
         self.features = features
         
-        self.num_pre_training = 0
         self.detectors = None
         self.num_features = sum([feature.NUM_HEURISTICS for feature in self.features])
         self.feature_names = [f.__name__ + "-" + str(i) for f in self.features for i in range(f.NUM_HEURISTICS)]
