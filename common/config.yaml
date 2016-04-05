@@ -1,0 +1,20 @@
+#Configuration file for PhishDetector
+
+root_dir:                 .
+sender_profile_size:      0.1
+data_matrix_size:         0.7
+test_matrix_size:         1.0
+model_path_out:           .
+result_path_out:          .
+weights:
+    positive:             0.5
+    negative:             1.0
+detectors:
+    fc.DateTimezoneDetector      : 0
+    fc.MessageIdDetectorOne      : 0
+    fc.messageIDDomain_Detector  : 0 
+    fc.ContentTypeDetector       : 0
+    fc.OrderOfHeaderDetector     : 0
+    fc.XMailerDetector           : 0
+    fc.ReceivedHeadersDetector   : 0
+    fc.DateFormatDetector        : 0
