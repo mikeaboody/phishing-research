@@ -1,5 +1,4 @@
 from detector import Detector
-import mailbox
 import sys
 import re
 

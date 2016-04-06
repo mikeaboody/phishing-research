@@ -18,20 +18,20 @@ the following keys:
     -'test_labels'
 """
 
-import mailbox
 import os
 import sys
 import time
+import inbox
 
 import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
 
-PHISHING_FILENAME = 'phish.mbox'
-REGULAR_FILENAME = 'regular.mbox'
-TEST_FILENAME = 'test.mbox'
-NUM_DATA = 100
+PHISHING_FILENAME = 'phish'
+REGULAR_FILENAME = 'regular'
+TEST_FILENAME = 'test'
+NUM_DATA = 2000
 
 ############
 # FEATURES #
@@ -103,11 +103,10 @@ class FeatureGenerator(object):
             random_from = test_mbox[j]
             sender = random_from['From']
     
-        phish = mailbox.mboxMessage()
-        phish['From'] = sender
+        phish = inbox.Email()
         for key in random_msg.keys():
             phish[key] = random_msg[key]
-        phish.set_payload("This is the body for a generated phishing email.\n")
+        phish['From'] = sender
         return phish
     
     def generate_data_matrix(self, phishing_mbox, regular_mbox):
@@ -218,12 +217,12 @@ class FeatureGenerator(object):
     def run(self):
         start_time = time.time()
         if os.path.exists(self.phishing_filename):
-            phishing_emails = mailbox.mbox(self.phishing_filename)
+            phishing_emails = inbox.Inbox(self.phishing_filename)
         else:
             print("No phishing emails provided.")
             phishing_emails = None
-        regular_emails = mailbox.mbox(self.regular_filename)
-        test_emails = mailbox.mbox(self.test_filename)
+        regular_emails = inbox.Inbox(self.regular_filename)
+        test_emails = inbox.Inbox(self.test_filename)
         self.num_pre_training = len(regular_emails) - self.num_data / 2
         self.detectors = self.build_detectors(regular_emails)
         X = self.generate_data_matrix(phishing_emails, regular_emails)

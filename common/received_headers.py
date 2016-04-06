@@ -1,6 +1,5 @@
 from detector import Detector
 import sys
-import mailbox
 import re
 import pdb
 import whois
@@ -161,11 +160,12 @@ class ReceivedHeadersDetector(Detector):
 		# self.srp = self.create_sender_profile()
 
 	def modify_phish(self, phish, msg):
-		del phish["Received"]
+		phish["Received"] = None
 		if msg.get_all("Received"):
-			msgHeaders = msg.get_all("Received")[:]
-			for i in range(len(msgHeaders)):
-				phish["Received"] = msgHeaders[i]
+			phish["Received"] = []
+			recHeaders = msg.get_all("Received")[:]
+			for i in range(len(recHeaders)):
+				phish["Received"].append(recHeaders[i])
 		return phish
 
 	def classify(self, phish):
@@ -392,13 +392,6 @@ class SMTPIDDetector(Detector):
 					feature += 1
 		return feature
 
-	def modify_phish(self, phish, msg):
-		del phish["Received"]
-		if msg.get_all("Received"):
-			msgHeaders = msg.get_all("Received")[:]
-			for i in range(len(msgHeaders)):
-				phish["Received"] = msgHeaders[i]
-		return phish
 
 
 
