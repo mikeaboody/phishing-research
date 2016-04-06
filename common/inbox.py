@@ -22,8 +22,8 @@ class Inbox():
 					with open(logFileName, "r") as logFile:
 						for line in logFile:
 							try:
-								headerDict = eval(line)
-								self.emails.append(Email(headerDict))	
+								header_tuples = eval(line)
+								self.emails.append(Email(header_tuples))	
 							except:
 								print("INVALID EMAIL")
 								self.num_invalid_emails += 1
@@ -61,9 +61,11 @@ class Email():
 			self.header_dict = {}
 			self.ordered_headers = []
 		else:
-			self.header_dict = copy.deepcopy(headers_arg)
-			#to change
-			self.ordered_headers = headers_arg.keys()
+			self.header_dict = {}
+			self.ordered_headers = []
+			for key, value in headers_arg:
+				self.header_dict[key.upper()] = value
+				self.ordered_headers.append(key.upper())
 	def __getitem__(self, key):
 		if key.upper() not in self.header_dict:
 			return None

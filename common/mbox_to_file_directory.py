@@ -16,9 +16,12 @@ os.makedirs(root_name)
 mbox_name = argv[1]
 mbox = mailbox.mbox(mbox_name)
 for msg in mbox:
-	msg_dict = {}
+	msg_tuples = []
 	for header in msg.keys():
-		msg_dict[header.upper()] = msg[header]
+		key, value = header, msg[header]
+		if msg.get_all(key) and len(msg.get_all(key)) > 1:
+			value = msg.get_all(key)
+		msg_tuples.append((key, value))
 	sender = msg['From']
 	if not is_person_empty(sender):
 		name, address = parseaddr(sender)
@@ -35,4 +38,4 @@ for msg in mbox:
 	if not os.path.exists(sender_dir):
 		os.makedirs(sender_dir)
 	with open('{}/output.log'.format(sender_dir), 'a') as output_file:
-		output_file.write(repr(msg_dict) + "\n")
+		output_file.write(repr(msg_tuples) + "\n")
