@@ -31,7 +31,7 @@ import feature_classes as fc
 PHISHING_FILENAME = 'phish.mbox'
 REGULAR_FILENAME = 'regular.mbox'
 TEST_FILENAME = 'test.mbox'
-NUM_DATA = 2000
+NUM_DATA = 100
 
 ############
 # FEATURES #

@@ -1,4 +1,5 @@
 import argparse
+import os
 import yaml
 
 from generate_features import FeatureGenerator
@@ -111,6 +112,8 @@ class PhishDetector(object):
             print("Configuration file missing entry")
             raise
 
+        self.root_dir = os.path.abspath(self.root_dir)
+
     def generate_features(self):
         feature_generator = FeatureGenerator()
         
@@ -123,7 +126,24 @@ class PhishDetector(object):
         feature_generator.do_generate_data_matrix = self.generate_data_matrix
         feature_generator.do_generate_test_matrix = self.generate_test_matrix
 
-        feature_generator.run()
+        dir_to_generate = []
+
+        for dirpath, dirnames, filenames in os.walk(self.root_dir):
+            run_training = False
+            run_test = False
+
+            if self.generate_data_matrix and self.training_filename in filenames:
+                run_training = True
+            if self.generate_test_matrix and self.test_filename in filenames:
+                run_test = True
+
+            if run_test or run_training:
+                dir_to_generate.append(dirpath)
+
+        for directory in dir_to_generate:
+            os.chdir(directory)
+            feature_generator.run()
+            os.chdir(self.root_dir)
 
     def generate_model(self):
         pass
