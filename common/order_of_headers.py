@@ -1,6 +1,5 @@
 from __future__ import division
 from detector import Detector
-import mailbox
 import re
 import functools
 import pprint

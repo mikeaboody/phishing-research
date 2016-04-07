@@ -1,4 +1,3 @@
-import mailbox
 import re
 import sys
 

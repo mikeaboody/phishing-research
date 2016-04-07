@@ -1,5 +1,4 @@
 from detector import Detector
-import mailbox
 import re
 
 #Has day of week

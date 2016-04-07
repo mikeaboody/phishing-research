@@ -1,7 +1,7 @@
 import abc
 from random import randint
-import mailbox
 import re
+import inbox
 
 class Detector(object):
     __metaclass__ = abc.ABCMeta
@@ -79,10 +79,9 @@ class Detector(object):
             random_from = self.inbox[randint(0, len(self.inbox)-1)]
             has_sender = self.extract_from(random_from)
             
-        phish = mailbox.mboxMessage()
+        phish = inbox.Inbox()
         phish['From'] = random_from['From']
         phish['To'] = random_msg['To']
         phish['Subject'] = random_msg['Subject'] 
         phish = self.modify_phish(phish, random_msg)
-        phish.set_payload("This is the body for a generated phishing email.\n")
         return phish
