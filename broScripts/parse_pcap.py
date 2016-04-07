@@ -37,7 +37,10 @@ for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
             if line[0] != '#':
                 # TODO(mchow): Need to parse received headers separately
                 headers = eval(line)
-                sender = headers['FROM']
+                for k,v in headers:
+                    if k == 'FROM':
+                        sender = v
+                        break
                 if not is_person_empty(sender):
                     name, address = parseaddr(sender)
                 else:
