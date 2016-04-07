@@ -220,10 +220,10 @@ event mime_one_header(c: connection, h: mime_header_rec) &priority=5
 		# record order
 		if ( c$smtp?$headerKV ){
 			c$smtp$headerKV = c$smtp$headerKV[:-1];
-			c$smtp$headerKV = string_cat(c$smtp$headerKV, ", '", h$name, "':'", h$value, "'}");
+			c$smtp$headerKV = string_cat(c$smtp$headerKV, ", ('", h$name, "','", h$value, "')]");
 		}else{
-			c$smtp$headerKV = "{";
-			c$smtp$headerKV = string_cat(c$smtp$headerKV, "'", h$name, "':'", h$value, "'}");
+			c$smtp$headerKV = "[";
+			c$smtp$headerKV = string_cat(c$smtp$headerKV, "('", h$name, "','", h$value, "')]");
 		}
 	}
 
