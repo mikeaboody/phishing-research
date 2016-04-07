@@ -64,8 +64,13 @@ class Email():
 			self.header_dict = {}
 			self.ordered_headers = []
 			for key, value in headers_arg:
-				self.header_dict[key.upper()] = value
-				self.ordered_headers.append(key.upper())
+				if key.upper() not in self.header_dict:
+					self.header_dict[key.upper()] = value
+					self.ordered_headers.append(key.upper())
+				else:
+					values = self.get_all(key.upper())[:]
+					values.append(value)
+					self.header_dict[key.upper()] = values
 	def __getitem__(self, key):
 		if key.upper() not in self.header_dict:
 			return None
