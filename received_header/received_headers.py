@@ -45,11 +45,6 @@ class ReceivedHeader:
 		self.analyze()
 		
 	def analyze(self):
-		# self.SMTP_ID = None
-		# self.SMTP_IP = None
-		# self.date = None
-		# self.SMTP_IP = self.extract_ip(content)
-
 		#very simple breakdown scheme for receiver headers
 		content = self.content
 		content_split = content.split("\n")
@@ -80,29 +75,18 @@ class ReceivedHeader:
 		if ";" in self.breakdown:
 			self.breakdown["date"] = self.breakdown[";"]
 			del self.breakdown[";"]
-		
-		#id: id
-		#with: type of SMTP server
-		#;: date
-		#by is domain part of the message id's
-		#from is the name server
 
 	def __str__(self):
 		return str(self.breakdown)
-		# return "SMTP ID: " + str(self.SMTP_ID) + ", SMTP IP: " + str(self.SMTP_IP) + ", date: " + str(self.date)
-
 
 class SenderReceiverProfile(dict):
 	def __init__(self, inbox):
 		self.inbox = inbox
 		self.analyze()
-		# self.writeReceivedHeadersToFile()
 
 	def analyze(self):
 		for msg in self.inbox:
-			# if "List-Unsubscribe" not in msg:
 			self.appendEmail(msg)
-
 
 	def appendEmail(self, msg):
 		sender = extract_email(msg, "From")
@@ -128,7 +112,6 @@ class SenderReceiverProfile(dict):
 					FILE.write(str(rh) + "\n")
 			FILE.write("------------------------------------------\n")
 
-
 def extract_email(msg, header):
 	from_header = msg[header]
 	if not from_header:
@@ -136,6 +119,7 @@ def extract_email(msg, header):
 	from_header = from_header.lower()
 	r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
 	return r.group() if r else from_header
+
 def removeSpaces(s):
 	exp = " +$"
 	r = re.compile(exp)
@@ -150,6 +134,7 @@ class ReceivedHeadersDetector(Detector):
 	seen_pairings = {}
 	seen_domain_ip = {}
 	EDIT_DISTANCE_THRESHOLD = 3
+
 	def __init__(self, inbox):
 		self.inbox = inbox
 		self.srp = self.create_sender_profile()
@@ -166,8 +151,10 @@ class ReceivedHeadersDetector(Detector):
 		RHList = []
 		sender = extract_email(phish, "From")
 		receiver = extract_email(phish, "To")
+
 		if (sender, receiver) not in self.srp:
 			return False
+			
 		srp = self.srp[(sender, receiver)]
 		if phish.get_all("Received"):
 			for recHeader in phish.get_all("Received"):

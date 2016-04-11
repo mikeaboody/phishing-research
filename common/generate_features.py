@@ -43,12 +43,12 @@ defined in detector.py.
 """
 
 features = [
-    fc.DateFormatDetector,
-    fc.DateTimezoneDetector,
-    fc.MessageIdDetectorOne,
-    fc.messageIDDomain_Detector,
-    fc.ContentTypeDetector,
-    fc.OrderOfHeaderDetector,
+    # fc.DateFormatDetector,
+    # fc.DateTimezoneDetector,
+    # fc.MessageIdDetectorOne,
+    # fc.messageIDDomain_Detector,
+    # fc.ContentTypeDetector,
+    # fc.OrderOfHeaderDetector,
     fc.XMailerDetector,
     fc.ReceivedHeadersDetector
 ]
