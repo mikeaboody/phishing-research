@@ -8,6 +8,9 @@ from netaddr import IPNetwork, IPAddress
 import socket
 import editdistance
 
+seen_domain_ip = {}
+privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+
 class SenderReceiverPair:
 
 	def __init__(self, sender, receiver):
@@ -79,9 +82,7 @@ class ReceivedHeader:
 		return str(self.breakdown)
 
 class SenderReceiverProfile(dict):
-	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	seen_pairings = {}
-	seen_domain_ip = {}
 
 	def __init__(self, inbox, num_samples):
 		self.EDIT_DISTANCE_THRESHOLD = 0
@@ -110,38 +111,6 @@ class SenderReceiverProfile(dict):
 				newEmail.receivedHeaderList.append(rh)
 			srp.emailList.append(newEmail)
 
-	# returns cidr of public IP or returns false if there is no IP or if the IP is private
-	def public_IP(self, fromHeader):
-		ip = extract_ip(fromHeader)
-		if ip and not (IPAddress(ip) in IPNetwork(self.privateCIDR[0]) or IPAddress(ip) in IPNetwork(self.privateCIDR[1]) or IPAddress(ip) in IPNetwork(self.privateCIDR[2])):
-			return ip
-		return None
-
-	def get_endMessageIDDomain(self, domain):
-		if domain == None:
-			return domain
-		if '.' in domain:
-			indexLastDot = len(domain) - domain[::-1].index(".") - 1
-			rest = domain[:indexLastDot]
-			if '.' in rest:
-				indexNextDot = len(rest) - rest[::-1].index(".") - 1
-				return domain[indexNextDot+1:]
-		return domain
-
-	# returns false if domain is invalid or private domain
-	def public_domain(self, fromHeader):
-		domain = extract_domain(fromHeader)
-		if domain:
-			domain = self.get_endMessageIDDomain(domain)
-			try:
-				if (domain in self.seen_domain_ip):
-					return self.seen_domain_ip[domain]
-				else:
-					ip = socket.gethostbyname(domain)
-					self.seen_domain_ip[domain] = ip
-					return ip
-			except:
-				return False
 
 	def find_false_positives(self):
 		total_num_emails = 0
@@ -173,10 +142,10 @@ class SenderReceiverProfile(dict):
 						numRHwoFrom += 1
 						RHList.append("None")
 						continue
-					elif self.public_domain(recHeader.breakdown["from"]):
-						ip = self.public_domain(recHeader.breakdown["from"])
-					elif self.public_IP(recHeader.breakdown["from"]):
-						ip = self.public_IP(recHeader.breakdown["from"])
+					elif public_domain(recHeader.breakdown["from"]):
+						ip = public_domain(recHeader.breakdown["from"])
+					elif public_IP(recHeader.breakdown["from"]):
+						ip = public_IP(recHeader.breakdown["from"])
 					else:
 						RHList.append("Invalid")
 						continue
@@ -249,7 +218,6 @@ def removeSpaces(s):
 	return s
 
 class ReceivedHeadersDetector(Detector):
-	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	seen_pairings = {}
 	seen_domain_ip = {}
 	NUM_HEURISTICS = 3
@@ -284,10 +252,10 @@ class ReceivedHeadersDetector(Detector):
 				if not "from" in recHeader.breakdown.keys():
 					RHList.append("None")
 					continue
-				elif self.public_domain(recHeader.breakdown["from"]):
-					ip = self.public_domain(recHeader.breakdown["from"])
-				elif self.public_IP(recHeader.breakdown["from"]):
-					ip = self.public_IP(recHeader.breakdown["from"])
+				elif public_domain(recHeader.breakdown["from"]):
+					ip = public_domain(recHeader.breakdown["from"])
+				elif public_IP(recHeader.breakdown["from"]):
+					ip = public_IP(recHeader.breakdown["from"])
 				else:
 					RHList.append("Invalid")
 					continue
@@ -361,6 +329,39 @@ class SMTPIDDetector(Detector):
 					feature += 1
 		return feature
 
+
+# returns cidr of public IP or returns false if there is no IP or if the IP is private
+def public_IP(fromHeader):
+	ip = extract_ip(fromHeader)
+	if ip and not (IPAddress(ip) in IPNetwork(privateCIDR[0]) or IPAddress(ip) in IPNetwork(privateCIDR[1]) or IPAddress(ip) in IPNetwork(privateCIDR[2])):
+		return ip
+	return None
+
+def get_endMessageIDDomain(domain):
+	if domain == None:
+		return domain
+	if '.' in domain:
+		indexLastDot = len(domain) - domain[::-1].index(".") - 1
+		rest = domain[:indexLastDot]
+		if '.' in rest:
+			indexNextDot = len(rest) - rest[::-1].index(".") - 1
+			return domain[indexNextDot+1:]
+	return domain
+
+# returns false if domain is invalid or private domain
+def public_domain(fromHeader):
+	domain = extract_domain(fromHeader)
+	if domain:
+		domain = get_endMessageIDDomain(domain)
+		try:
+			if (domain in seen_domain_ip):
+				return seen_domain_ip[domain]
+			else:
+				ip = socket.gethostbyname(domain)
+				seen_domain_ip[domain] = ip
+				return ip
+		except:
+			return False
 
 def extract_ip(content):
 	r = re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", content)
