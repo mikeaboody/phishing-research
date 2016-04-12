@@ -122,34 +122,20 @@ class SenderReceiverProfile(dict):
 
 
 	def find_false_positives(self):
-		lookup = Lookup()
 		total_num_emails = 0
-		total_num_SRP = 0
-		total_num_RH = 0
 		total_emails_flagged = 0
-		total_srp_flagged = 0
-		invalidEmails = 0 # if a received header for an email doesn't have the "by" field
-		numRHwoFrom = 0
-		priv_ip = 0
-		priv_dom = 0
-		pub_ip = 0
-		pub_dom = 0
 		count = 0
 		for tup, srp in self.items():
-			flagSRP = False
 			seq_rh_from = []
 			total_num_SRP += 1
-			firstEmail = True
 			for em in srp.emailList:
 				count += 1
+				print(str(count))
 				total_num_emails += 1
 				num_recHeaders = len(em.receivedHeaderList)
-				flagEmail = False
-				invEmail = False
 				RHList = []
 				for recHeader in em.receivedHeaderList:
 					RHList.append(recHeader.assignCIDR())
-
 				if RHList not in seq_rh_from:
 					if seq_rh_from:
 						bestEditDist = None
@@ -157,21 +143,12 @@ class SenderReceiverProfile(dict):
 							ed = editdistance.eval(RHList, lst)
 							if bestEditDist == None or bestEditDist > ed:
 								bestEditDist = ed
-						if bestEditDist > 0:
-							print(str(count) + ":", tup)
-							flagEmail = True
-							flagSRP = True
+						if bestEditDist and bestEditDist > 0:
+							total_emails_flagged+=1
 					seq_rh_from.append(RHList)
-
-				if flagEmail:
-					total_emails_flagged += 1
 			srp.received_header_sequences = seq_rh_from
-			if flagSRP:
-				total_srp_flagged += 1
 
-		print("Total number of RH w/o from: " + str(numRHwoFrom) + "/" + str(total_num_RH))
 		print("Total Number of Emails Flagged: " + str(total_emails_flagged) + "/" + str(total_num_emails))
-		print("Total Number of SRP's Flagged: " + str(total_srp_flagged) + "/" + str(total_num_SRP))
 
 
 	def writeReceivedHeadersToFile(self):
@@ -218,7 +195,6 @@ class ReceivedHeadersDetector(Detector):
 		return phish
 
 	def classify(self, phish):
-		l = Lookup()
 		RHList = []
 		sender = extract_email(phish, "From")
 		receiver = ""
