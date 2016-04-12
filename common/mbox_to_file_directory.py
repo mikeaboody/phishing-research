@@ -43,5 +43,5 @@ for msg in mbox:
 
 	if not os.path.exists(sender_dir):
 		os.makedirs(sender_dir)
-	with open('{}/output.log'.format(sender_dir), 'a') as output_file:
+	with open('{}/emails.log'.format(sender_dir), 'a') as output_file:
 		output_file.write(repr(msg_tuples) + "\n")
