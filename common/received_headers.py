@@ -11,14 +11,11 @@ import editdistance
 
 
 class SenderReceiverPair:
-
 	def __init__(self, sender, receiver):
 		self.receiver = receiver
 		self.sender = sender
 		self.emailList = []
 		self.received_header_sequences = []
-
-
 	def __str__(self):
 		s = ""
 		for email in self.emailList:
@@ -26,11 +23,7 @@ class SenderReceiverPair:
 		return s
 
 class Email:
-
-	count = 0
 	def __init__(self):
-		self.emailID = Email.count
-		Email.count += 1
 		self.receivedHeaderList = []
 
 	def __str__(self):
@@ -42,12 +35,10 @@ class Email:
 class ReceivedHeader:
 
 	def __init__(self, content):
-		self.content = content
-		self.createBreakdown()
+		self.createBreakdown(content)
 		
-	def createBreakdown(self):
+	def createBreakdown(self, content):
 		#very simple breakdown scheme for receiver headers
-		content = self.content
 		content_split = content.split("\n")
 		content = ""
 		for s in content_split:
@@ -88,7 +79,6 @@ class ReceivedHeader:
 			return "Invalid"
 		return lookup.getCIDR(ip)
 
-
 	def __str__(self):
 		return str(self.breakdown)
 
@@ -105,7 +95,7 @@ class SenderReceiverProfile(dict):
 			count += 1
 			if count >= num_samples:
 				break
-		self.find_false_positives()
+		self.createReceivedHeaderSequences()
 
 	def appendEmail(self, msg):
 		sender = extract_email(msg, "From")
@@ -120,14 +110,12 @@ class SenderReceiverProfile(dict):
 				newEmail.receivedHeaderList.append(rh)
 			srp.emailList.append(newEmail)
 
-
-	def find_false_positives(self):
+	def createReceivedHeaderSequences(self):
 		total_num_emails = 0
 		total_emails_flagged = 0
 		count = 0
 		for tup, srp in self.items():
 			seq_rh_from = []
-			total_num_SRP += 1
 			for em in srp.emailList:
 				count += 1
 				print(str(count))
@@ -150,7 +138,6 @@ class SenderReceiverProfile(dict):
 
 		print("Total Number of Emails Flagged: " + str(total_emails_flagged) + "/" + str(total_num_emails))
 
-
 	def writeReceivedHeadersToFile(self):
 		FILE = open("receivedHeaders", "a")
 		for tup, srp in self.items():
@@ -161,23 +148,6 @@ class SenderReceiverProfile(dict):
 				for rh in em.receivedHeaderList:
 					FILE.write(str(rh) + "\n")
 			FILE.write("------------------------------------------\n")
-
-def extract_email(msg, header):
-	from_header = msg[header]
-	if not from_header:
-		return None
-	from_header = from_header.lower()
-	r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
-	return r.group() if r else from_header
-
-def removeSpaces(s):
-	exp = " +$"
-	r = re.compile(exp)
-	s = r.sub("", s)
-	exp = "^ +"
-	r = re.compile(exp)
-	s = r.sub("", s)
-	return s
 
 class ReceivedHeadersDetector(Detector):
 	NUM_HEURISTICS = 3
@@ -214,7 +184,6 @@ class ReceivedHeadersDetector(Detector):
 		# checking to see if there is a "matching" received header
 		# list for this SRP
 		for i, threshold in enumerate(edit_distances):
-			flagged = False
 			if RHList not in srp.received_header_sequences:
 				if srp.received_header_sequences:
 					bestEditDist = None
@@ -227,43 +196,7 @@ class ReceivedHeadersDetector(Detector):
 		return feature_vector
 
 	def create_sender_profile(self, num_samples):
-		srp = SenderReceiverProfile(self.inbox, num_samples)
-		ReceivedHeadersDetector.srp = srp
-		# self.find_false_positives()
-		return srp
-
-class SMTPIDDetector(Detector):
-	def __init__(self, inbox):
-		self.inbox = inbox
-
-	def create_sender_profile(self, num_samples):
-		srp = SenderReceiverProfile(self.inbox, num_samples)
-		self.sender_profile = {}
-		for tup, srp in srp.items():
-			sender = tup[0]
-			self.sender_profile[sender] = set()
-			for em in srp.emailList:
-				for recHeader in em.receivedHeaderList:
-					if "id" in recHeader.breakdown:
-						self.sender_profile[sender].add(recHeader.breakdown["id"])
-					else:
-						self.sender_profile[sender].add(None)
-
-
-	def classify(self, phish):
-		sender = extract_email(phish, "From")
-		if sender not in self.sender_profile:
-			return -1
-		feature = 0
-		if phish.get_all("Received"):
-			for recHeader in phish.get_all("Received"):
-				recHeader = ReceivedHeader(recHeader)
-				recHeaderID = None
-				if "id" in recHeader.breakdown:
-					recHeaderID = recHeader.breakdown["id"]
-				if recHeaderID in self.sender_profile[sender]:
-					feature += 1
-		return feature
+		self.srp = SenderReceiverProfile(self.inbox, num_samples)
 
 
 class Lookup:
@@ -324,6 +257,23 @@ def get_endMessageIDDomain(domain):
 def extract_ip(content):
 	r = re.search("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", content)
 	return r.group() if r else None
+
+def extract_email(msg, header):
+	from_header = msg[header]
+	if not from_header:
+		return None
+	from_header = from_header.lower()
+	r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
+	return r.group() if r else from_header
+
+def removeSpaces(s):
+	exp = " +$"
+	r = re.compile(exp)
+	s = r.sub("", s)
+	exp = "^ +"
+	r = re.compile(exp)
+	s = r.sub("", s)
+	return s
 
 def extract_domain(content):
 	if ("(" in content):
