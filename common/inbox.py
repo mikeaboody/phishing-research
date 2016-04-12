@@ -13,6 +13,7 @@ class Inbox():
 		self.sort_emails()
 	def processEmails(self, root):
 		if os.path.isfile(root) and root.endswith(".log"):
+			logFileName = root
 			with open(logFileName, "r") as logFile:
 				for line in logFile:
 					try:
@@ -21,22 +22,10 @@ class Inbox():
 					except:
 						print("INVALID EMAIL")
 						self.num_invalid_emails += 1
-		else:
+		elif os.path.isdir(root):
 			for item in os.listdir(root):
 				subDir = os.path.join(root, item)
-				if os.path.isdir(subDir):
-					self.processEmails(subDir)
-				else:
-					logFileName = os.path.join(root, item)
-					if os.path.isfile(logFileName) and logFileName.endswith(".log"):
-						with open(logFileName, "r") as logFile:
-							for line in logFile:
-								try:
-									header_tuples = eval(line)
-									self.emails.append(Email(header_tuples))	
-								except:
-									print("INVALID EMAIL")
-									self.num_invalid_emails += 1
+				self.processEmails(subDir)
 																
 	def __getitem__(self, key):
 		return self.emails[key]
