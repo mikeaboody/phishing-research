@@ -31,9 +31,6 @@ if not os.path.exists(OUTPUT_DIRECTORY):
     os.makedirs(OUTPUT_DIRECTORY)
 
 for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
-    print filename
-    print total_senders
-    print total_emails
     call(['bro', '-r', filename, '-b', 'main.bro'])
     with open(BRO_OUTPUT_FILE, 'a+') as f:
         for line in f:
