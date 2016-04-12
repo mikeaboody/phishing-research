@@ -28,10 +28,13 @@ import scipy.io as sio
 
 import feature_classes as fc
 
+FILE_PATH = os.path.realpath(__file__)
+DIR_NAME = os.path.dirname(FILE_PATH)
+
 PHISHING_FILENAME = 'phish'
-REGULAR_FILENAME = 'regular'
-TEST_FILENAME = 'test'
-NUM_DATA = 2000
+REGULAR_FILENAME = DIR_NAME + '/../broScripts/output'
+TEST_FILENAME = DIR_NAME + '/../broScripts/output'
+NUM_DATA = 20
 
 ############
 # FEATURES #

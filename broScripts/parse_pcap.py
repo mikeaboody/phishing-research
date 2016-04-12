@@ -7,10 +7,13 @@ from subprocess import call
 FILE_PATH = os.path.realpath(__file__)
 DIR_NAME = os.path.dirname(FILE_PATH)
 
+CURR_DIR = os.getcwd()
+
 PCAP_DIRECTORY = DIR_NAME + '/input'
 OUTPUT_DIRECTORY = DIR_NAME + '/output'
 
-BRO_OUTPUT_FILE = DIR_NAME + '/smtp.log'
+BRO_SCRIPT_PATH = DIR_NAME + '/main.bro'
+BRO_OUTPUT_FILE = CURR_DIR + '/smtp.log'
 
 total_senders = 0
 total_emails = 0
@@ -31,7 +34,7 @@ if not os.path.exists(OUTPUT_DIRECTORY):
     os.makedirs(OUTPUT_DIRECTORY)
 
 for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
-    call(['bro', '-r', filename, '-b', 'main.bro'])
+    call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
     with open(BRO_OUTPUT_FILE, 'a+') as f:
         for line in f:
             if line[0] != '#':

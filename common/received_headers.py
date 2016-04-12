@@ -118,7 +118,7 @@ class SenderReceiverProfile(dict):
 			seq_rh_from = []
 			for em in srp.emailList:
 				count += 1
-				print(str(count))
+				# print(str(count))
 				total_num_emails += 1
 				num_recHeaders = len(em.receivedHeaderList)
 				RHList = []
