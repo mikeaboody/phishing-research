@@ -43,9 +43,9 @@ class ReceivedHeader:
 
 	def __init__(self, content):
 		self.content = content
-		self.analyze()
+		self.createBreakdown()
 		
-	def analyze(self):
+	def createBreakdown(self):
 		#very simple breakdown scheme for receiver headers
 		content = self.content
 		content_split = content.split("\n")
@@ -71,17 +71,28 @@ class ReceivedHeader:
 					match = r.group(1)
 					breakdown[start] = removeSpaces(match)
 					break
-
 		self.breakdown = breakdown
 		if ";" in self.breakdown:
 			self.breakdown["date"] = self.breakdown[";"]
 			del self.breakdown[";"]
 
+	def assignCIDR(self):
+		lookup = Lookup()
+		if not "from" in self.breakdown.keys():
+			return "None"
+		elif lookup.public_domain(self.breakdown["from"]):
+			ip = lookup.public_domain(self.breakdown["from"])
+		elif lookup.public_IP(self.breakdown["from"]):
+			ip = lookup.public_IP(self.breakdown["from"])
+		else:
+			return "Invalid"
+		return lookup.getCIDR(ip)
+
+
 	def __str__(self):
 		return str(self.breakdown)
 
 class SenderReceiverProfile(dict):
-	seen_pairings = {}
 
 	def __init__(self, inbox, num_samples):
 		self.inbox = inbox
@@ -137,32 +148,7 @@ class SenderReceiverProfile(dict):
 				invEmail = False
 				RHList = []
 				for recHeader in em.receivedHeaderList:
-					if not "from" in recHeader.breakdown.keys():
-						numRHwoFrom += 1
-						RHList.append("None")
-						continue
-					elif lookup.public_domain(recHeader.breakdown["from"]):
-						ip = lookup.public_domain(recHeader.breakdown["from"])
-					elif lookup.public_IP(recHeader.breakdown["from"]):
-						ip = lookup.public_IP(recHeader.breakdown["from"])
-					else:
-						RHList.append("Invalid")
-						continue
-					try:
-						if ip in self.seen_pairings.keys():
-							RHList.append(self.seen_pairings[ip])
-						else:
-							obj = IPWhois(ip)
-							results = obj.lookup()
-							if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
-								cidr = ip + "/32"
-							else:
-								cidr = results["nets"][0]["cidr"]
-							RHList.append(cidr)
-							self.seen_pairings[ip] = cidr
-					except:
-						RHList.append("Invalid")
-						self.seen_pairings[ip] = "Invalid"
+					RHList.append(recHeader.assignCIDR())
 
 				if RHList not in seq_rh_from:
 					if seq_rh_from:
@@ -330,6 +316,7 @@ class SMTPIDDetector(Detector):
 
 
 class Lookup:
+	seen_pairings = {}
 	seen_domain_ip = {}
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 
@@ -354,6 +341,23 @@ class Lookup:
 					return ip
 			except:
 				return False
+
+	def getCIDR(self, ip):
+		try:
+			if ip in self.seen_pairings.keys():
+				return self.seen_pairings[ip]
+			else:
+				obj = IPWhois(ip)
+				results = obj.lookup()
+				if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
+					cidr = ip + "/32"
+				else:
+					cidr = results["nets"][0]["cidr"]
+				self.seen_pairings[ip] = cidr
+				return cidr
+		except:
+			self.seen_pairings[ip] = "Invalid"
+			return "Invalid"
 
 def get_endMessageIDDomain(domain):
 	if domain == None:
