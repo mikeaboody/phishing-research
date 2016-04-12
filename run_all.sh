@@ -2,6 +2,7 @@
 
 python broScripts/parse_pcap.py
 
-python common/generate_features.py
-
-python common/classify.py
+pushd common
+python generate_features.py
+python classify.py
+popd
