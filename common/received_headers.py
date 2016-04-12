@@ -203,7 +203,6 @@ def removeSpaces(s):
 	return s
 
 class ReceivedHeadersDetector(Detector):
-	seen_pairings = {}
 	NUM_HEURISTICS = 3
 
 	def __init__(self, inbox):
@@ -234,31 +233,7 @@ class ReceivedHeadersDetector(Detector):
 		if phish.get_all("Received"):
 			for recHeader in phish.get_all("Received"):
 				recHeader = ReceivedHeader(recHeader)
-				if not "from" in recHeader.breakdown.keys():
-					RHList.append("None")
-					continue
-				elif l.public_domain(recHeader.breakdown["from"]):
-					ip = l.public_domain(recHeader.breakdown["from"])
-				elif l.public_IP(recHeader.breakdown["from"]):
-					ip = l.public_IP(recHeader.breakdown["from"])
-				else:
-					RHList.append("Invalid")
-					continue
-				try:
-					if ip in self.seen_pairings.keys():
-						RHList.append(self.seen_pairings[ip])
-					else:
-						obj = IPWhois(ip)
-						results = obj.lookup()
-						if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
-							cidr = ip + "/32"
-						else:
-							cidr = results["nets"][0]["cidr"]
-						RHList.append(cidr)
-						self.seen_pairings[ip] = cidr
-				except:
-					RHList.append("Invalid")
-					self.seen_pairings[ip] = "Invalid"
+				RHList.append(recHeader.assignCIDR())
 		
 		# checking to see if there is a "matching" received header
 		# list for this SRP
