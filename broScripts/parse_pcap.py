@@ -31,8 +31,11 @@ if not os.path.exists(OUTPUT_DIRECTORY):
     os.makedirs(OUTPUT_DIRECTORY)
 
 for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
+    print filename
+    print total_senders
+    print total_emails
     call(['bro', '-r', filename, '-b', 'main.bro'])
-    with open(BRO_OUTPUT_FILE) as f:
+    with open(BRO_OUTPUT_FILE, 'a+') as f:
         for line in f:
             if line[0] != '#':
                 # TODO(mchow): Need to parse received headers separately
@@ -60,5 +63,6 @@ for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
                 with open('{}/output.log'.format(sender_dir), 'a') as output_file:
                     total_emails += 1
                     output_file.write(line)
+    call(['rm', BRO_OUTPUT_FILE])
 
 summary_stats()
