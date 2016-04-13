@@ -9,15 +9,15 @@ import os
 
 class Classify:
     
-    def __init__(w, path, volume_split, bucket_size, serial_path="clf.pkl"):
-        weights = {1.0: w[0], 0.0: w[1]}
+    def __init__(self, w, path, volume_split, bucket_size, serial_path="clf.pkl"):
+        weights = {1.0: w['positive'], 0.0: w['negative']}
         self.clf = linear_model.LogisticRegression(class_weight=weights)
         self.path = path
         self.serial_to_path = serial_path
         self.bucket_thres = volume_split
         self.bucket_size = bucket_size 
         
-    def generate_training():
+    def generate_training(self):
         X = None
         Y = None
         for root, dirs, files in os.walk(self.path): 
@@ -25,6 +25,8 @@ class Classify:
                 data = sio.loadmat(root + '/training.mat')
                 part_X = data['training_data']
                 part_Y = data['training_labels']
+                if len(part_X) == 0:
+                    continue
                 if X == None:
                     X = part_X
                     Y = part_Y
@@ -37,15 +39,15 @@ class Classify:
         print("Finished concatenating training matrix")
 
 
-    def train_clf():
+    def train_clf(self):
         self.clf.fit(self.X, self.Y.ravel())
         print("Finished training classifer")
 
-    def serialize_clf():
+    def serialize_clf(self):
         joblib.dump(self.clf, self.serial_to_path)
         print("Finished serializing")
         
-    def test_and_report():
+    def test_and_report(self):
         """ Assumptions:
          - test.mat exists in directory structure and
            clf is classifier trained on all data matrices.
@@ -67,7 +69,7 @@ class Classify:
         output = self.filter_output(res_sorted)
         pp.pprint(output)
     
-    def filter_output(lst):
+    def filter_output(self, lst):
         self.buckets = [0, 0]
         unique_sender = set()
         i = 0
@@ -86,14 +88,14 @@ class Classify:
             i += 1
         return results
             
-    def check_buckets(num_emails):
+    def check_buckets(self, num_emails):
         bucket = 0 if num_emails < self.bucket_thres else 1
         return self.buckets[bucket] >= self.bucket_size, bucket
             
-    def get_sender(path):
+    def get_sender(self, path):
         return path.split('/')[-2]
     
-    def output_phish_probabilities(test_X, indx, path):
+    def output_phish_probabilities(self, test_X, indx, path):
         # [PATH, INDEX, prob_phish]
         sample_size = test_X.shape[0]
         path_array = np.array([path])

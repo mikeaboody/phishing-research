@@ -97,7 +97,7 @@ class FeatureGenerator(object):
                     data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             row_index += 1
-        for i in range(0, self.start_data_matrix_index):
+        for i in range(self.start_data_matrix_index, self.start_test_matrix_index):
             j = 0
             for detector in self.detectors:
                 heuristic = detector.classify(phish_inbox[i])
@@ -132,7 +132,7 @@ class FeatureGenerator(object):
     def generate_labels(self):
         label_matrix = np.empty(shape=(self.data_matrix_num_emails*2, 1))
     
-        for i in range(self.data_matrix_num_emails):
+        for i in range(2 * self.data_matrix_num_emails):
             label_matrix[i][0] = 0 if i < self.data_matrix_num_emails else 1
         return label_matrix
     
@@ -166,4 +166,3 @@ class FeatureGenerator(object):
         end_time = time.time()
         
         print(self.output_directory + " took {} seconds.".format(int(end_time - start_time)))
-
