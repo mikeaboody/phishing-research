@@ -138,7 +138,8 @@ class PhishDetector(object):
             regular_path = os.path.join(directory, self.regular_filename)
             phish_path = os.path.join(directory, self.phish_filename)
 
-            feature_generator = FeatureGenerator(regular_path,
+            feature_generator = FeatureGenerator(directory,
+                                                 regular_path,
                                                  phish_path,
                                                  self.sender_profile_percentage,
                                                  self.data_matrix_percentage,

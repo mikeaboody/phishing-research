@@ -41,6 +41,7 @@ defined in detector.py.
 
 class FeatureGenerator(object):
     def __init__(self,
+                 output_directory,
                  filename,
                  phish_filename,
                  sender_profile_percentage,
@@ -48,6 +49,7 @@ class FeatureGenerator(object):
                  test_matrix_percentage,
                  features):
 
+        self.output_directory = output_directory
         self.sender_profile_percentage = sender_profile_percentage
         self.data_matrix_percentage = data_matrix_percentage
         self.test_matrix_percentage = test_matrix_percentage
@@ -82,7 +84,6 @@ class FeatureGenerator(object):
         return detectors
     
     def generate_data_matrix(self, inbox, phish_inbox):
-        assert len(inbox) > self.sender_profile_num_emails, "Not enough data points."
         data_matrix = np.empty(shape=(self.data_matrix_num_emails*2, self.num_features))
     
         print("Generating data matrix...")
@@ -114,7 +115,6 @@ class FeatureGenerator(object):
         return data_matrix
     
     def generate_test_matrix(self, test_mbox):
-        num_test_points = len(test_mbox)
         test_data_matrix = np.empty(shape=(self.num_emails - self.start_test_matrix_index, self.num_features))
     
         print("Generating test data matrix...")
@@ -157,14 +157,18 @@ class FeatureGenerator(object):
             training_dict['training_data'] = X
             training_dict['training_labels'] = Y
             training_dict['feature_names'] = self.feature_names
-            sio.savemat('training.mat', training_dict)
+
+            training_path = os.path.join(self.output_directory, 'training.mat')
+            sio.savemat(training_path, training_dict)
 
         if self.do_generate_test_matrix:
             test_X = self.generate_test_matrix(self.emails)
             test_dict = {}
             test_dict['test_data'] = test_X
             test_dict['feature_names'] = self.feature_names
-            sio.savemat('test.mat', test_dict)
+
+            test_path = os.path.join(self.output_directory, 'test.mat')
+            sio.savemat(test_path, test_dict)
             
         end_time = time.time()
         

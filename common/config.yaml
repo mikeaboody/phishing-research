@@ -1,6 +1,6 @@
 #Configuration file for PhishDetector
 
-root_dir:                       regular
+root_dir:                       ../broScripts/output
 sender_profile_percentage:      0.1
 data_matrix_percentage:         0.2
 test_matrix_percentage:         0.7
@@ -20,5 +20,5 @@ detectors:
     DateFormatDetector:       1
 
 #Do not modify unless you are certain what you are doing
-regular_filename:               emails.log
-phish_filename:                 phish.log
+regular_filename:               legit_emails.log
+phish_filename:                 phish_emails.log
