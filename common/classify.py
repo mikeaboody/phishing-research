@@ -45,7 +45,7 @@ class Classify:
         joblib.dump(self.clf, self.serial_to_path)
         print("Finished serializing")
         
-    def start_test():
+    def test_and_report():
         """ Assumptions:
          - test.mat exists in directory structure and
            clf is classifier trained on all data matrices.
@@ -56,12 +56,11 @@ class Classify:
         
         for root, dirs, files in os.walk(self.path):
             if 'test.mat' in files:
-                test_data = sio.loadmat(root + '/test.mat')
-                x_test = data['test_data']
-                sample_size = x_test.shape[0]
-                # TODO: change indx to indx = data['email_index']
-                indx = np.arange(sample_size).reshape(sample_size, 1)
-                test_res = self.output_phish_probabilities(x_test, indx, root)
+                data = sio.loadmat(root + '/test.mat')
+                test_X = data['test_data']
+                sample_size = test_X.shape[0]
+                indx = data['email_index'].reshape(sample_size, 1)
+                test_res = self.output_phish_probabilities(test_X, indx, root)
                 results = np.concatenate((results, test_res), 0)
         
         res_sorted = results[results[:,2].argsort()][::-1]
@@ -76,7 +75,7 @@ class Classify:
         while sum(self.buckets) < self.bucket_size*2 and i < len(lst):
             path = lst[i][0]
             sender = self.get_sender(path)
-            num_emails = sum(1 for line in open(path + "/emails.log"))
+            num_emails = sum(1 for line in open(path + "/legit_emails.log"))
             buckets_full, indx = self.check_buckets(num_emails)
             if sender in unique_sender or buckets_full:
                 i += 1
@@ -94,13 +93,13 @@ class Classify:
     def get_sender(path):
         return path.split('/')[-2]
     
-    def output_phish_probabilities(x_test, indx, path):
+    def output_phish_probabilities(test_X, indx, path):
         # [PATH, INDEX, prob_phish]
-        sample_size = x_test.shape[0]
+        sample_size = test_X.shape[0]
         path_array = np.array([path])
         path_array = np.repeat(path_array, sample_size, axis=0).reshape(sample_size, 1)
-        predictions = self.clf.predict(x_test).reshape(sample_size, 1)
-        prob_phish = self.clf.predict_proba(x_test)[:,1].reshape(sample_size, 1)
+        predictions = self.clf.predict(test_X).reshape(sample_size, 1)
+        prob_phish = self.clf.predict_proba(test_X)[:,1].reshape(sample_size, 1)
         path_id = np.concatenate((path_array, indx), axis=1)
         res = np.empty(shape=(sample_size, 0))
         res = np.concatenate((res, path_id), 1)

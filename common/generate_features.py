@@ -114,9 +114,8 @@ class FeatureGenerator(object):
         return data_matrix
     
     def generate_test_matrix(self, test_mbox):
-        num_test_points = len(test_mbox)
         test_data_matrix = np.empty(shape=(self.num_emails - self.start_test_matrix_index, self.num_features))
-    
+
         print("Generating test data matrix...")
         row_index = 0
         for i in range(self.start_test_matrix_index, self.num_emails):
@@ -132,7 +131,9 @@ class FeatureGenerator(object):
                     j += 1
             row_index += 1
         print('')
-        return test_data_matrix
+
+        test_email_indx = np.arange(self.start_test_matrix_index, self.num_emails)
+        return test_data_matrix, test_email_indx
     
     def generate_labels(self):
         label_matrix = np.empty(shape=(self.data_matrix_num_emails*2, 1))
@@ -160,9 +161,10 @@ class FeatureGenerator(object):
             sio.savemat('training.mat', training_dict)
 
         if self.do_generate_test_matrix:
-            test_X = self.generate_test_matrix(self.emails)
+            test_X, test_indx = self.generate_test_matrix(self.emails)
             test_dict = {}
             test_dict['test_data'] = test_X
+            test_dict['email_index'] = test_indx
             test_dict['feature_names'] = self.feature_names
             sio.savemat('test.mat', test_dict)
             
