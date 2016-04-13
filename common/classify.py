@@ -54,7 +54,7 @@ class Classify:
          - test.mat has data['email_index']
         Results is [path, index, probability]
         """
-        results = np.empty(shape=(0, 3))
+        results = np.empty(shape=(0, 3), dtype='S200')
         
         for root, dirs, files in os.walk(self.path):
             if 'test.mat' in files:
@@ -84,6 +84,7 @@ class Classify:
                 continue
             unique_sender.add(sender)
             self.buckets[indx] += 1
+            lst[i][0].append("/legit_emails.log")
             results[indx].append(lst[i].tolist())
             i += 1
         return results
