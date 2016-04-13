@@ -21,6 +21,8 @@ class ContentTypeDetector(Detector):
         ctype = msg["Content-Type"]
         if ctype == None:
             return ["None"]
+        if type(ctype) == list:
+            ctype = ctype[0]
         return ctype.split(";")
 
     def clean_spaces(self, text):
