@@ -194,8 +194,10 @@ class OrderOfHeaderDetector(Detector):
                 self.false_alarms += new
                 self.emails_with_sender += 1
                 self.update_entire_attribute(order)
-
-        self.falsies = self.false_alarms / self.emails_with_sender * 100
+        if self.emails_with_sender != 0:
+            self.falsies = self.false_alarms / self.emails_with_sender * 100
+        else:
+            self.falsies = 1
 
     def trim_distributions(self, distr):
         while distr[len(distr)-1] == 0:

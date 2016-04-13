@@ -1,6 +1,7 @@
 import smtplib
 
 ######################### INSTRUCTIONS #########################
+# NOTE: You can only send emails from gmail accounts
 # 1. ssh into the VPS: root@spmailserver2016.com
 # 2. On the VPS, run: tcpdump -vv -w output.pcap -s 2000 port 25
 # 3. On your local computer, run: python generatePcaps.py
