@@ -158,7 +158,7 @@ class PhishDetector(object):
             feature_generator.run()
 
     def generate_model_output(self):
-        self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.result_size)
+        self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size)
         self.classifier.generate_training()
         self.classifier.train_clf()
         self.classifier.test_and_report()
