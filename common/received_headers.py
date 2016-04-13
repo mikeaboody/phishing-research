@@ -111,15 +111,9 @@ class SenderReceiverProfile(dict):
 			srp.emailList.append(newEmail)
 
 	def createReceivedHeaderSequences(self):
-		total_num_emails = 0
-		total_emails_flagged = 0
-		count = 0
 		for tup, srp in self.items():
 			seq_rh_from = []
 			for em in srp.emailList:
-				count += 1
-				# print(str(count))
-				total_num_emails += 1
 				num_recHeaders = len(em.receivedHeaderList)
 				RHList = []
 				for recHeader in em.receivedHeaderList:
@@ -131,12 +125,8 @@ class SenderReceiverProfile(dict):
 							ed = editdistance.eval(RHList, lst)
 							if bestEditDist == None or bestEditDist > ed:
 								bestEditDist = ed
-						if bestEditDist and bestEditDist > 0:
-							total_emails_flagged+=1
 					seq_rh_from.append(RHList)
 			srp.received_header_sequences = seq_rh_from
-
-		print("Total Number of Emails Flagged: " + str(total_emails_flagged) + "/" + str(total_num_emails))
 
 	def writeReceivedHeadersToFile(self):
 		FILE = open("receivedHeaders", "a")
