@@ -2,6 +2,7 @@ import argparse
 import os
 import yaml
 import feature_classes as fc
+from classify import Classify  
 
 from multiprocessing import Pool
 from generate_features import FeatureGenerator
@@ -23,6 +24,8 @@ class PhishDetector(object):
         self.sender_profile_percentage = 0
         self.data_matrix_percentage = 0
         self.test_matrix_percentage = 0
+        self.emails_threshold = 1000
+        self.results_size = 10
         self.model_path_out = './model'
         self.result_path_out = './summary'
         self.detectors = None
@@ -109,6 +112,8 @@ class PhishDetector(object):
             'result_path_out',
             'weights',
             'detectors',
+            'emails_threshold',
+            'results_size',
         ]
 
         try:
@@ -160,8 +165,12 @@ class PhishDetector(object):
         p = Pool(5)
         p.map(run_generator, self.feature_generators)
 
-    def generate_model(self):
-        pass
+    def generate_model_output(self):
+        self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.result_size)
+        self.classifier.generate_training()
+        self.classifier.train_clf()
+        self.classifier.test_and_report()
+
 
     def execute(self):
         self.parse_config()
@@ -169,6 +178,8 @@ class PhishDetector(object):
 
         if self.generate_data_matrix or self.generate_test_matrix:
             self.generate_features()
+        if self.generate_model:
+            self.generate_model_output()
 
 def run_generator(generator):
     generator.run()
@@ -176,3 +187,4 @@ def run_generator(generator):
 if __name__ == '__main__':
     detector = PhishDetector()
     detector.execute()
+    

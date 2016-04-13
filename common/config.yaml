@@ -9,6 +9,8 @@ result_path_out:                .
 weights:
     positive:                   0.5
     negative:                   1.0
+results_size:                   10
+emails_threshold:               1000
 detectors:
     DateTimezoneDetector:     1
     MessageIdDetectorOne:     1
