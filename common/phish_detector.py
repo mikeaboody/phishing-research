@@ -42,7 +42,7 @@ class PhishDetector(object):
         parser = argparse.ArgumentParser(description='Mange spear fishing detector.')
         parser.add_argument('--all',
                             action='store_true',
-                            help=('Generate and serialize data matrix, test, matrix, and ML model, then run ML model on test matrix'))
+                            help=('Generate and serialize data matrix, test matrix, and ML model, then run ML model on test matrix'))
         parser.add_argument('--gen_all',
                             action='store_true',
                             help=('Generate and serialize data matrix, test matrix, and ML model'))
@@ -164,6 +164,8 @@ class PhishDetector(object):
         
         p = Pool(5)
         p.map(run_generator, self.feature_generators)
+        p.close()
+        p.join()
 
     def generate_model_output(self):
         self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size)
