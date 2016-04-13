@@ -84,7 +84,7 @@ class Classify:
                 continue
             unique_sender.add(sender)
             self.buckets[indx] += 1
-            lst[i][0].append("/legit_emails.log")
+            lst[i][0] += "/legit_emails.log"
             results[indx].append(lst[i].tolist())
             i += 1
         return results
