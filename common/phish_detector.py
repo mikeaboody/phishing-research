@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 import yaml
 import feature_classes as fc
 from classify import Classify  
@@ -29,6 +30,7 @@ class PhishDetector(object):
         self.model_path_out = './model'
         self.result_path_out = './summary'
         self.detectors = None
+        self.parallel = True
 
         #Generator and Classifier
         self.feature_generators = []
@@ -58,6 +60,9 @@ class PhishDetector(object):
         parser.add_argument('--classify',
                             action='store_true',
                             help=('Run ML model on test matrix'))
+        parser.add_argument('--no_parallel',
+                            action='store_true',
+                            help=('Generate features for matrices serially.'))
         
         args = parser.parse_args()
 
@@ -85,6 +90,9 @@ class PhishDetector(object):
         if args.classify:
             self.classify = True
             run = True
+
+        if args.no_parallel:
+            self.parallel = False
 
         if not run:
             parser.error('You must run with at least one flag')
@@ -162,10 +170,14 @@ class PhishDetector(object):
     def generate_features(self):
         self.prep_features()
         
-        p = Pool(5)
-        p.map(run_generator, self.feature_generators)
-        p.close()
-        p.join()
+        if self.parallel:
+            p = Pool(5)
+            p.map(run_generator, self.feature_generators)
+            p.close()
+            p.join()
+        else:
+            for generator in self.feature_generators:
+                generator.run()
 
     def generate_model_output(self):
         self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size)
@@ -177,11 +189,17 @@ class PhishDetector(object):
     def execute(self):
         self.parse_config()
         self.parse_args()
+        
+        start_time = time.time()
 
         if self.generate_data_matrix or self.generate_test_matrix:
             self.generate_features()
         if self.generate_model:
             self.generate_model_output()
+
+        end_time = time.time()
+
+        print ("Phish Detector took {} seconds to run.".format(int(end_time - start_time)))
 
 def run_generator(generator):
     generator.run()
