@@ -23,8 +23,9 @@ total_senders = 0
 total_legit_emails = 0
 total_phish_emails = 0
 
-def clean_output():
+def clean_all():
     call(['rm', '-r', OUTPUT_DIRECTORY])
+    call(['rm', '-r', BRO_LOG_DIRECTORY])
 
 def summary_stats():
     print("Total unique senders: {}".format(total_senders))
@@ -34,9 +35,11 @@ def summary_stats():
 def is_person_empty(field):
     return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
-clean_output()
+clean_all()
 if not os.path.exists(OUTPUT_DIRECTORY):
     os.makedirs(OUTPUT_DIRECTORY)
+if not os.path.exists(BRO_LOG_DIRECTORY):
+    os.makedirs(BRO_LOG_DIRECTORY)
 
 # Generating legit emails
 senders_seen = open(SENDERS_FILE, 'a+')
