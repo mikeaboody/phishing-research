@@ -83,11 +83,11 @@ class MessageIdDetectorOne(Detector):
         sender = self.extract_from(phish)
         message_id = phish["Message-ID"]
         if message_id == None:
-            print ("No message ID found")
+            # print ("No message ID found")
             return False
         split_msg_id = message_id.split('@')
         if len(split_msg_id) < 2:
-            print("Message-ID misformatted: {}".format(message_id))
+            # print("Message-ID misformatted: {}".format(message_id))
             return False
         domain = split_msg_id[1][:-1]
         uid = split_msg_id[0][1:]
