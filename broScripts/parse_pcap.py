@@ -12,6 +12,7 @@ CURR_DIR = os.getcwd()
 
 PCAP_DIRECTORY = DIR_NAME + '/input'
 OUTPUT_DIRECTORY = DIR_NAME + '/output'
+BRO_LOG_DIRECTORY = DIR_NAME + '/bro_logs'
 
 BRO_SCRIPT_PATH = DIR_NAME + '/main.bro'
 BRO_OUTPUT_FILE = CURR_DIR + '/smtp.log'
@@ -70,16 +71,19 @@ for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
                 with open('{}/legit_emails.log'.format(sender_dir), 'a') as output_file:
                     total_legit_emails += 1
                     output_file.write(line)
-    call(['rm', BRO_OUTPUT_FILE])
+    # call(['rm', BRO_OUTPUT_FILE])
+    last_index = filename.rfind('/')
+    bro_filename = filename[last_index + 1:-4] + 'log'
+    call(['mv', BRO_OUTPUT_FILE, '{}/{}'.format(BRO_LOG_DIRECTORY, bro_filename)])
 senders_seen.close()
 
 os.system('shuf {} > /dev/null'.format(SENDERS_FILE))
 
 # Generating phish emails
 senders_seen = open(SENDERS_FILE)
-for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
-    call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
-    with open(BRO_OUTPUT_FILE, 'a+') as f:
+for filename in glob.glob(BRO_LOG_DIRECTORY + '/*.log'):
+    # call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
+    with open(filename, 'a+') as f:
         for line in f:
             if line[0] != '#':
                 headers = eval(line)
@@ -106,8 +110,8 @@ for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
                 with open('{}/phish_emails.log'.format(sender_dir), 'a') as output_file:
                     total_phish_emails += 1
                     output_file.write(str(headers) + '\n')
-        assert total_phish_emails == total_legit_emails, 'Found {} phishing emails, {} legitimate emails'.format(total_phish_emails, total_legit_emails)
-    call(['rm', BRO_OUTPUT_FILE])
+assert total_phish_emails == total_legit_emails, 'Found {} phishing emails, {} legitimate emails'.format(total_phish_emails, total_legit_emails)
+    # call(['rm', BRO_OUTPUT_FILE])
 senders_seen.close()
 
 summary_stats()
