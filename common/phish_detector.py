@@ -3,6 +3,7 @@ import os
 import yaml
 import feature_classes as fc
 
+from multiprocessing import Pool
 from generate_features import FeatureGenerator
 
 class PhishDetector(object):
@@ -27,8 +28,9 @@ class PhishDetector(object):
         self.detectors = None
 
         #Generator and Classifier
-        self.feature_generator = None
+        self.feature_generators = []
         self.classifier = None
+
 
     def parse_args(self):
         """
@@ -124,7 +126,7 @@ class PhishDetector(object):
         self.detectors = detectors
         self.root_dir = os.path.abspath(self.root_dir)
 
-    def generate_features(self):
+    def prep_features(self):
         dir_to_generate = []
 
         for dirpath, dirnames, filenames in os.walk(self.root_dir):
@@ -150,7 +152,13 @@ class PhishDetector(object):
             feature_generator.do_generate_data_matrix = self.generate_data_matrix
             feature_generator.do_generate_test_matrix = self.generate_test_matrix
 
-            feature_generator.run()
+            self.feature_generators.append(feature_generator)
+
+    def generate_features(self):
+        self.prep_features()
+        
+        p = Pool(5)
+        p.map(run_generator, self.feature_generators)
 
     def generate_model(self):
         pass
@@ -161,6 +169,9 @@ class PhishDetector(object):
 
         if self.generate_data_matrix or self.generate_test_matrix:
             self.generate_features()
+
+def run_generator(generator):
+    generator.run()
 
 if __name__ == '__main__':
     detector = PhishDetector()

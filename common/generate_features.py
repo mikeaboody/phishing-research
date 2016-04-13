@@ -77,16 +77,13 @@ class FeatureGenerator(object):
 
     def build_detectors(self, inbox):
         detectors = [Detector(inbox) for Detector in self.features]
-        print("Building sender profiles for each feature...")
         for i, detector in enumerate(detectors):
             detector.create_sender_profile(self.sender_profile_num_emails)
-        print('')
         return detectors
     
     def generate_data_matrix(self, inbox, phish_inbox):
         data_matrix = np.empty(shape=(self.data_matrix_num_emails*2, self.num_features))
     
-        print("Generating data matrix...")
         row_index = 0
         for i in range(self.start_data_matrix_index, self.start_test_matrix_index):
             j = 0
@@ -117,7 +114,6 @@ class FeatureGenerator(object):
     def generate_test_matrix(self, test_mbox):
         test_data_matrix = np.empty(shape=(self.num_emails - self.start_test_matrix_index, self.num_features))
     
-        print("Generating test data matrix...")
         row_index = 0
         for i in range(self.start_test_matrix_index, self.num_emails):
             j = 0
@@ -131,16 +127,13 @@ class FeatureGenerator(object):
                     test_data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             row_index += 1
-        print('')
         return test_data_matrix
     
     def generate_labels(self):
         label_matrix = np.empty(shape=(self.data_matrix_num_emails*2, 1))
     
-        print("Generating label matrix...")
         for i in range(self.data_matrix_num_emails):
             label_matrix[i][0] = 0 if i < self.data_matrix_num_emails else 1
-        print('')
         return label_matrix
     
 ######################
@@ -172,5 +165,5 @@ class FeatureGenerator(object):
             
         end_time = time.time()
         
-        print("The script took {} seconds.".format(int(end_time - start_time)))
+        print(self.output_directory + " took {} seconds.".format(int(end_time - start_time)))
 
