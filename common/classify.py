@@ -82,6 +82,7 @@ class Classify:
                 continue
             unique_sender.add(sender)
             self.buckets[indx] += 1
+            lst[i][0] += "/legit_emails.log"
             results[indx].append(lst[i].tolist())
             i += 1
         return results
@@ -91,7 +92,8 @@ class Classify:
         return self.buckets[bucket] >= self.bucket_size, bucket
             
     def get_sender(path):
-        return path.split('/')[-2]
+        # Assumes SENDER is third to last.
+        return path.split('/')[-3]
     
     def output_phish_probabilities(test_X, indx, path):
         # [PATH, INDEX, prob_phish]
