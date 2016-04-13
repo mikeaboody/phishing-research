@@ -126,7 +126,8 @@ class FeatureGenerator(object):
                     test_data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             row_index += 1
-        return test_data_matrix
+        test_email_index = np.arange(self.start_test_matrix_index, self.num_emails)
+        return test_data_matrix, test_email_index
     
     def generate_labels(self):
         label_matrix = np.empty(shape=(self.data_matrix_num_emails*2, 1))
@@ -153,10 +154,11 @@ class FeatureGenerator(object):
             sio.savemat(training_path, training_dict)
 
         if self.do_generate_test_matrix:
-            test_X = self.generate_test_matrix(self.emails)
+            test_X, test_index = self.generate_test_matrix(self.emails)
             test_dict = {}
             test_dict['test_data'] = test_X
             test_dict['feature_names'] = self.feature_names
+            test_dict['email_index'] = test_index
 
             test_path = os.path.join(self.output_directory, 'test.mat')
             sio.savemat(test_path, test_dict)
