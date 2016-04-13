@@ -11,6 +11,10 @@ import numpy as np
 from Levenshtein import distance
 import editdistance
 
+
+NUM_EMAILS = 1
+FORMATS = 0
+
 class Content_Type_Detector(Detector):
     def __init__(self, inbox, num_header, threshold):
         self.inbox = inbox
@@ -52,19 +56,25 @@ class Content_Type_Detector(Detector):
         return False
 
     def classify(self, phish):
+        # total, emails, editdistance
         sender = self.extract_from(phish)
         sender = self.inbox[randint(0, len(self.inbox)-1)]['From']
-        ordering = self.find_ordering(phish, error=True)
+        detect = [1, 0, 0]
+        ordering = self.find_ordering(phish, error=False)
         new_val = self.convert_to_list(ordering)
-        phishy = True
         if sender in self.sender_profile.keys():
-            for o in list(self.sender_profile[sender]):
+            orderings = list(self.sender_profile[sender][FORMATS])
+            for o in orderings:
                 if self.edit_distance_thresh(new_val, o):
-                    phishy = False
+                    # phishy? Nope.
+                    detect[0] = 0
                     break
+            detect[1] = self.sender_profile[sender][NUM_EMAILS]
+            detect[2] = len(orderings)
         else:
             print("Sender was not found in sender_profile: %s" % (sender))
-        return phishy
+            detect[0] = 0
+        return detect
 
     def convert_to_list(self, ordering):
         return ordering.split(" ")
@@ -72,10 +82,11 @@ class Content_Type_Detector(Detector):
     def update_sender_profile(self, value, sender):
         new_format = 1
         if sender not in self.sender_profile.keys():
-            self.sender_profile[sender] = set([value])
+            self.sender_profile[sender] = [set([value]), 1]
             new_format = 0
         else:
-            seen = list(self.sender_profile[sender])
+            self.sender_profile[sender][NUM_EMAILS] += 1
+            seen = list(self.sender_profile[sender][FORMATS])
             new_val = self.convert_to_list(value)
             for ordering in seen:
                 if self.edit_distance_thresh(new_val, ordering):
@@ -83,7 +94,7 @@ class Content_Type_Detector(Detector):
                     break
         #if value not in self.sender_profile[sender]:
         #    new_format = 1
-        self.sender_profile[sender].add(value)
+        self.sender_profile[sender][FORMATS].add(value)
         return new_format
 
     def update_entire_attribute(self, value):
@@ -214,7 +225,7 @@ class Content_Type_Detector(Detector):
         print_named_order = sorted( ((v, k) for k, v in self.full_order.items()), reverse=True)
         print("Avg number of headers = %d" % (avg_length / self.emails_with_sender))
         self.falsies = self.false_alarms / self.emails_with_sender * 100
-
+        print("false alarm rate ordering format = %.2f percent" % (self.falsies))
         #printing all
        # for k, v in print_order:
        #     print("%d: %s" % (k, v))
@@ -250,7 +261,7 @@ class Content_Type_Detector(Detector):
         count = 1
         for sender in self.sender_profile.keys():
             len_ordering[sender] = {}
-            for ordering in self.sender_profile[sender]:
+            for ordering in self.sender_profile[sender][FORMATS]:
                 num = len(ordering.split(" "))
                 if num not in len_ordering[sender].keys():
                     len_ordering[sender][num] = 1
@@ -260,23 +271,12 @@ class Content_Type_Detector(Detector):
         # key: diff val: number of times I've seen
         count_diff = {}
         for sender, ordering in self.sender_profile.items():
+            ordering = ordering[FORMATS]
             if len(ordering) > 1:
                 one = list(ordering)[0].split(" ")
                 two = list(ordering)[1].split(" ")
                 count_diff = self.add_dict(count_diff, int(editdistance.eval(one, two)))
         #pprint.pprint(len_ordering)
-        pprint.pprint(count_diff)
-
-        for sender, ordering in self.sender_profile.items():
-            if len(ordering) > 4:
-                print(len(ordering))
-                print(self.sender_to_newformat[sender])
-                print("===up===")
-        for sender, smt in self.sender_to_newformat.items():
-            if smt > 1:
-                print(smt)
-                print(len(self.sender_profile[sender]))
-                print("===uppp===")
 
     def add_dict(self, d, k):
         if k not in d.keys():
@@ -288,7 +288,7 @@ class Content_Type_Detector(Detector):
     def interesting_stats(self):
         ordering_used = [0]*20
         for ordering in self.sender_profile.values():
-            num_formats = len(ordering) - 1
+            num_formats = len(ordering[FORMATS]) - 1
             total_len = len(ordering_used)
             if num_formats >= total_len:
                 ordering_used.extend([0] * (num_formats - total_len + 1))
@@ -315,13 +315,13 @@ def printInfo(msg):
     print(msg["Subject"])
 
 
-#file_name = "~/emails/Inbox500.mbox"
-#inbox = mailbox.mbox(file_name)
-#d = Content_Type_Detector(inbox, 1)
+file_name = "~/emails/Inbox500.mbox"
+inbox = mailbox.mbox(file_name)
+d = Content_Type_Detector(inbox, 1, 7)
 #d.interesting_stats()
 #d.analyzing_sender_profile()
-##d.graph_distribution()
-#print("detection rate = " + str(d.run_trials()))
+#d.graph_distribution()
+print("detection rate = " + str(d.run_trials()))
 
 
 def graph_rate_file():
@@ -370,9 +370,9 @@ def write_rate_files():
                     print("false alarm rate = %.2f percent" % (false_alarm))
                     d_writer.writerow([str(thresh), str(header_length), detection_rate, str(false_alarm)])
             
-file_name = "~/emails/Inbox.mbox"
+#file_name = "~/emails/Inbox500.mbox"
 #inbox = mailbox.mbox(file_name)
-graph_rate_file()
+#graph_rate_file()
 
 
 

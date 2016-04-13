@@ -89,7 +89,9 @@ class Content_Type_Detector(Detector):
         res = {}
         for attr in cts:
             attr, value = self.get_attr_val(attr)
-            if attr == "boundary":
+            if attr is None:
+                continue
+            elif attr == "boundary":
                 value = self.convert_to_partition(value)
             res[attr] = value
         return res
@@ -107,20 +109,38 @@ class Content_Type_Detector(Detector):
             attr = "content-type"
         else:
             # case: boundary, charset, etc
+            if attr != "boundary" and attr != "charset":
+                return None, None
             value = att_val[1]
         return attr.lower(), None if value is None else value.lower() 
     
+
     def classify(self, phish):
         sender = self.extract_from(phish)
         entire_ct = self.get_entire_content(phish)
         processed_ct = self.process(entire_ct)
-        detect = False
+        # [TOTAL, CONTENT, CHARSET, BOUNDARY, NUM_EMAIL, 
+        # CONT_SEEN, CHAR_SEEN, BOUND_SEEN]
+        detect = [False, False, False, False, 0, 0, 0, 0]
+        if not processed_ct:
+            if None not in self.sender_profile[sender].keys():
+                detect[TOTAL] = True
+        detect[NUM_EMAIL] = self.sender_profile[sender][EMAILS]
         for attr, value in processed_ct.items():
+            # for when attr is protocal
+            if attr not in attr_to_seen.keys():
+                continue
             if sender in self.sender_profile.keys():
-                if attr not in self.sender_profile[sender].keys() or value not in self.sender_profile[sender][attr]:
+                no_attr = attr not in self.sender_profile[sender].keys()
+                no_value = True if no_attr else value not in self.sender_profile[sender][attr].keys()
+                if no_attr or no_value:
+                    detect[TOTAL] = True
                     if attr in self.detections.keys():
                         self.detections[attr] += 1
-                    detect = True
+                if no_attr:
+                    detect[attr_to_enum[attr]] = True
+                elif no_value:
+                    detect[attr_to_seen[attr]] = len(self.sender_profile[sender][attr].keys())
             else:
                 print("Sender was not found in sender_profile: %s" % (sender))
         return detect
@@ -128,13 +148,17 @@ class Content_Type_Detector(Detector):
     def update_sender_profile(self, attr, value, sender):
         new_format = 0
         if sender not in self.sender_profile.keys():
-            self.sender_profile[sender] = {}
+            self.sender_profile[sender] = {EMAILS: 0}
+        if attr == EMAILS:
+            self.sender_profile[sender][EMAILS] += 1
+            return
         if attr not in self.sender_profile[sender].keys():
-            self.sender_profile[sender][attr] = set([value])
+            self.sender_profile[sender][attr] = {value: 1}
         else:
-            if value not in self.sender_profile[sender][attr]:
+            if value not in self.sender_profile[sender][attr].keys():
+                self.sender_profile[sender][attr][value] = 0
                 new_format = 1
-            self.sender_profile[sender][attr].add(value)
+            self.sender_profile[sender][attr][value] += 1
         return new_format
 
     def update_entire_attribute(self, attr, value):
@@ -170,6 +194,9 @@ class Content_Type_Detector(Detector):
                 entire_ct = self.get_entire_content(msg)
                 processed_ct = self.process(entire_ct)
                 new_format = 0
+                if not processed_ct:
+                    self.update_sender_profile(None, None, sender)
+                self.update_sender_profile(EMAILS, None, sender)
                 for attr, value in processed_ct.items():
                     new = self.update_sender_profile(attr, value, sender) 
                     new_format += new
@@ -178,9 +205,8 @@ class Content_Type_Detector(Detector):
                     self.update_entire_attribute(attr, value)
             if new_format > 0:
                 self.combined_false += 1
-        pprint.pprint(self.entire_attribute)
-        print(self.false_alarm)
-        print(len(self.entire_attribute["boundary"]))
+        # print(self.false_alarm)
+        # print(len(self.entire_attribute["boundary"]))
 
     def trim_distributions(self, distr):
         while distr[len(distr)-1] == 0:
@@ -210,6 +236,8 @@ class Content_Type_Detector(Detector):
         troll = 0
         for distr in self.sender_profile.values():
             for attr in distr.keys():
+                if attr == EMAILS:
+                    continue
                 values = distr[attr]
                 num_formats = len(values) - 1
                 if attr == "content-type":
@@ -253,6 +281,19 @@ def printInfo(msg):
     print(msg["From"])
     print(msg["Content-Type"])
     print(msg["Subject"])
+
+EMAILS = "emails"
+
+TOTAL = 0
+CONTENT = 1
+CHARSET = 2
+BOUNDARY = 3
+NUM_EMAIL = 4
+CONT_SEEN = 5
+CHAR_SEEN = 6
+BOUND_SEEN = 7
+attr_to_enum = {"content-type": CONTENT, "charset": CHARSET, "boundary": BOUNDARY}
+attr_to_seen = {"content-type": CONT_SEEN, "charset": CHAR_SEEN, "boundary": BOUND_SEEN}
 
 file_name = "~/emails/Inbox500.mbox"
 inbox = mailbox.mbox(file_name)
