@@ -30,7 +30,7 @@ class PhishDetector(object):
         self.model_path_out = './model'
         self.result_path_out = './summary'
         self.detectors = None
-        self.parallel = True
+        self.parallel = None
 
         #Generator and Classifier
         self.feature_generators = []
@@ -60,9 +60,6 @@ class PhishDetector(object):
         parser.add_argument('--classify',
                             action='store_true',
                             help=('Run ML model on test matrix'))
-        parser.add_argument('--no_parallel',
-                            action='store_true',
-                            help=('Generate features for matrices serially.'))
         
         args = parser.parse_args()
 
@@ -90,9 +87,6 @@ class PhishDetector(object):
         if args.classify:
             self.classify = True
             run = True
-
-        if args.no_parallel:
-            self.parallel = False
 
         if not run:
             parser.error('You must run with at least one flag')
@@ -122,6 +116,8 @@ class PhishDetector(object):
             'detectors',
             'emails_threshold',
             'results_size',
+            'parallel',
+            'num_threads',
         ]
 
         try:
@@ -171,11 +167,13 @@ class PhishDetector(object):
         self.prep_features()
         
         if self.parallel:
-            p = Pool(5)
+            print('Generating features with {} threads in parallel...'.format(self.num_threads))
+            p = Pool(self.num_threads)
             p.map(run_generator, self.feature_generators)
             p.close()
             p.join()
         else:
+            print('Generating features serially...')
             for generator in self.feature_generators:
                 generator.run()
 

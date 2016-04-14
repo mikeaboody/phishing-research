@@ -15,14 +15,18 @@ result_path_out:                .
 results_size:                   10
 emails_threshold:               1000
 detectors:
-    DateTimezoneDetector:     1
-    MessageIdDetectorOne:     1
-    messageIDDomain_Detector: 1
-    ContentTypeDetector:      1
-    OrderOfHeaderDetector:    1
-    XMailerDetector:          1
-    ReceivedHeadersDetector:  1
-    DateFormatDetector:       1
+    DateTimezoneDetector:       1
+    MessageIdDetectorOne:       1
+    messageIDDomain_Detector:   1
+    ContentTypeDetector:        1
+    OrderOfHeaderDetector:      1
+    XMailerDetector:            1
+    ReceivedHeadersDetector:    1
+    DateFormatDetector:         1
+
+#Parallel Settings
+parallel:                       1
+num_threads:                    5
 
 #Do not modify unless you are certain what you are doing
 regular_filename:               legit_emails.log

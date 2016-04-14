@@ -23,14 +23,18 @@ result_path_out:                .
 results_size:                   10
 emails_threshold:               1000
 detectors:
-    DateTimezoneDetector:     1
-    MessageIdDetectorOne:     1
-    messageIDDomain_Detector: 1
-    ContentTypeDetector:      1
-    OrderOfHeaderDetector:    1
-    XMailerDetector:          1
-    ReceivedHeadersDetector:  1
-    DateFormatDetector:       1
+    DateTimezoneDetector:       1
+    MessageIdDetectorOne:       1
+    messageIDDomain_Detector:   1
+    ContentTypeDetector:        1
+    OrderOfHeaderDetector:      1
+    XMailerDetector:            1
+    ReceivedHeadersDetector:    1
+    DateFormatDetector:         1
+
+#Parallel Settings
+parallel:                       1
+num_threads:                    5
 
 #Do not modify unless you are certain what you are doing
 regular_filename:               legit_emails.log
@@ -49,6 +53,8 @@ The config file is a series of key-value pairs. The fields work as follows:
 - ```results_size```: The number of results to store for each low and high frequency senders. The top ```results_size``` positive classifications for each will be saved.
 - ```emails_threshold```: Senders who send more than ```emails_threshold``` emails will be classified as a high frequency sender, while senders lower than ```emails_threshold``` are classified as a low frequency sender.
 - ```detectors```: A list of detectors that can be used to generate features. A value of 1 corresponds to on, and a value of 0 corresponds to off.
+- ```parallel```: Features are generated in parallel if 1, and serially if 0.
+- ```num_threads```: Number of threads to run in parallel for feature generation.
 - ```regular_filename```: Filename corresponding to normal emails.
 - ```phish_filename```: Filename corresponding to generated phishing emails.
 
@@ -75,5 +81,4 @@ optional arguments:
   --gen_test     Generate and serialize test matrix
   --gen_model    Generate and serialize ML model
   --classify     Run ML model on test matrix
-  --no_parallel  Generate features for matrices serially.
 ```
