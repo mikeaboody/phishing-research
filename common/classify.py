@@ -70,9 +70,9 @@ class Classify:
         res_sorted = results[results[:,2].argsort()][::-1]
         output = self.filter_output(res_sorted)
         pp.pprint(output)
-        self.write_txt(output)
         self.pretty_print(output[0], "/low_volume")
         self.pretty_print(output[1], "/high_volume")
+        self.write_txt(output)
 
     def pretty_print(self, output, folder_name):
         for i, row in enumerate(output):
