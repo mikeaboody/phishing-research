@@ -4,8 +4,8 @@ root_dir:                       ../broScripts/output
 sender_profile_percentage:      0.1
 data_matrix_percentage:         0.2
 test_matrix_percentage:         0.7
-model_path_out:                 .
-result_path_out:                .
+model_path_out:                 model.plk
+result_path_out:                output
 weights:
     positive:                   0.5
     negative:                   1.0
