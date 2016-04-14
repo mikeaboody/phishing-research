@@ -68,16 +68,15 @@ class ReceivedHeader:
 			del self.breakdown[";"]
 
 	def assignCIDR(self):
-		lookup = Lookup()
 		if not "from" in self.breakdown.keys():
 			return "None"
-		elif lookup.public_domain(self.breakdown["from"]):
-			ip = lookup.public_domain(self.breakdown["from"])
-		elif lookup.public_IP(self.breakdown["from"]):
-			ip = lookup.public_IP(self.breakdown["from"])
+		elif Lookup.public_domain(self.breakdown["from"]):
+			ip = Lookup.public_domain(self.breakdown["from"])
+		elif Lookup.public_IP(self.breakdown["from"]):
+			ip = Lookup.public_IP(self.breakdown["from"])
 		else:
 			return "Invalid"
-		return lookup.getCIDR(ip)
+		return Lookup.getCIDR(ip)
 
 	def __str__(self):
 		return str(self.breakdown)
@@ -195,31 +194,34 @@ class Lookup:
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 
 	# returns cidr of public IP or returns false if there is no IP or if the IP is private
-	def public_IP(self, fromHeader):
+	@classmethod
+	def public_IP(cls, fromHeader):
 		ip = extract_ip(fromHeader)
-		if ip and not (IPAddress(ip) in IPNetwork(self.privateCIDR[0]) or IPAddress(ip) in IPNetwork(self.privateCIDR[1]) or IPAddress(ip) in IPNetwork(self.privateCIDR[2])):
+		if ip and not (IPAddress(ip) in IPNetwork(Lookup.privateCIDR[0]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[1]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[2])):
 			return ip
 		return None
 
 	# returns false if domain is invalid or private domain
-	def public_domain(self, fromHeader):
+	@classmethod
+	def public_domain(cls, fromHeader):
 		domain = extract_domain(fromHeader)
 		if domain:
 			domain = get_endMessageIDDomain(domain)
 			try:
-				if (domain in self.seen_domain_ip):
-					return self.seen_domain_ip[domain]
+				if (domain in Lookup.seen_domain_ip):
+					return Lookup.seen_domain_ip[domain]
 				else:
 					ip = socket.gethostbyname(domain)
-					self.seen_domain_ip[domain] = ip
+					Lookup.seen_domain_ip[domain] = ip
 					return ip
 			except:
 				return False
 
-	def getCIDR(self, ip):
+	@classmethod
+	def getCIDR(cls, ip):
 		try:
-			if ip in self.seen_pairings.keys():
-				return self.seen_pairings[ip]
+			if ip in Lookup.seen_pairings.keys():
+				return Lookup.seen_pairings[ip]
 			else:
 				obj = IPWhois(ip)
 				results = obj.lookup()
@@ -227,10 +229,10 @@ class Lookup:
 					cidr = ip + "/32"
 				else:
 					cidr = results["nets"][0]["cidr"]
-				self.seen_pairings[ip] = cidr
+				Lookup.seen_pairings[ip] = cidr
 				return cidr
 		except:
-			self.seen_pairings[ip] = "Invalid"
+			Lookup.seen_pairings[ip] = "Invalid"
 			return "Invalid"
 
 def get_endMessageIDDomain(domain):
