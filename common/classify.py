@@ -6,14 +6,16 @@ from sklearn.utils import shuffle
 import pprint as pp
 from sklearn.externals import joblib
 import os
+import json
 
 class Classify:
     
-    def __init__(self, w, path, volume_split, bucket_size, serial_path="clf.pkl"):
+    def __init__(self, w, path, volume_split, bucket_size, results_path="output.txt", serial_path="clf.pkl"):
         weights = {1.0: w['positive'], 0.0: w['negative']}
         self.clf = linear_model.LogisticRegression(class_weight=weights)
         self.path = path
         self.serial_to_path = serial_path
+        self.results_path = results_path
         self.bucket_thres = volume_split
         self.bucket_size = bucket_size 
         
@@ -68,6 +70,41 @@ class Classify:
         res_sorted = results[results[:,2].argsort()][::-1]
         output = self.filter_output(res_sorted)
         pp.pprint(output)
+        self.write_txt(output)
+        self.pretty_print(output[0], "/low_volume")
+        self.pretty_print(output[1], "/high_volume")
+
+    def pretty_print(self, output, folder_name):
+        for i, row in enumerate(output):
+            path = row[0]
+            indx = int(row[1])
+            headers = eval(self.get_email(path, indx))
+            headers_dict = self.to_dictionary(headers)
+            self.write_file(folder_name, i, headers_dict)
+
+    def to_dictionary(self, headers):
+        d = {}
+        for tup in headers:
+            d[tup[0]] = tup[1]
+        return d
+
+    def write_file(self, folder_name, i, headers_dict):
+        full_path = self.results_path + folder_name + "/" + str(i) + ".json"
+        directory = os.path.dirname(full_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        with open(full_path, "w") as output:
+            output.write(json.dumps(headers_dict, sort_keys=False, indent=4, separators=(",", ": ")))
+
+    def write_txt(self, output):
+        with open(self.results_path + "/output.txt", "w") as out:
+            out.write(json.dumps(output, sort_keys=False, indent=4, separators=(",", ": ")))
+
+    def get_email(self, path, indx):
+        with open(path) as fp:
+            for i, line in enumerate(fp):
+                if i == indx:
+                    return line
     
     def filter_output(self, lst):
         self.buckets = [0, 0]

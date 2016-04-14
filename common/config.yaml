@@ -10,8 +10,8 @@ test_matrix_percentage:         0.7
 weights:
     positive:                   0.5
     negative:                   1.0
-model_path_out:                 .
-result_path_out:                .
+model_path_out:                 model.plk
+result_path_out:                output
 results_size:                   10
 emails_threshold:               1000
 detectors:
