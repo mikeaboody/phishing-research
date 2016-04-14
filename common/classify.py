@@ -24,7 +24,8 @@ class Classify:
         Y = None
         for root, dirs, files in os.walk(self.path): 
             if 'training.mat' in files:
-                data = sio.loadmat(root + '/training.mat')
+                path = os.path.join(root, "/training.mat")
+                data = sio.loadmat(path)
                 part_X = data['training_data']
                 part_Y = data['training_labels']
                 if len(part_X) == 0:
@@ -70,9 +71,9 @@ class Classify:
         res_sorted = results[results[:,2].argsort()][::-1]
         output = self.filter_output(res_sorted)
         pp.pprint(output)
-        self.write_txt(output)
         self.pretty_print(output[0], "/low_volume")
         self.pretty_print(output[1], "/high_volume")
+        self.write_txt(output)
 
     def pretty_print(self, output, folder_name):
         for i, row in enumerate(output):
@@ -97,7 +98,8 @@ class Classify:
             output.write(json.dumps(headers_dict, sort_keys=False, indent=4, separators=(",", ": ")))
 
     def write_txt(self, output):
-        with open(self.results_path + "/output.txt", "w") as out:
+        path = os.path.join(self.results_path, "/output.txt")
+        with open(path, "w+") as out:
             out.write(json.dumps(output, sort_keys=False, indent=4, separators=(",", ": ")))
 
     def get_email(self, path, indx):
