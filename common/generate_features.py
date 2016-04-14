@@ -22,7 +22,6 @@ The output of your file will be two .mat files 'training.mat' and 'test.mat'.
 
 import os
 import sys
-import time
 import inbox
 
 import numpy as np
@@ -142,7 +141,6 @@ class FeatureGenerator(object):
 ######################
 
     def run(self):
-        start_time = time.time()
         self.detectors = self.build_detectors(self.emails)
         if self.do_generate_data_matrix:
             X = self.generate_data_matrix(self.emails, self.phish_emails)
@@ -165,6 +163,5 @@ class FeatureGenerator(object):
             test_path = os.path.join(self.output_directory, 'test.mat')
             sio.savemat(test_path, test_dict)
             
-        end_time = time.time()
         
-        print(self.output_directory + " took {} seconds.".format(int(end_time - start_time)))
+        print(self.output_directory + " generated.")

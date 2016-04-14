@@ -1,14 +1,17 @@
 #Configuration file for PhishDetector
 
+#Data and Test Matrix Configurations
 root_dir:                       ../broScripts/output
 sender_profile_percentage:      0.1
 data_matrix_percentage:         0.2
 test_matrix_percentage:         0.7
-model_path_out:                 model.plk
-result_path_out:                output
+
+#Model Training and Classification Settings
 weights:
     positive:                   0.5
     negative:                   1.0
+model_path_out:                 model.plk
+result_path_out:                output
 results_size:                   10
 emails_threshold:               1000
 detectors:
@@ -16,9 +19,9 @@ detectors:
     MessageIdDetectorOne:     1
     messageIDDomain_Detector: 1
     ContentTypeDetector:      1
-    OrderOfHeaderDetector:    0
+    OrderOfHeaderDetector:    1
     XMailerDetector:          1
-    ReceivedHeadersDetector:  0
+    ReceivedHeadersDetector:  1
     DateFormatDetector:       1
 
 #Do not modify unless you are certain what you are doing
