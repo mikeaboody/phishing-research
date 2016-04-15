@@ -7,6 +7,7 @@ from ipwhois import IPWhois
 from netaddr import IPNetwork, IPAddress
 import socket
 import editdistance
+import os
 
 
 
@@ -143,6 +144,7 @@ class ReceivedHeadersDetector(Detector):
 
 	def __init__(self, inbox):
 		self.inbox = inbox
+		Lookup.loadCIDRs("cidr")
 
 	def modify_phish(self, phish, msg):
 		phish["Received"] = None
@@ -195,6 +197,22 @@ class Lookup:
 
 	# returns cidr of public IP or returns false if there is no IP or if the IP is private
 	@classmethod
+	def loadCIDRs(cls, directory):
+		for item in os.listdir(directory):
+			filename = os.path.join(directory, item)
+			with open(filename, "r") as f:
+				for line in f:
+					line_split = line.split("/")
+					ip, cidr = line_split[0], int(line_split[1])
+					if ip in Lookup.seen_pairings:
+						Lookup.seen_pairings[ip] = max(Lookup.seen_pairings[ip], cidr)
+					else:
+						Lookup.seen_pairings[ip] = cidr
+
+
+
+
+	@classmethod
 	def public_IP(cls, fromHeader):
 		ip = extract_ip(fromHeader)
 		if ip and not (IPAddress(ip) in IPNetwork(Lookup.privateCIDR[0]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[1]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[2])):
@@ -219,8 +237,13 @@ class Lookup:
 
 	@classmethod
 	def getCIDR(cls, ip):
+		if ip not in Lookup.seen_pairings:
+			Lookup.seen_pairings[ip] = ip + "/32"
+		return Lookup.seen_pairings[ip]
+	@classmethod
+	def getCIDROld(cls, ip):
 		try:
-			if ip in Lookup.seen_pairings.keys():
+			if ip in Lookup.seen_pairings:
 				return Lookup.seen_pairings[ip]
 			else:
 				obj = IPWhois(ip)
