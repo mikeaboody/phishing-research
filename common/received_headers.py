@@ -191,6 +191,7 @@ class ReceivedHeadersDetector(Detector):
 
 
 class Lookup:
+	seen_pairings_keys = []
 	seen_pairings = {}
 	seen_domain_ip = {}
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
@@ -204,11 +205,10 @@ class Lookup:
 				for line in f:
 					line_split = line.split("/")
 					ip, cidr = line_split[0], int(line_split[1])
-					if ip in Lookup.seen_pairings:
-						Lookup.seen_pairings[ip] = max(Lookup.seen_pairings[ip], cidr)
-					else:
-						Lookup.seen_pairings[ip] = cidr
-
+					if cidr not in Lookup.seen_pairings:
+						Lookup.seen_pairings[cidr] = set()
+					Lookup.seen_pairings[cidr].add(getBinaryRep(ip, cidr))
+		Lookup.seen_pairings_keys = sorted(Lookup.seen_pairings.keys(), reverse=True)
 
 
 
@@ -237,9 +237,12 @@ class Lookup:
 
 	@classmethod
 	def getCIDR(cls, ip):
-		if ip not in Lookup.seen_pairings:
-			Lookup.seen_pairings[ip] = ip + "/32"
-		return Lookup.seen_pairings[ip]
+		for cidr in Lookup.seen_pairings_keys:
+			ip_bin = getBinaryRep(ip, cidr)
+			if ip_bin in Lookup.seen_pairings[cidr]:
+				return cidr
+		return 32
+		
 	@classmethod
 	def getCIDROld(cls, ip):
 		try:
@@ -257,6 +260,10 @@ class Lookup:
 		except:
 			Lookup.seen_pairings[ip] = "Invalid"
 			return "Invalid"
+
+def getBinaryRep(ip, cidr):
+	ip_bin = ''.join([bin(int(x)+256)[3:] for x in ip.split('.')])
+	return ip_bin[:cidr]
 
 def get_endMessageIDDomain(domain):
 	if domain == None:
