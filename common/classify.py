@@ -39,16 +39,16 @@ class Classify:
         X, Y = shuffle(X, Y)
         self.X = X
         self.Y = Y
-        print("Finished concatenating training matrix")
-
+        self.data_size = len(X)
+        print("Finished concatenating training matrix.")
 
     def train_clf(self):
         self.clf.fit(self.X, self.Y.ravel())
-        print("Finished training classifer")
+        print("Finished training classifier.")
 
     def serialize_clf(self):
         joblib.dump(self.clf, self.serial_to_path)
-        print("Finished serializing")
+        print("Finished serializing.")
         
     def test_and_report(self):
         """ Assumptions:
@@ -69,13 +69,20 @@ class Classify:
                 test_res = self.output_phish_probabilities(test_X, indx, root)
                 results = np.concatenate((results, test_res), 0)
         
-        
         res_sorted = results[results[:,2].argsort()][::-1]
+        self.num_phish, self.test_size = self.calc_phish(res_sorted)
         output = self.filter_output(res_sorted)
         pp.pprint(output)
         self.pretty_print(output[0], "low_volume")
         self.pretty_print(output[1], "high_volume")
         self.write_txt(output)
+
+    def calc_phish(self, res_sorted):
+        test_size = len(res_sorted)
+        num_phish = sum(map(lambda x: 1 if float(x[2]) > 0.5 else 0, res_sorted))
+        if test_size == 0:
+            return None, "No test matrix."
+        return num_phish, test_size
 
     def pretty_print(self, output, folder_name):
         for i, row in enumerate(output):
@@ -103,6 +110,13 @@ class Classify:
     def write_txt(self, output):
         path = os.path.join(self.results_path, "output.txt")
         with open(path, "w+") as out:
+            out.write("Data size: {}\n".format(self.data_size))
+            out.write("Test size: {}\n".format(self.test_size))
+            out.write("# phish detected: {}\n".format(self.num_phish))
+            percent = round(self.num_phish / float(self.test_size), 3) if self.num_phish else None
+            out.write("% phish detected: {}\n".format(percent))
+            
+
             out.write(json.dumps(output, sort_keys=False, indent=4, separators=(",", ": ")))
 
     def get_email(self, path, indx):
