@@ -1,7 +1,7 @@
 import matplotlib.pyplot as pyplot
 import numpy as np
 import scipy.io as sio
-from sklearn import ensemble, linear_model, neighbors, neural_network, svm
+from sklearn import linear_model
 from sklearn.utils import shuffle
 import pprint as pp
 from sklearn.externals import joblib
@@ -24,7 +24,7 @@ class Classify:
         Y = None
         for root, dirs, files in os.walk(self.path): 
             if 'training.mat' in files:
-                path = os.path.join(root, "/training.mat")
+                path = os.path.join(root, "training.mat")
                 data = sio.loadmat(path)
                 part_X = data['training_data']
                 part_Y = data['training_labels']
@@ -61,18 +61,20 @@ class Classify:
         
         for root, dirs, files in os.walk(self.path):
             if 'test.mat' in files:
-                data = sio.loadmat(root + '/test.mat')
+                path = os.path.join(root, "test.mat")
+                data = sio.loadmat(path)
                 test_X = data['test_data']
                 sample_size = test_X.shape[0]
                 indx = data['email_index'].reshape(sample_size, 1)
                 test_res = self.output_phish_probabilities(test_X, indx, root)
                 results = np.concatenate((results, test_res), 0)
         
+        
         res_sorted = results[results[:,2].argsort()][::-1]
         output = self.filter_output(res_sorted)
         pp.pprint(output)
-        self.pretty_print(output[0], "/low_volume")
-        self.pretty_print(output[1], "/high_volume")
+        self.pretty_print(output[0], "low_volume")
+        self.pretty_print(output[1], "high_volume")
         self.write_txt(output)
 
     def pretty_print(self, output, folder_name):
@@ -81,7 +83,7 @@ class Classify:
             indx = int(row[1])
             headers = eval(self.get_email(path, indx))
             headers_dict = self.to_dictionary(headers)
-            self.write_file(folder_name, i, headers_dict)
+            self.write_file(folder_name, i, headers_dict, row[2])
 
     def to_dictionary(self, headers):
         d = {}
@@ -89,16 +91,17 @@ class Classify:
             d[tup[0]] = tup[1]
         return d
 
-    def write_file(self, folder_name, i, headers_dict):
-        full_path = self.results_path + folder_name + "/" + str(i) + ".json"
+    def write_file(self, folder_name, i, headers_dict, confidence):
+        file_name = str(i) + ".json"
+        full_path = os.path.join(self.results_path, folder_name, file_name)
         directory = os.path.dirname(full_path)
         if not os.path.exists(directory):
             os.makedirs(directory)
         with open(full_path, "w") as output:
-            output.write(json.dumps(headers_dict, sort_keys=False, indent=4, separators=(",", ": ")))
+            output.write(json.dumps([{"phish_probability": confidence}, {"headers": headers_dict}], sort_keys=False, indent=4, separators=(",", ": ")))
 
     def write_txt(self, output):
-        path = os.path.join(self.results_path, "/output.txt")
+        path = os.path.join(self.results_path, "output.txt")
         with open(path, "w+") as out:
             out.write(json.dumps(output, sort_keys=False, indent=4, separators=(",", ": ")))
 
