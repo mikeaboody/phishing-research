@@ -2,6 +2,7 @@ import matplotlib.pyplot as pyplot
 import numpy as np
 import scipy.io as sio
 from sklearn import ensemble, linear_model, neighbors, neural_network, svm
+from sklearn import cross_validation
 from sklearn.utils import shuffle
 import pprint as pp
 from sklearn.externals import joblib
@@ -11,8 +12,8 @@ import json
 class Classify:
     
     def __init__(self, w, path, volume_split, bucket_size, results_path="output.txt", serial_path="clf.pkl"):
-        weights = {1.0: w['positive'], 0.0: w['negative']}
-        self.clf = linear_model.LogisticRegression(class_weight=weights)
+        self.weights = {1.0: w['positive'], 0.0: w['negative']}
+        self.clf = linear_model.LogisticRegression(class_weight=self.weights)
         self.path = path
         self.serial_to_path = serial_path
         self.results_path = results_path
@@ -40,6 +41,10 @@ class Classify:
         self.Y = Y
         print("Finished concatenating training matrix")
 
+    def cross_validate(self):
+        validate_clf = linear_model.LogisticRegression(class_weight=self.weights)
+        validation_acc = cross_validation.cross_val_score(validate_clf, self.X, self.Y.ravel(), cv=5)
+        print("Validation Accuracy: {}".format(validation_acc.mean()))
 
     def train_clf(self):
         self.clf.fit(self.X, self.Y.ravel())
