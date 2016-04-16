@@ -120,7 +120,7 @@ class Classify:
             out.write("# phish detected: {}\n".format(self.num_phish))
             percent = round(self.num_phish / float(self.test_size), 3) if self.num_phish else None
             out.write("% phish detected: {}\n".format(percent))
-            out.write("Cross validation acc: {}\n".format(self.validation_acc))
+            out.write("Cross validation acc: {}\n".format(self.validation_acc.mean()))
 
             out.write(json.dumps(output, sort_keys=False, indent=4, separators=(",", ": ")))
 
