@@ -145,6 +145,7 @@ class ReceivedHeadersDetector(Detector):
 	def __init__(self, inbox):
 		self.inbox = inbox
 		Lookup.loadCIDRs("cidr")
+		Lookup.loadDomainIPPairings("domains.txt")
 
 	def modify_phish(self, phish, msg):
 		phish["Received"] = None
@@ -196,7 +197,6 @@ class Lookup:
 	seen_domain_ip = {}
 	privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 
-	# returns cidr of public IP or returns false if there is no IP or if the IP is private
 	@classmethod
 	def loadCIDRs(cls, directory):
 		for item in os.listdir(directory):
@@ -210,8 +210,16 @@ class Lookup:
 					Lookup.seen_pairings[cidr].add(getBinaryRep(ip, cidr))
 		Lookup.seen_pairings_keys = sorted(Lookup.seen_pairings.keys(), reverse=True)
 
+	@classmethod
+	def loadDomainIPPairings(cls, filename):
+		with open(filename, "r") as f:
+			for line in f:
+				line_split = line.split()
+				domain, ip = line_split[0], line_split[1]
+				Lookup.seen_domain_ip[domain] = ip
 
 
+	# returns cidr of public IP or returns false if there is no IP or if the IP is private
 	@classmethod
 	def public_IP(cls, fromHeader):
 		ip = extract_ip(fromHeader)
@@ -222,6 +230,14 @@ class Lookup:
 	# returns false if domain is invalid or private domain
 	@classmethod
 	def public_domain(cls, fromHeader):
+		domain = extract_domain(fromHeader)
+		if domain and domain in Lookup.seen_domain_ip:
+			return Lookup.seen_domain_ip[domain]
+		return False
+
+	# returns false if domain is invalid or private domain
+	@classmethod
+	def public_domainOld(cls, fromHeader):
 		domain = extract_domain(fromHeader)
 		if domain:
 			domain = get_endMessageIDDomain(domain)
