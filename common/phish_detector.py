@@ -181,6 +181,7 @@ class PhishDetector(object):
         self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size, results_path=self.result_path_out, serial_path=self.model_path_out)
         self.classifier.generate_training()
         self.classifier.train_clf()
+        self.classifier.cross_validate()
         self.classifier.test_and_report()
 
 

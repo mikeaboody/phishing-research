@@ -1,7 +1,6 @@
-import matplotlib.pyplot as pyplot
 import numpy as np
 import scipy.io as sio
-from sklearn import linear_model
+from sklearn import linear_model, cross_validation
 from sklearn.utils import shuffle
 import pprint as pp
 from sklearn.externals import joblib
@@ -11,8 +10,8 @@ import json
 class Classify:
     
     def __init__(self, w, path, volume_split, bucket_size, results_path="output.txt", serial_path="clf.pkl"):
-        weights = {1.0: w['positive'], 0.0: w['negative']}
-        self.clf = linear_model.LogisticRegression(class_weight=weights)
+        self.weights = {1.0: w['positive'], 0.0: w['negative']}
+        self.clf = linear_model.LogisticRegression(class_weight=self.weights)
         self.path = path
         self.serial_to_path = serial_path
         self.results_path = results_path
@@ -28,6 +27,7 @@ class Classify:
                 data = sio.loadmat(path)
                 part_X = data['training_data']
                 part_Y = data['training_labels']
+                names = data['feature_names']
                 if len(part_X) == 0:
                     continue
                 if X == None:
@@ -41,6 +41,11 @@ class Classify:
         self.Y = Y
         self.data_size = len(X)
         print("Finished concatenating training matrix.")
+
+    def cross_validate(self):
+        validate_clf = linear_model.LogisticRegression(class_weight=self.weights)
+        self.validation_acc = cross_validation.cross_val_score(validate_clf, self.X, self.Y.ravel(), cv=5)
+        print("Validation Accuracy: {}".format(self.validation_acc.mean()))
 
     def train_clf(self):
         self.clf.fit(self.X, self.Y.ravel())
@@ -115,7 +120,7 @@ class Classify:
             out.write("# phish detected: {}\n".format(self.num_phish))
             percent = round(self.num_phish / float(self.test_size), 3) if self.num_phish else None
             out.write("% phish detected: {}\n".format(percent))
-            
+            out.write("Cross validation acc: {}\n".format(self.validation_acc))
 
             out.write(json.dumps(output, sort_keys=False, indent=4, separators=(",", ": ")))
 
