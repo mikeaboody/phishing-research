@@ -93,7 +93,7 @@ for filename in glob.glob(BRO_LOG_DIRECTORY + '/*.log'):
                 sender = ''
                 for k, v in headers:
                     if k == 'FROM':
-                        sender = senders_seen.readline()
+                        sender = senders_seen.readline()[:-1] # Remove newline character
                         headers.remove((k, v))
                         headers.append((k, sender))
                         break
