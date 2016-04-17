@@ -1,6 +1,5 @@
 from detector import Detector
-import sys
-import re
+import sys, re, os
 
 # IPWhois
 import socket
@@ -9,9 +8,12 @@ from ipwhois import IPWhois
 class messageIDDomain_Detector(Detector):
     GLOBAL_SET = {} # email domain : [MID domain 0, ...]
     domainCompanyPairing = {} # domain : company
+    domain2domainPairing = {}
     def __init__(self, inbox):
         self.inbox = inbox
-        # self.sender_profile = self.create_sender_profile()
+        Lookup.loadCIDRs("cidr")
+        Lookup.loadDomainIPPairings("domains.txt")
+        Lookup.loadDomainOrgPairings("domain2Org.txt")
 
     def check_header(self, msg):
         mID = msg["Message-ID"]
@@ -45,9 +47,6 @@ class messageIDDomain_Detector(Detector):
         sender = self.getEntireEmail(phish["From"])
         mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
 
-        # if "List-Unsubscribe" in phish.keys() or mID == None:
-        #         return False
-        
         if sender in self.sender_profile.keys():
             if mID not in self.sender_profile[sender]:
                 if self.getEmailDomain(sender) in self.GLOBAL_SET.keys():
@@ -90,6 +89,8 @@ class messageIDDomain_Detector(Detector):
 
     # returns True if FP and email will not be flagged
     def noreplyFP(self, sender, messageID):
+        if messageID == None:
+            return False
         pattern = re.compile("no.*reply")
         if pattern.match(sender):
             # noreply case
@@ -97,33 +98,48 @@ class messageIDDomain_Detector(Detector):
                 return True
         return False
 
-    # returns True if FP and email will not be flagged
     def orgGroups(self, sender, mID):
-        # import pdb; pdb.set_trace()
         try:
-            newmID = "www." + mID
-            afterAT = "www." + sender[sender.index("@")+1:]
+            newmID = mID
+            afterAT = sender[sender.index("@")+1:]
 
+            # if I have seen this pairing before, do not flag as FP
+            if (newmID, afterAT) in self.domain2domainPairing:
+                return True
+
+            # check domain org match if I can find both domains in my pairings
+            if newmID in Lookup.seen_domain_org and afterAT in Lookup.seen_domain_org:
+                if Lookup.seen_domain_org[newmID] == Lookup.seen_domain_org[afterAT]:
+                    self.domain2domainPairing[(newmID, afterAT)] = True
+                    return True
+                else:
+                    self.domain2domainPairing[(newmID, afterAT)] = False
+                    return False
+
+            # if the domains are not in the file, then use CIDR blocks
             if newmID in self.domainCompanyPairing.keys():
-                res1 = self.domainCompanyPairing[newmID]
+                res11 = self.domainCompanyPairing[newmID]
             else:
-                ip1 = socket.gethostbyname(newmID)
-                obj1 = IPWhois(ip1)
-                res1 = obj1.lookup(get_referral=True)['nets'][0]['name']
-                self.domainCompanyPairing[newmID] = res1
+                # createDomain2OrgPair(newmID)
+                ip1 = Lookup.seen_domain_ip[newmID]
+                res11 = getBinaryRep(ip1, Lookup.getCIDR(ip1))
+                self.domainCompanyPairing[newmID] = res11
 
             if afterAT in self.domainCompanyPairing.keys():
-                res2 = self.domainCompanyPairing[afterAT]
+                res22 = self.domainCompanyPairing[afterAT]
             else:
-                ip2 = socket.gethostbyname(afterAT)
-                obj2 = IPWhois(ip2)
-                res2 = obj2.lookup(get_referral=True)['nets'][0]['name']
-                self.domainCompanyPairing[afterAT] = res2
-            
-            if res1 == res2:
+                # createDomain2OrgPair[afterAT]
+                ip2 = Lookup.seen_domain_ip[afterAT]
+                res22 = getBinaryRep(ip2, Lookup.getCIDR(ip2))
+                self.domainCompanyPairing[afterAT] = res22
+
+            if res11 == res22:
+                self.domain2domainPairing[(newmID, afterAT)] = True
                 return True
+            self.domain2domainPairing[(newmID, afterAT)] = False
             return False
         except:
+            self.domain2domainPairing[(newmID, afterAT)] = False
             return False
 
     def create_sender_profile(self, numSamples):
@@ -204,9 +220,96 @@ def printInfo(msg):
     print(msg["Message-ID"])
     print(msg["Subject"])
 
-# file_name = "/home/apoorva/Documents/Research/PhishingResearch/Inbox.mbox"
-# myEmail = "nexusapoorvacus19@gmail.com"
-# inbox = mailbox.mbox(file_name)
-# d = messageIDDomain_Detector(inbox)
-# d.interesting_stats()
-# print("Detection rate = " + str(d.run_trials()))
+class Lookup:
+    seen_pairings_keys = []
+    seen_pairings = {}
+    seen_domain_ip = {}
+    seen_domain_org = {}
+    privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+
+    @classmethod
+    def loadCIDRs(cls, directory):
+        for item in os.listdir(directory):
+            filename = os.path.join(directory, item)
+            with open(filename, "r") as f:
+                for line in f:
+                    line_split = line.split("/")
+                    ip, cidr = line_split[0], int(line_split[1])
+                    if cidr not in Lookup.seen_pairings:
+                        Lookup.seen_pairings[cidr] = set()
+                    Lookup.seen_pairings[cidr].add(getBinaryRep(ip, cidr))
+        Lookup.seen_pairings_keys = sorted(Lookup.seen_pairings.keys(), reverse=True)
+
+    @classmethod
+    def loadDomainIPPairings(cls, filename):
+        with open(filename, "r") as f:
+            for line in f:
+                line_split = line.split()
+                domain, ip = line_split[0], line_split[1]
+                Lookup.seen_domain_ip[domain] = ip
+
+    @classmethod
+    def loadDomainOrgPairings(cls, filename):
+        with open(filename, "r") as f:
+            for line in f:
+                line_split = line.split()
+                domain, org = line_split[0], line_split[1]
+                Lookup.seen_domain_org[domain] = org
+
+    # returns cidr of public IP or returns false if there is no IP or if the IP is private
+    @classmethod
+    def public_IP(cls, fromHeader):
+        ip = extract_ip(fromHeader)
+        if ip and not (IPAddress(ip) in IPNetwork(Lookup.privateCIDR[0]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[1]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[2])):
+            return ip
+        return None
+
+    # returns false if domain is invalid or private domain
+    @classmethod
+    def public_domain(cls, fromHeader):
+        domain = extract_domain(fromHeader)
+        if domain and domain in Lookup.seen_domain_ip:
+            return Lookup.seen_domain_ip[domain]
+        return False
+
+    @classmethod
+    def getCIDR(cls, ip):
+        for cidr in Lookup.seen_pairings_keys:
+            ip_bin = getBinaryRep(ip, cidr)
+            if ip_bin in Lookup.seen_pairings[cidr]:
+                return cidr
+        return 32
+        
+    @classmethod
+    def getCIDROld(cls, ip):
+        try:
+            if ip in Lookup.seen_pairings:
+                return Lookup.seen_pairings[ip]
+            else:
+                obj = IPWhois(ip)
+                results = obj.lookup()
+                if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
+                    cidr = ip + "/32"
+                else:
+                    cidr = results["nets"][0]["cidr"]
+                Lookup.seen_pairings[ip] = cidr
+                return cidr
+        except:
+            Lookup.seen_pairings[ip] = "Invalid"
+            return "Invalid"
+
+def getBinaryRep(ip, cidr):
+    ip_bin = ''.join([bin(int(x)+256)[3:] for x in ip.split('.')])
+    return ip_bin[:cidr]
+
+# returns False if whois lookup is not successful
+def createDomain2OrgPair(domain):
+    FILE = open("domain2Org.txt", "a")
+    try:
+        ip1 = socket.gethostbyname(domain)
+        obj1 = IPWhois(ip1)
+        res1 = obj1.lookup(get_referral=True)['nets'][0]['name']
+        FILE.write(domain + " " + res1 + "\n")
+        return True
+    except:
+        return False
