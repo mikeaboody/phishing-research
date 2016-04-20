@@ -4,6 +4,7 @@ import sys, re, os
 # IPWhois
 import socket
 from ipwhois import IPWhois
+from lookup import Lookup
 
 class messageIDDomain_Detector(Detector):
     GLOBAL_SET = {} # email domain : [MID domain 0, ...]
@@ -11,9 +12,6 @@ class messageIDDomain_Detector(Detector):
     domain2domainPairing = {}
     def __init__(self, inbox):
         self.inbox = inbox
-        Lookup.loadCIDRs("cidr")
-        Lookup.loadDomainIPPairings("domains.txt")
-        Lookup.loadDomainOrgPairings("domain2Org.txt")
 
     def check_header(self, msg):
         mID = msg["Message-ID"]
@@ -219,88 +217,6 @@ def printInfo(msg):
     print(msg["From"])
     print(msg["Message-ID"])
     print(msg["Subject"])
-
-class Lookup:
-    seen_pairings_keys = []
-    seen_pairings = {}
-    seen_domain_ip = {}
-    seen_domain_org = {}
-    privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
-
-    @classmethod
-    def loadCIDRs(cls, directory):
-        for item in os.listdir(directory):
-            filename = os.path.join(directory, item)
-            with open(filename, "r") as f:
-                for line in f:
-                    line_split = line.split("/")
-                    ip, cidr = line_split[0], int(line_split[1])
-                    if cidr not in Lookup.seen_pairings:
-                        Lookup.seen_pairings[cidr] = set()
-                    Lookup.seen_pairings[cidr].add(getBinaryRep(ip, cidr))
-        Lookup.seen_pairings_keys = sorted(Lookup.seen_pairings.keys(), reverse=True)
-
-    @classmethod
-    def loadDomainIPPairings(cls, filename):
-        with open(filename, "r") as f:
-            for line in f:
-                line_split = line.split()
-                domain, ip = line_split[0], line_split[1]
-                Lookup.seen_domain_ip[domain] = ip
-
-    @classmethod
-    def loadDomainOrgPairings(cls, filename):
-        with open(filename, "r") as f:
-            for line in f:
-                line_split = line.split()
-                domain, org = line_split[0], line_split[1]
-                Lookup.seen_domain_org[domain] = org
-
-    # returns cidr of public IP or returns false if there is no IP or if the IP is private
-    @classmethod
-    def public_IP(cls, fromHeader):
-        ip = extract_ip(fromHeader)
-        if ip and not (IPAddress(ip) in IPNetwork(Lookup.privateCIDR[0]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[1]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[2])):
-            return ip
-        return None
-
-    # returns false if domain is invalid or private domain
-    @classmethod
-    def public_domain(cls, fromHeader):
-        domain = extract_domain(fromHeader)
-        if domain and domain in Lookup.seen_domain_ip:
-            return Lookup.seen_domain_ip[domain]
-        return False
-
-    @classmethod
-    def getCIDR(cls, ip):
-        for cidr in Lookup.seen_pairings_keys:
-            ip_bin = getBinaryRep(ip, cidr)
-            if ip_bin in Lookup.seen_pairings[cidr]:
-                return cidr
-        return 32
-        
-    @classmethod
-    def getCIDROld(cls, ip):
-        try:
-            if ip in Lookup.seen_pairings:
-                return Lookup.seen_pairings[ip]
-            else:
-                obj = IPWhois(ip)
-                results = obj.lookup()
-                if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
-                    cidr = ip + "/32"
-                else:
-                    cidr = results["nets"][0]["cidr"]
-                Lookup.seen_pairings[ip] = cidr
-                return cidr
-        except:
-            Lookup.seen_pairings[ip] = "Invalid"
-            return "Invalid"
-
-def getBinaryRep(ip, cidr):
-    ip_bin = ''.join([bin(int(x)+256)[3:] for x in ip.split('.')])
-    return ip_bin[:cidr]
 
 # returns False if whois lookup is not successful
 def createDomain2OrgPair(domain):

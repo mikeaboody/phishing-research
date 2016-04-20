@@ -27,6 +27,7 @@ import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
+from lookup import Lookup
 
 PHISHING_FILENAME = 'phish'
 REGULAR_FILENAME = 'regular'
@@ -224,12 +225,13 @@ class FeatureGenerator(object):
         regular_emails = inbox.Inbox(self.regular_filename)
         test_emails = inbox.Inbox(self.test_filename)
         self.num_pre_training = len(regular_emails) - self.num_data / 2
+        Lookup.loadAll()
         self.detectors = self.build_detectors(regular_emails)
         X = self.generate_data_matrix(phishing_emails, regular_emails)
         Y = self.generate_labels(phishing_emails, regular_emails)
         test_X = self.generate_test_matrix(test_emails)
         test_Y = self.generate_test_labels(test_emails)
-        
+
         file_dict = {}
         file_dict['training_data'] = X
         file_dict['training_labels'] = Y
