@@ -1,17 +1,17 @@
 from detector import Detector
-import sys
-import re
+import sys, re, os
 
 # IPWhois
 import socket
 from ipwhois import IPWhois
+from lookup import Lookup
 
 class messageIDDomain_Detector(Detector):
     GLOBAL_SET = {} # email domain : [MID domain 0, ...]
     domainCompanyPairing = {} # domain : company
+    domain2domainPairing = {}
     def __init__(self, inbox):
         self.inbox = inbox
-        # self.sender_profile = self.create_sender_profile()
 
     def check_header(self, msg):
         mID = msg["Message-ID"]
@@ -45,9 +45,6 @@ class messageIDDomain_Detector(Detector):
         sender = self.getEntireEmail(phish["From"])
         mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
 
-        # if "List-Unsubscribe" in phish.keys() or mID == None:
-        #         return False
-        
         if sender in self.sender_profile.keys():
             if mID not in self.sender_profile[sender]:
                 if self.getEmailDomain(sender) in self.GLOBAL_SET.keys():
@@ -90,6 +87,8 @@ class messageIDDomain_Detector(Detector):
 
     # returns True if FP and email will not be flagged
     def noreplyFP(self, sender, messageID):
+        if messageID == None:
+            return False
         pattern = re.compile("no.*reply")
         if pattern.match(sender):
             # noreply case
@@ -97,33 +96,48 @@ class messageIDDomain_Detector(Detector):
                 return True
         return False
 
-    # returns True if FP and email will not be flagged
     def orgGroups(self, sender, mID):
-        # import pdb; pdb.set_trace()
         try:
-            newmID = "www." + mID
-            afterAT = "www." + sender[sender.index("@")+1:]
+            newmID = mID
+            afterAT = sender[sender.index("@")+1:]
 
+            # if I have seen this pairing before, do not flag as FP
+            if (newmID, afterAT) in self.domain2domainPairing:
+                return True
+
+            # check domain org match if I can find both domains in my pairings
+            if newmID in Lookup.seen_domain_org and afterAT in Lookup.seen_domain_org:
+                if Lookup.seen_domain_org[newmID] == Lookup.seen_domain_org[afterAT]:
+                    self.domain2domainPairing[(newmID, afterAT)] = True
+                    return True
+                else:
+                    self.domain2domainPairing[(newmID, afterAT)] = False
+                    return False
+
+            # if the domains are not in the file, then use CIDR blocks
             if newmID in self.domainCompanyPairing.keys():
-                res1 = self.domainCompanyPairing[newmID]
+                res11 = self.domainCompanyPairing[newmID]
             else:
-                ip1 = socket.gethostbyname(newmID)
-                obj1 = IPWhois(ip1)
-                res1 = obj1.lookup(get_referral=True)['nets'][0]['name']
-                self.domainCompanyPairing[newmID] = res1
+                # createDomain2OrgPair(newmID)
+                ip1 = Lookup.seen_domain_ip[newmID]
+                res11 = getBinaryRep(ip1, Lookup.getCIDR(ip1))
+                self.domainCompanyPairing[newmID] = res11
 
             if afterAT in self.domainCompanyPairing.keys():
-                res2 = self.domainCompanyPairing[afterAT]
+                res22 = self.domainCompanyPairing[afterAT]
             else:
-                ip2 = socket.gethostbyname(afterAT)
-                obj2 = IPWhois(ip2)
-                res2 = obj2.lookup(get_referral=True)['nets'][0]['name']
-                self.domainCompanyPairing[afterAT] = res2
-            
-            if res1 == res2:
+                # createDomain2OrgPair[afterAT]
+                ip2 = Lookup.seen_domain_ip[afterAT]
+                res22 = getBinaryRep(ip2, Lookup.getCIDR(ip2))
+                self.domainCompanyPairing[afterAT] = res22
+
+            if res11 == res22:
+                self.domain2domainPairing[(newmID, afterAT)] = True
                 return True
+            self.domain2domainPairing[(newmID, afterAT)] = False
             return False
         except:
+            self.domain2domainPairing[(newmID, afterAT)] = False
             return False
 
     def create_sender_profile(self, numSamples):
@@ -204,9 +218,14 @@ def printInfo(msg):
     print(msg["Message-ID"])
     print(msg["Subject"])
 
-# file_name = "/home/apoorva/Documents/Research/PhishingResearch/Inbox.mbox"
-# myEmail = "nexusapoorvacus19@gmail.com"
-# inbox = mailbox.mbox(file_name)
-# d = messageIDDomain_Detector(inbox)
-# d.interesting_stats()
-# print("Detection rate = " + str(d.run_trials()))
+# returns False if whois lookup is not successful
+def createDomain2OrgPair(domain):
+    FILE = open("domain2Org.txt", "a")
+    try:
+        ip1 = socket.gethostbyname(domain)
+        obj1 = IPWhois(ip1)
+        res1 = obj1.lookup(get_referral=True)['nets'][0]['name']
+        FILE.write(domain + " " + res1 + "\n")
+        return True
+    except:
+        return False
