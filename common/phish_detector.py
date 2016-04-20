@@ -7,6 +7,7 @@ from classify import Classify
 
 from multiprocessing import Pool
 from generate_features import FeatureGenerator
+from lookup import Lookup
 
 class PhishDetector(object):
 
@@ -201,6 +202,9 @@ class PhishDetector(object):
         print ("Phish Detector took {} seconds to run.".format(int(end_time - start_time)))
 
 def run_generator(generator):
+    #Load offline info for Lookup class
+    Lookup.loadAll()
+
     generator.run()
 
 if __name__ == '__main__':

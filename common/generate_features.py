@@ -28,7 +28,6 @@ import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
-from lookup import Lookup
 
 ############
 # FEATURES #
@@ -74,8 +73,6 @@ class FeatureGenerator(object):
         self.start_data_matrix_index = self.start_sender_profile_index + self.sender_profile_num_emails
         self.start_test_matrix_index = self.start_data_matrix_index + self.data_matrix_num_emails
 
-        #Load offline info for Lookup class
-        Lookup.loadAll()
 
 
     def build_detectors(self, inbox):
