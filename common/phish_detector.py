@@ -203,11 +203,12 @@ class PhishDetector(object):
 
 def run_generator(generator):
     #Load offline info for Lookup class
-    Lookup.loadAll()
 
     generator.run()
 
 if __name__ == '__main__':
+    Lookup.loadAll()
     detector = PhishDetector()
     detector.execute()
+    Lookup.writeStatistics()
     
