@@ -118,21 +118,10 @@ class Lookup:
         if (not os.path.exists("output")):
             os.makedirs("output")
         with open("output/hit_rate.txt", "a+") as f:
-            f.write("CIDR block lookup statistics:\n")
-            if Lookup.cidr_tot == 0:
-                f.write("No cidr blocks looked up.\n")
-            else:
-                f.write("Total number of cidr blocks looked up: " + str(Lookup.cidr_tot) + "\n")
-                f.write("Total number of cidr blocks found: " + str(Lookup.cidr_hit) + "\n")
-
-            f.write("\n")
-
-            f.write("Domain lookup statistics:\n")
-            if Lookup.domain_tot == 0:
-                f.write("No domains looked up.\n")
-            else:
-                f.write("Total number of domains looked up: " + str(Lookup.domain_tot) + "\n")
-                f.write("Total number of domains found: " + str(Lookup.domain_hit) + "\n")
+            f.write("Total number of cidr blocks looked up: " + str(Lookup.cidr_tot) + "\n")
+            f.write("Total number of cidr blocks found: " + str(Lookup.cidr_hit) + "\n")
+            f.write("Total number of domains looked up: " + str(Lookup.domain_tot) + "\n")
+            f.write("Total number of domains found: " + str(Lookup.domain_hit) + "\n")
 
 def getBinaryRep(ip, cidr):
     ip_bin = ''.join([bin(int(x)+256)[3:] for x in ip.split('.')])

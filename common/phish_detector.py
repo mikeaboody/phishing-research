@@ -205,10 +205,10 @@ def run_generator(generator):
     #Load offline info for Lookup class
 
     generator.run()
+    Lookup.writeStatistics()
 
 if __name__ == '__main__':
     Lookup.loadAll()
     detector = PhishDetector()
     detector.execute()
-    Lookup.writeStatistics()
     
