@@ -8,12 +8,18 @@ class Lookup:
     seen_domain_ip = {}
     seen_domain_org = {}
     privateCIDR = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+    cidr_hit = 0
+    cidr_tot = 0
+    domain_hit = 0
+    domain_tot = 0
 
     @classmethod
     def loadAll(cls):
         Lookup.loadCIDRs("cidr")
         Lookup.loadDomainIPPairings("domains.txt")
         Lookup.loadDomainOrgPairings("domain2Org.txt")
+        if os.path.exists("output/hit_rate.txt"):
+            os.remove("output/hit_rate.txt")
 
     @classmethod
     def loadCIDRs(cls, directory):
@@ -44,7 +50,6 @@ class Lookup:
                 domain, org = line_split[0], line_split[1]
                 Lookup.seen_domain_org[domain] = org
 
-
     # returns cidr of public IP or returns false if there is no IP or if the IP is private
     @classmethod
     def public_IP(cls, fromHeader):
@@ -57,8 +62,11 @@ class Lookup:
     @classmethod
     def public_domain(cls, fromHeader):
         domain = extract_domain(fromHeader)
-        if domain and domain in Lookup.seen_domain_ip:
-            return Lookup.seen_domain_ip[domain]
+        if domain:
+            Lookup.domain_tot += 1
+            if domain in Lookup.seen_domain_ip:
+                Lookup.domain_hit += 1
+                return Lookup.seen_domain_ip[domain]
         return False
 
     # returns false if domain is invalid or private domain
@@ -79,9 +87,11 @@ class Lookup:
 
     @classmethod
     def getCIDR(cls, ip):
+        Lookup.cidr_tot += 1
         for cidr in Lookup.seen_pairings_keys:
             ip_bin = getBinaryRep(ip, cidr)
             if ip_bin in Lookup.seen_pairings[cidr]:
+                Lookup.cidr_hit += 1
                 return cidr
         return 32
         
@@ -102,6 +112,27 @@ class Lookup:
         except:
             Lookup.seen_pairings[ip] = "Invalid"
             return "Invalid"
+
+    @classmethod
+    def writeStatistics(cls):
+        if (not os.path.exists("output")):
+            os.makedirs("output")
+        with open("output/hit_rate.txt", "a+") as f:
+            f.write("CIDR block lookup statistics:\n")
+            if Lookup.cidr_tot == 0:
+                f.write("No cidr blocks looked up.\n")
+            else:
+                f.write("Total number of cidr blocks looked up: " + str(Lookup.cidr_tot) + "\n")
+                f.write("Total number of cidr blocks found: " + str(Lookup.cidr_hit) + "\n")
+
+            f.write("\n")
+
+            f.write("Domain lookup statistics:\n")
+            if Lookup.domain_tot == 0:
+                f.write("No domains looked up.\n")
+            else:
+                f.write("Total number of domains looked up: " + str(Lookup.domain_tot) + "\n")
+                f.write("Total number of domains found: " + str(Lookup.domain_hit) + "\n")
 
 def getBinaryRep(ip, cidr):
     ip_bin = ''.join([bin(int(x)+256)[3:] for x in ip.split('.')])
