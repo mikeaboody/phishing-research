@@ -2,8 +2,8 @@ from detector import Detector
 import sys, re, os
 
 # IPWhois
-import socket
-from ipwhois import IPWhois
+# import socket
+# from ipwhois import IPWhois
 from lookup import Lookup
 
 class messageIDDomain_Detector(Detector):

@@ -2,10 +2,7 @@ from detector import Detector
 import sys
 import re
 import pdb
-import whois
-from ipwhois import IPWhois
 from netaddr import IPNetwork, IPAddress
-import socket
 import editdistance
 import os
 from lookup import Lookup
