@@ -14,7 +14,7 @@
     * If not, if there’s a way to install GNU coreutils, you can install ```coreutils```, which provides ```gshuf```
     * Then symlink ```shuf``` -> ```gshuf``` somewhere in your PATH.
 
-### Instructions:
+### Instructions
 1.  Gather PCAP files you would like to analyze
     *   Option 1 (recommended): place pcaps in ```broScripts/input/```
     *   Option 2: Edit line 12 in ```broScripts/parse_pcap.py``` so that ```PCAP_DIRECTORY``` is the path to the directory containing the PCAP files
@@ -25,7 +25,7 @@
 3.  There will be a ```common/output``` directory with 3 things, a ```low_volume``` directory, a ```high_volume``` directory, and an ```output.txt``` (you can ignore the ```output.txt```).
 The ```low_volume``` directory contains emails from senders who send low volume emails (<1000 emails).  Look at email headers in the JSON file in descending filename order.  Likewise for the high_volume directory.
 
-### How To Run Phish Detector:
+### How To Run Phish Detector
 You should really only have to run
     
     ./run_all.sh
