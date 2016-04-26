@@ -4,6 +4,6 @@ ipwhois==0.12.0
 netaddr==0.7.18
 numpy==1.8.2
 PyYAML==3.11
-scikit-learn==0.17
 scipy==0.13.3
+scikit-learn==0.17
 whois==0.7
