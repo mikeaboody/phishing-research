@@ -5,7 +5,6 @@ import functools
 import pprint
 from random import randint
 import sys
-import matplotlib.pyplot as plt
 import numpy as np
 import editdistance
 
@@ -77,15 +76,6 @@ class OrderOfHeaderDetector(Detector):
             self.entire_attribute[value] = 1
         else:
             self.entire_attribute[value] += 1
-
-    def graph_distribution(self):
-        self.ordering_used.insert(0, 0)
-        plt.plot([x for x in range(len(self.ordering_used))], self.ordering_used, 'bo', markersize=8)
-        plt.xlabel("Total number of Orderings used")
-        plt.ylabel("Number of Senders")
-        plt.title("Distribution of Ordering Formats used across Senders")
-        plt.show() 
-        return
 
     def find_ordering_real(self, msg, name=False):
         """ Finds named header ordering from a given MSG. """
