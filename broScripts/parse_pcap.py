@@ -44,6 +44,7 @@ if not os.path.exists(BRO_LOG_DIRECTORY):
 # Generating legit emails
 senders_seen = open(SENDERS_FILE, 'a+')
 for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
+    print(filename)
     call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
     with open(BRO_OUTPUT_FILE, 'a+') as f:
         for line in f:
