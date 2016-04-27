@@ -27,7 +27,7 @@ class Classify:
                 data = sio.loadmat(path)
                 part_X = data['training_data']
                 part_Y = data['training_labels']
-                names = data['feature_names']
+                self.names = data['feature_names']
                 if len(part_X) == 0:
                     continue
                 if X == None:
@@ -121,7 +121,11 @@ class Classify:
             percent = round(self.num_phish / float(self.test_size), 3) if self.num_phish else None
             out.write("% phish detected: {}\n".format(percent))
             out.write("Cross validation acc: {}\n".format(self.validation_acc.mean()))
-
+            out.write("Features coefficients:\n")
+            coefs = sorted(zip(map(lambda x: round(x, 4), self.clf.coef_[0]), 
+                self.names), reverse=True)
+            coefs = [x[1] + ": " + str(x[0]) for x in coefs]
+            out.write(json.dumps(coefs, indent=2))
             out.write(json.dumps(output, sort_keys=False, indent=4, separators=(",", ": ")))
 
     def get_email(self, path, indx):
