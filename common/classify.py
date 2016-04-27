@@ -21,8 +21,10 @@ class Classify:
     def generate_training(self):
         X = None
         Y = None
+        found_training_file = False
         for root, dirs, files in os.walk(self.path): 
             if 'training.mat' in files:
+                found_training_file = True
                 path = os.path.join(root, "training.mat")
                 data = sio.loadmat(path)
                 part_X = data['training_data']
@@ -36,6 +38,11 @@ class Classify:
                     continue
                 X = np.concatenate((X, part_X), axis=0)
                 Y = np.concatenate((Y, part_Y), axis=0)
+        if not found_training_file:
+            raise RuntimeError("Cannot find 'training.mat' files.")
+        if not X:
+            raise RuntimeError("Not enough data found in 'training.mat' files. Try running on more pcaps.")
+
         X, Y = shuffle(X, Y)
         self.X = X
         self.Y = Y
