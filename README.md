@@ -8,13 +8,22 @@
 4.  To install all of the necessary Python packages, run the following command from the root directory of the repository
 
     	pip install --user -r requirements.txt
+    	
+    If you run into issues installing scipy and scikit-learn, try the following commands on FreeBSD:
+    
+        cd /usr/ports/science/py-scipy && make install clean
+    
+    or
+    
+        cd /usr/ports/science/py-scikit-learn && make install clean
+
 5. Make sure you have the command-line program ```shuf``` installed.
     * If not, if there’s a way to install GNU coreutils, you can install ```coreutils```, which provides ```gshuf```
     * Then symlink ```shuf``` -> ```gshuf``` somewhere in your PATH.
 
 ### Instructions
 1.  Gather PCAP files you would like to analyze
-    *   Option 1 (recommended): place pcaps in ```broScripts/input/```
+    *   Option 1 (recommended): place your pcaps in ```broScripts/input/``` (and delete the ```input000.pcap``` and ```input001.pcap``` that were already there)
     *   Option 2: Edit line 12 in ```broScripts/parse_pcap.py``` so that ```PCAP_DIRECTORY``` is the path to the directory containing the PCAP files
 2.  Run the following command from the root directory of the repository you initially cloned
 
