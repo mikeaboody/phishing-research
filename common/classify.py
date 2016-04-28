@@ -40,7 +40,7 @@ class Classify:
                 Y = np.concatenate((Y, part_Y), axis=0)
         if not found_training_file:
             raise RuntimeError("Cannot find 'training.mat' files.")
-        if not X:
+        if X == None:
             raise RuntimeError("Not enough data found in 'training.mat' files. Try running on more pcaps.")
 
         X, Y = shuffle(X, Y)
