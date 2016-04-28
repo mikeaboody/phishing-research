@@ -66,9 +66,9 @@ class FeatureGenerator(object):
 
         #Convert from percentages to number of emails in each
         if self.num_emails <= 1:
-            self.sender_profile_num_emails = int(self.sender_profile_percentage * self.num_emails)
-            self.data_matrix_num_emails = int(self.data_matrix_percentage * self.num_emails)
-            self.test_matrix_num_emails = int(self.test_matrix_percentage * self.num_emails)
+            self.sender_profile_num_emails = 0
+            self.data_matrix_num_emails = 0
+            self.test_matrix_num_emails = self.num_emails
         else:
             self.sender_profile_num_emails = int(math.ceil(self.sender_profile_percentage * self.num_emails))
             self.data_matrix_num_emails = int(math.ceil(self.data_matrix_percentage * self.num_emails))
