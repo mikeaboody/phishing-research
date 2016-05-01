@@ -22,6 +22,7 @@ SENDERS_FILE = OUTPUT_DIRECTORY + '/senders.log'
 total_senders = 0
 total_legit_emails = 0
 total_phish_emails = 0
+total_pcaps = 0
 
 def clean_all():
     call(['rm', '-r', OUTPUT_DIRECTORY])
@@ -31,6 +32,7 @@ def summary_stats():
     print("Total unique senders: {}".format(total_senders))
     print("Total legit emails: {}".format(total_legit_emails))
     print("Total phish emails generated: {}".format(total_phish_emails))
+    print("Total pcaps parsed: {}".format(total_pcaps))
 
 def is_person_empty(field):
     return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
@@ -47,7 +49,7 @@ for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
     call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
     with open(BRO_OUTPUT_FILE, 'a+') as f:
         for line in f:
-            if line[0] != '#':
+            if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
                 headers = eval(line)
                 sender = ''
                 for k, v in headers:
@@ -78,6 +80,7 @@ for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
     last_index = filename.rfind('/')
     bro_filename = filename[last_index + 1:-4] + 'log'
     call(['mv', BRO_OUTPUT_FILE, '{}/{}'.format(BRO_LOG_DIRECTORY, bro_filename)])
+    total_pcaps += 1
 senders_seen.close()
 
 os.system('shuf {} > /dev/null'.format(SENDERS_FILE))
