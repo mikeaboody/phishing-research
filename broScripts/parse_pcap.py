@@ -22,6 +22,7 @@ SENDERS_FILE = OUTPUT_DIRECTORY + '/senders.log'
 total_senders = 0
 total_legit_emails = 0
 total_phish_emails = 0
+total_failed_parse = 0
 total_pcaps = 0
 
 def clean_all():
@@ -29,15 +30,20 @@ def clean_all():
     call(['rm', '-r', BRO_LOG_DIRECTORY])
 
 def summary_stats():
-    print("Total unique senders: {}".format(total_senders))
-    print("Total legit emails: {}".format(total_legit_emails))
-    print("Total phish emails generated: {}".format(total_phish_emails))
-    print("Total pcaps parsed: {}".format(total_pcaps))
+    print("")
+    print("======== Summary Stats for Pcap Parsing Phase ========")
+    print("Number of unique senders: {}".format(total_senders))
+    print("Number of emails successfully parsed: {}".format(total_legit_emails))
+    print("Number of pseudo-phish emails generated: {}".format(total_phish_emails))
+    print("Number of emails failed to parse: {}".format(total_failed_parse))
+    print("Number of pcaps parsed: {}".format(total_pcaps))
+    print("")
 
 def is_person_empty(field):
     return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
 try:
+    print("======== Starting Pcap Parsing Phase ========")
     clean_all()
     if not os.path.exists(OUTPUT_DIRECTORY):
         os.makedirs(OUTPUT_DIRECTORY)
@@ -51,7 +57,12 @@ try:
         with open(BRO_OUTPUT_FILE, 'a+') as f:
             for line in f:
                 if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
-                    headers = eval(line)
+                    try:
+                        headers = eval(line)
+                    except SyntaxError as e:
+                        print(e)
+                        total_failed_parse += 1
+                        continue
                     sender = ''
                     for k, v in headers:
                         if k == 'FROM':
@@ -77,7 +88,6 @@ try:
                     with open('{}/legit_emails.log'.format(sender_dir), 'a') as output_file:
                         output_file.write(line)
                         total_legit_emails += 1
-        # call(['rm', BRO_OUTPUT_FILE])
         last_index = filename.rfind('/')
         bro_filename = filename[last_index + 1:-4] + 'log'
         call(['mv', BRO_OUTPUT_FILE, '{}/{}'.format(BRO_LOG_DIRECTORY, bro_filename)])
@@ -92,8 +102,11 @@ try:
         # call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
         with open(filename, 'a+') as f:
             for line in f:
-                if line[0] != '#':
-                    headers = eval(line)
+                if line[0] == '[' and line[-2] == ']':
+                    try:
+                        headers = eval(line)
+                    except SyntaxError as e:
+                        continue
                     sender = ''
                     for k, v in headers:
                         if k == 'FROM':
