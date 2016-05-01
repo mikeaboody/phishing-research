@@ -16,6 +16,7 @@
 \usepackage{booktabs}
 \usepackage{mdwlist}
 \usepackage{array}
+\usepackage[justification=centering]{caption}
 
 \newcolumntype{N}{>{\centering\arraybackslash}m{.7in}}
 \newcolumntype{G}{>{\centering\arraybackslash}m{2in}}
@@ -53,7 +54,7 @@ abstract
 \centering
 \begin{tabular}{N|N|N|N|N|N|N|}
 \cline{2-7}
-     & \multicolumn{2}{c|}{\textbf{1 to 2}} & \multicolumn{2}{c|}{\textbf{1 to 10}} & \multicolumn{2}{c|}{\textbf{1 to 100}} \\  \hline
+     & \multicolumn{2}{c|}{\textbf{1:2 Weights}} & \multicolumn{2}{c|}{\textbf{1:10 Weights}} & \multicolumn{2}{c|}{\textbf{1:100 Weights}} \\  \hline
 \multicolumn{1}{|c|}{\textbf{Features}} & \textbf{False Alarm (\%)} & \textbf{Detection (\%)} & \textbf{False Alarm (\%)} & \textbf{Detection (\%)} & \textbf{False Alarm (\%)} & \textbf{Detection (\%)}  \\ \hline
 \multicolumn{1}{|c|}{X-Mailer} & 0.xxx & 0.xxx & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
 \multicolumn{1}{|c|}{Received} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
@@ -62,29 +63,23 @@ abstract
 \multicolumn{1}{|c|}{Date Format} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
 \multicolumn{1}{|c|}{Message ID Domain} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
 \multicolumn{1}{|c|}{Date Timezone} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
-\multicolumn{1}{|c|}{All Features} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
 \end{tabular}
 \caption{False Alarm and Detection Results from Varying Weights and Features}
 \end{table}
 
-%JUNK CODE
-\iffalse
-\begin{tabular}{|c| c| c| c| c| c| c|}   \hline 
- & \multicolumn{2}{l|}{$1-10$} & \multicolumn{2}{l|}{$1-50$} & \multicolumn{2}{l|}{$1-100$} \\ \hline
-  & False Alarm ($\%$)& Detection  ($\%$) & False Alarm ($\%$) & Detection  ($\%$) & False Alarm ($\%$)& Detection  ($\%$) \\ \hline
- X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
- X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
- X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
- X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
- X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
- X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
- X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline 
- X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline   
-\end{tabular}
-\caption{Whatever you want to say}
-\end{table}
-\fi
 
+\begin{table}[]
+\centering
+\begin{tabular}{N|N|N|N|N|N|N|}
+\cline{2-7}
+     & \multicolumn{2}{c|}{\textbf{1:2 Weights}} & \multicolumn{2}{c|}{\textbf{1:10 Weights}} & \multicolumn{2}{c|}{\textbf{1:100 Weights}} \\  \hline
+\multicolumn{1}{|c|}{\textbf{Algorithms}} & \textbf{False Alarm (\%)} & \textbf{Detection (\%)} & \textbf{False Alarm (\%)} & \textbf{Detection (\%)} & \textbf{False Alarm (\%)} & \textbf{Detection (\%)}  \\ \hline
+\multicolumn{1}{|c|}{Linear Regression} & 0.xxx & 0.xxx & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\multicolumn{1}{|c|}{Logistic Regression} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\multicolumn{1}{|c|}{Random Forest} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\end{tabular}
+\caption{False Alarm and Detection Results from Varying Weights and Algorithms}
+\end{table}
 \subsection{Enterprise-scale deployment}
 \section{Conclusion}
 
