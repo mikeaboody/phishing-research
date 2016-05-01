@@ -17,7 +17,7 @@
 \usepackage{mdwlist}
 \usepackage{array}
 
-\newcolumntype{N}{>{\centering\arraybackslash}m{.5in}}
+\newcolumntype{N}{>{\centering\arraybackslash}m{.7in}}
 \newcolumntype{G}{>{\centering\arraybackslash}m{2in}}
 
 \newcommand*{\boldsymbol}[1]{#1}
@@ -49,16 +49,26 @@ abstract
 \subsection{Personal emails}
 [Michael]
 
+\begin{table}[]
+\centering
+\begin{tabular}{N|N|N|N|N|N|N|}
+\cline{2-7}
+     & \multicolumn{2}{c|}{\textbf{1 to 2}} & \multicolumn{2}{c|}{\textbf{1 to 10}} & \multicolumn{2}{c|}{\textbf{1 to 100}} \\  \hline
+\multicolumn{1}{|c|}{\textbf{Features}} & \textbf{False Alarm (\%)} & \textbf{Detection (\%)} & \textbf{False Alarm (\%)} & \textbf{Detection (\%)} & \textbf{False Alarm (\%)} & \textbf{Detection (\%)}  \\ \hline
+\multicolumn{1}{|c|}{X-Mailer} & 0.xxx & 0.xxx & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\multicolumn{1}{|c|}{Received} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\multicolumn{1}{|c|}{Order of Headers} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\multicolumn{1}{|c|}{Content Type} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\multicolumn{1}{|c|}{Date Format} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\multicolumn{1}{|c|}{Message ID Domain} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\multicolumn{1}{|c|}{Date Timezone} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\multicolumn{1}{|c|}{All Features} & 0.xxx & 0.xxx  & 0.xxx & 0.xxx & 0.xxx & 0.xxx  \\ \hline
+\end{tabular}
+\caption{False Alarm and Detection Results from Varying Weights and Features}
+\end{table}
 
-
-
-
-
-
-
-
-
-\begin{table}
+%JUNK CODE
+\iffalse
 \begin{tabular}{|c| c| c| c| c| c| c|}   \hline 
  & \multicolumn{2}{l|}{$1-10$} & \multicolumn{2}{l|}{$1-50$} & \multicolumn{2}{l|}{$1-100$} \\ \hline
   & False Alarm ($\%$)& Detection  ($\%$) & False Alarm ($\%$) & Detection  ($\%$) & False Alarm ($\%$)& Detection  ($\%$) \\ \hline
@@ -73,29 +83,7 @@ abstract
 \end{tabular}
 \caption{Whatever you want to say}
 \end{table}
-
-
-\begin{table}[H]
-\centering
-\begin{tabular}{N|N|N|N|N|N|N|}
-\cline{2-7}
-     & \multicolumn{2}{c|}{\textbf{Emissions (Pre}} & \multicolumn{2}{c|}{\textbf{Emissions (Post}} & \multicolumn{2}{c|}{\textbf{Emissions (Post}} \\  \hline
-\multicolumn{1}{|N|}{\textbf{Dyno Load (\%)}} & \textbf{CO (\%)} & \textbf{HC (ppm)}  & \textbf{CO (\%)} & \textbf{HC (ppm)} & \textbf{CO (\%)} & \textbf{HC (ppm)}  \\ \hline
-\multicolumn{1}{|N|}{10} & 0.77 & 23 & 0.09 & 18 & 0.09 & 18  \\ \hline
-\multicolumn{1}{|c|}{30} & 0.78 & 14.2 & - & - & 0.09 & 18   \\ \hline
-\multicolumn{1}{|c|}{70} & 0.70 & 14  & - & - & 0.09 & 18  \\ \hline
-\multicolumn{1}{|c|}{90} & 0.74 & 14.5 & 0.70 & 15 & 0.09 & 18  \\ \hline
-\multicolumn{1}{|c|}{Neutral} & 0.06 & 7 & 0.06 & 5 & 0.09 & 18  \\ \hline
-\end{tabular}
-\caption{\textbf{hi}}
-\label{2000Emissions}
-\end{table}
-
-
-
-
-
-
+\fi
 
 \subsection{Enterprise-scale deployment}
 \section{Conclusion}
