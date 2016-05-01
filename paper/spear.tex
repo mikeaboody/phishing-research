@@ -15,6 +15,13 @@
 \usepackage{xspace}
 \usepackage{booktabs}
 \usepackage{mdwlist}
+\usepackage{array}
+
+\newcolumntype{N}{>{\centering\arraybackslash}m{.5in}}
+\newcolumntype{G}{>{\centering\arraybackslash}m{2in}}
+
+\newcommand*{\boldsymbol}[1]{#1}
+
 \begin{document}
 
 \title{title}
@@ -41,8 +48,57 @@ abstract
 \section{Evaluation}
 \subsection{Personal emails}
 [Michael]
+
+
+
+
+
+
+
+
+
+
+\begin{table}
+\begin{tabular}{|c| c| c| c| c| c| c|}   \hline 
+ & \multicolumn{2}{l|}{$1-10$} & \multicolumn{2}{l|}{$1-50$} & \multicolumn{2}{l|}{$1-100$} \\ \hline
+  & False Alarm ($\%$)& Detection  ($\%$) & False Alarm ($\%$) & Detection  ($\%$) & False Alarm ($\%$)& Detection  ($\%$) \\ \hline
+ X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
+ X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
+ X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
+ X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
+ X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
+ X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline
+ X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline 
+ X mail & 000 & 000 & 000 & 000 & 000 & 000  \\ \hline   
+\end{tabular}
+\caption{Whatever you want to say}
+\end{table}
+
+
+\begin{table}[H]
+\centering
+\begin{tabular}{N|N|N|N|N|N|N|}
+\cline{2-7}
+     & \multicolumn{2}{c|}{\textbf{Emissions (Pre}} & \multicolumn{2}{c|}{\textbf{Emissions (Post}} & \multicolumn{2}{c|}{\textbf{Emissions (Post}} \\  \hline
+\multicolumn{1}{|N|}{\textbf{Dyno Load (\%)}} & \textbf{CO (\%)} & \textbf{HC (ppm)}  & \textbf{CO (\%)} & \textbf{HC (ppm)} & \textbf{CO (\%)} & \textbf{HC (ppm)}  \\ \hline
+\multicolumn{1}{|N|}{10} & 0.77 & 23 & 0.09 & 18 & 0.09 & 18  \\ \hline
+\multicolumn{1}{|c|}{30} & 0.78 & 14.2 & - & - & 0.09 & 18   \\ \hline
+\multicolumn{1}{|c|}{70} & 0.70 & 14  & - & - & 0.09 & 18  \\ \hline
+\multicolumn{1}{|c|}{90} & 0.74 & 14.5 & 0.70 & 15 & 0.09 & 18  \\ \hline
+\multicolumn{1}{|c|}{Neutral} & 0.06 & 7 & 0.06 & 5 & 0.09 & 18  \\ \hline
+\end{tabular}
+\caption{\textbf{hi}}
+\label{2000Emissions}
+\end{table}
+
+
+
+
+
+
+
 \subsection{Enterprise-scale deployment}
-\section{Conclusion
+\section{Conclusion}
 
 \bibliographystyle{acm}
 \bibliography{bibliography}
