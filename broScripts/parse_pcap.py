@@ -24,6 +24,7 @@ total_legit_emails = 0
 total_phish_emails = 0
 total_failed_parse = 0
 total_pcaps = 0
+total_only_hyphen = 0
 
 def clean_all():
     call(['rm', '-r', OUTPUT_DIRECTORY])
@@ -37,6 +38,7 @@ def summary_stats():
     print("Number of pseudo-phish emails generated: {}".format(total_phish_emails))
     print("Number of emails failed to parse: {}".format(total_failed_parse))
     print("Number of pcaps parsed: {}".format(total_pcaps))
+    print("Number of emails represented only by a hyphen: {}".format(total_only_hyphen))
     print("")
 
 def is_person_empty(field):
@@ -56,6 +58,9 @@ try:
         call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
         with open(BRO_OUTPUT_FILE, 'a+') as f:
             for line in f:
+                if line == "-":
+                    total_only_hyphen += 1
+                    continue
                 if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
                     try:
                         headers = eval(line)
