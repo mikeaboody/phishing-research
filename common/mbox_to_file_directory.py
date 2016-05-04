@@ -4,18 +4,13 @@ import os
 import re
 import shutil
 from email.utils import parseaddr
+from random import shuffle
 
 
 def is_person_empty(field):
 	return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
-root_name = argv[2]
-if os.path.exists(root_name):
-	shutil.rmtree(root_name)
-os.makedirs(root_name)
-mbox_name = argv[1]
-mbox = mailbox.mbox(mbox_name)
-for msg in mbox:
+def getHeadersTupleList(msg):
 	msg_tuples = []
 	headers_added = set()
 	for header in msg.keys():
@@ -28,7 +23,9 @@ for msg in mbox:
 				msg_tuples.append((key, v))
 		else:
 			msg_tuples.append((key, value))
-	sender = msg['From']
+	return msg_tuples
+
+def getSenderDir(sender):
 	if not is_person_empty(sender):
 		name, address = parseaddr(sender)
 	else:
@@ -40,8 +37,40 @@ for msg in mbox:
 	else:
 		name = 'noname'
 		sender_dir = "{}/{}/{}".format(root_name, name, address)
+	return sender_dir
+
+
+root_name = argv[2]
+if os.path.exists(root_name):
+	shutil.rmtree(root_name)
+os.makedirs(root_name)
+mbox_name = argv[1]
+mbox = mailbox.mbox(mbox_name)
+senders = []
+print("Generating legit_emails.log...")
+for msg in mbox:
+	msg_tuples = getHeadersTupleList(msg)
+	sender = msg['From']
+	senders.append(sender)
+	
+	sender_dir = getSenderDir(sender)
 
 	if not os.path.exists(sender_dir):
 		os.makedirs(sender_dir)
-	with open('{}/emails.log'.format(sender_dir), 'a') as output_file:
+	with open('{}/legit_emails.log'.format(sender_dir), 'a') as output_file:
 		output_file.write(repr(msg_tuples) + "\n")
+
+shuffle(senders)
+
+print("Generating phish_emails.log...")
+for i,msg in enumerate(mbox):
+	msg_tuples = getHeadersTupleList(msg)
+	sender = senders[i]
+	
+	sender_dir = getSenderDir(sender)
+
+	if not os.path.exists(sender_dir):
+		os.makedirs(sender_dir)
+	with open('{}/phish_emails.log'.format(sender_dir), 'a') as output_file:
+		output_file.write(repr(msg_tuples) + "\n")
+
