@@ -10,11 +10,14 @@ from random import shuffle
 def is_person_empty(field):
 	return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
-def getHeadersTupleList(msg):
+def getHeadersTupleList(msg, newFrom=None):
 	msg_tuples = []
 	headers_added = set()
 	for header in msg.keys():
 		if header in headers_added:
+			continue
+		if newFrom and header == "From":
+			msg_tuples.append((header, newFrom))
 			continue
 		headers_added.add(header)
 		key, value = header, msg[header]
@@ -64,8 +67,8 @@ shuffle(senders)
 
 print("Generating phish_emails.log...")
 for i,msg in enumerate(mbox):
-	msg_tuples = getHeadersTupleList(msg)
 	sender = senders[i]
+	msg_tuples = getHeadersTupleList(msg, sender)
 	
 	sender_dir = getSenderDir(sender)
 
