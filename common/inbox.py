@@ -38,7 +38,11 @@ class Inbox():
 	def sort_emails(self):
 		def compare_emails(email1, email2):
 			date_header1 = email1["Date"]
+			if type(date_header1) is list:
+				date_header1 = date_header1[0]
 			date_header2 = email2["Date"]
+			if type(date_header2) is list:
+				date_header2 = date_header2[0]
 			if date_header1 == date_header2:
 				return 0
 			if not date_header1 or not email.utils.parsedate(date_header1):
