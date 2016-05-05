@@ -1,0 +1,22 @@
+\subsection{Architecture/pipeline}
+The system we designed to predict incoming emails as either spear phishing or legitimate is divided into 4 parts.
+
+\subsubsection{Logging previously seen emails}
+Our system utilizes past emails from the sender to build a template for what we expect a legitimate email from that sender to look like. The first step of the pipeline extracts email headers from packet captures of network traffic. We use the Bro Network Security Montior for this task, extracting the email headers and organizing each email we detect by sender name and email address. For each email, we store the name of the header and the value of the header in the order that we receive them.
+
+\subsubsection{Generating pseudo-spear phishing emails}
+We want to provide our classifier with training data that includes both legitimate and spear phishing emails. Because we do not know whether the logged network traffic contains legitimate or spear phishing emails, we generate spoofed spear phishing emails to train our classifier on. The algorithm we use to spoof spear phishing emails is as follows: for every email that we saw from step 1, we choose a second email uniformly at random without replacement from the same set of emails and replace the From header of the second email with the From header of the first email, and store this spoofed email as a spear phishing email.
+
+\subsubsection{Feature extraction on training data}
+After step 2, we have a set of legitimate emails and a set of spoofed spear phishing emails. Each email is stored as a set of email headers. We divide these emails into 2 categories: 
+\begin{enumerate}
+\item Emails used to create a sender profile for the heuristics used to generate our training features
+\item Emails used as training data for our classifier.
+\end{enumerate} 
+
+Features for the training data are generated from detectors that each focus on a subset of the email headers. These detectors (See Section 3.2), rely on having a sender profile for each sender. The sender profile is a mapping from senders to some characteristic of their past emails. For example, the Timezone detector maps each sender to a list of all time zones that this sender has previously sent email from. We build the sender profile for each detector using the emails in category 1.
+
+Once the sender profile for every detector has been built, we take the emails in category 2 and convert each email into a row of our training data matrix. Each detector takes an email and outputs a score based off of a heuristic function that relies on the sender profile, and each of these scores becomes one feature in our data matrix.
+
+\subsubsection{Train classifier and evaluate on test data}
+We use this extracted training data to train a logistic regression classifier. For any new email that we see, we use this classifier to predict the probability that this new email is a spear phishing email.
