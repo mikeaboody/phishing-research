@@ -37,8 +37,7 @@ abstract
 \section{Introduction}
 \section{Problem statement}
 \section{Our scheme}
-\subsection{Architecture/pipeline}
-[Matt]
+\input{architecture.tex}
 \subsection{Detectors}
 \subsubsection{X-Mailer header}
 \tab The X-Mailer header denotes the type of software or mail client that a sender used to send the message. The value of the X-Mailer header often depends on the device used to send the message (and not just the domain part of the email address). For example, an email address with a domain part of	``gmail.com'' might have as its corresponding X-Mailer value ``iPhone Mail (12B466)''. Since the software and device used is a fundamental component of a sender's profile, it has the potential to act as sort of identity marker of a sender. As such, the detector constructed for this header relies on the consistency of the field throughout emails sent by the same sender.\\
