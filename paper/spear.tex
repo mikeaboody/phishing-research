@@ -79,10 +79,33 @@ For the sender profile of this detector, we map each sender to a list of "paths"
 
 There are a couple of limitations to this detector. One such limitation is the fact that not all Received headers have a "from". This results in having a "None" in the place of a CIDR block in some paths. Another limitation is that some "from" fields don't have a valid domain name or a public IP address that we could use to find the CIDR block. In this case, we have an "Invalid" in the place of a CIDR block. While our Received header detector mainly focuses on using the "from" field of the Received header, there is a lot more information that can be exploited. For example, we can analyze the "date" field and perform a similar classification as described in the Date header section of this paper.\\
 
-
 TODO: Results
 
 \subsubsection{Message-ID header}
+
+The Message-ID header is a unique identifier for an email. An example Message-ID header looks like this:\\
+
+Message-ID: $<$123456789.1357911.9876543210987.mail.abc@mail.abc.com$>$\\
+
+This header can be split into two parts using the "@" symbol. The part of the header before the "@" is the ID and the part after the "@" is the domain. We have created two detectors for the Message-ID, one for the ID part of the Message-ID and the other for the domain part of the Message-ID.\\
+
+\textbf{Message-ID: ID}\\
+
+\textbf{Message-ID: Domain}\\
+
+The domain of the Message-ID refers to the domain of the email address that this email has been sent from. Usually, the domain in the Message-ID corresponds to the domain of the email address that an email was sent from. For example, if an email came from "alice@abc.com", a possible Message-ID domain could be "mail.abc.com". The Message-ID detector exploits this relationship to identify suspicious Message-ID domains.
+
+The sender profile for this detector keeps a mapping between the sender and a list of partial Message-ID domains it has seen. Partial, in this case, means that we only add the last part of the Message-ID domain to the sender profile. For example, if a Message-ID domain was "mail.abc.com", we would store "abc.com". This detector also keeps a global mapping of email address domains and Message-ID domains. All partial Message-ID domains that were seen with a particular email address domain are stored in this global mapping. Using this sender profile, we classify emails as follows:\\
+
+\begin{enumerate}
+\item Extract the Message-ID domain of an email and only keep the last part (as described above).
+\item Check to see if this Message-ID domain is in the sender profile for this sender. If the Message-ID domain is in the sender profile of this sender, we classify the email as safe. If the Message-ID domain is not in the sender profile of this sender, we check to see if this domain is in the global mapping for the email address domain. If it is in this global mapping, then we classify the email as safe.
+\item Before an email is classified as phishing, there is one additional check we perform on the Message-ID domain. We do a WhoIs lookup on the last part of the email address domain and we do a WhoIs lookup on the last part of the Message-ID domain. If the CIDR blocks or Company Name obtained from these two WhoIs lookups are the same, we classify the email as safe. The reason we compare this information is because there are certain groups of domains that should not be considered as suspicious. For example, if an email address domain is "gmail.com", and the last part of a Message-ID domain is "google.com", we do not want to classify this email as suspicious because "gmail.com" and "google.com" both belong to the same company.
+\end{enumerate}
+
+TODO: Results
+
+
 \subsubsection{Date header}
 \subsubsection{Timezone}
 \subsubsection{Content-Type header}
