@@ -53,11 +53,35 @@ abstract
 
 \tab In the email dataset used in the Evaluation section, it was found that 97.75\% of senders remained consistent with their X-Mailer headers over time (i.e. the list tracked in the sender profile for a given sender had only one unique value of an X-Mailer in it).  Through this classification method and consistency, the detector exploits any lack of consistency of the X-Mailer header for a given sender.  However, the effects of the detector are limiting due to the sparseness of X-Mailer headers in emails (roughly 83.56\% of emails in the dataset used in the Evaluation). Since only 16.43\% of emails have X-Mailer headers, the detector will falsely classify many emails as safe when indeed they are phishing. For this reason, the detection rate (as well as the false alarm rate) is significantly low. Thus, the detector is mostly effective when it is classifying emails from senders that send emails that generally contain X-Mailer values, where the percentage of senders that consistently send the same X-Mailer is 97.05\%.
 
-
-
-
-
 \subsubsection{Order of headers}
+
+\subsubsection{Received Headers}
+The Received header is a trace field prepended to an email message by an SMTP server. An email can contain many Received headers, one for every STMP server it goes through. According to the received header protocol, the Received header typically has the following format:\\
+
+Received: from x.y.test\\
+\tab by example.net\\
+\tab via TCP\\
+\tab with ESMTP\\
+\tab id ABC12345\\
+\tab for <mary@example.net>;  21 Nov 1997 10:05:43 -0600\\
+
+The Received header detector specifically uses the "from" part of the Received header, which contains a domain name and/or an IP address. With this information, we are able to construct a path of SMTP servers that the email took to get from the sender to the recipient. 
+
+From each Received header, we first want to extract the domain name and IP address from the "from". Since there are many IP addresses that can map to SMTP servers in the same domain, we attempt to find a uniform way of finding out where this particular Received header came from. Therefore, we represent the domain names and/or IP addresses in the "from" as the CIDR blocks they are a part of. If the "from" contains an domain name, we do a WhoIs lookup on the last portion of the domain name. For example, if the domain name is "123.abc.com", we would do a WhoIs lookup on "abc.com". We use the results from the WhoIs lookup to find the CIDR block that this domain is associated with. If the "from" doesn't contain a valid domain, but has an IP address that is not private, we do a reverse DNS lookup to get the domain that this IP address maps to and then perform the same WhoIs lookup process as before. If the "from" does not have a valid domain name or a valid (public) IP address, we assign a value of "Invalid" to this Received header. If this received header does not have a "from" to begin with, we assign a value of "None" to this Received header. Using this processing method of assigning a Received header to a CIDR block, we are able to create a "path", or an ordered list of these values, for an email. 
+
+For the sender profile of this detector, we map each sender to a list of "paths", ordered lists of CIDR blocks for each email sent by the sender. Let's say Alice sends an email to Bob. One such "path" in Bob's sender profile for Alice looks like the following: ["None", 1.2.3.4/16, "Invalid", 1.2.3.4/16, 6.7.8.9/24]. The following is the process we use when classifying an email:\\
+
+\begin{enumerate}
+\item We construct the "path" that the Received headers take, based on the process described above.
+\item We process the "From" header of the email to find the associated list of paths in the sender profile.
+\item We use an edit distance algorithm with a certain thresholds (0, 1, and 2) to measure the similarity of paths. For each threshold, we check to see if the path for this email is similar to a path currently in the sender profile for this sender. If a path is similar to one that is currently in the sender profile for this sender, we classify it as safe, otherwise, we classify it as phishing. This is done for each threshold. 
+\end{enumerate}
+
+There are a couple of limitations to this detector. One such limitation is the fact that not all Received headers have a "from". This results in having a "None" in the place of a CIDR block in some paths. Another limitation is that some "from" fields don't have a valid domain name or a public IP address that we could use to find the CIDR block. In this case, we have an "Invalid" in the place of a CIDR block. While our Received header detector mainly focuses on using the "from" field of the Received header, there is a lot more information that can be exploited. For example, we can analyze the "date" field and perform a similar classification as described in the Date header section of this paper.\\
+
+
+TODO: Results
+
 \subsubsection{Message-ID header}
 \subsubsection{Date header}
 \subsubsection{Timezone}
