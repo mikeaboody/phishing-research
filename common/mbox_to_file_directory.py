@@ -16,7 +16,7 @@ def getHeadersTupleList(msg, newFrom=None):
 	for header in msg.keys():
 		if header in headers_added:
 			continue
-		if newFrom and header == "From":
+		if newFrom != None and header == "From":
 			msg_tuples.append((header, newFrom))
 			continue
 		headers_added.add(header)
