@@ -79,7 +79,8 @@ class Classify:
                 sample_size = test_X.shape[0]
                 indx = data['email_index'].reshape(sample_size, 1)
                 test_res = self.output_phish_probabilities(test_X, indx, root)
-                results = np.concatenate((results, test_res), 0)
+                if test_res != None:
+                    results = np.concatenate((results, test_res), 0)
         
         res_sorted = results[results[:,2].argsort()][::-1]
         self.num_phish, self.test_size = self.calc_phish(res_sorted)
@@ -171,6 +172,8 @@ class Classify:
     def output_phish_probabilities(self, test_X, indx, path):
         # [PATH, INDEX, prob_phish]
         sample_size = test_X.shape[0]
+        if sample_size == 0:
+            return None
         path_array = np.array([path])
         path_array = np.repeat(path_array, sample_size, axis=0).reshape(sample_size, 1)
         predictions = self.clf.predict(test_X).reshape(sample_size, 1)
