@@ -215,15 +215,22 @@ event smtp_reply(c: connection, is_orig: bool, code: count, cmd: string,
 event mime_one_header(c: connection, h: mime_header_rec) &priority=5
 	{
 	if ( ! c?$smtp ) return;
+		local name = escape_string(h$name);
+		local value = escape_string(h$value);
 
+		name = gsub(name, /'/, "\'");
+		name = gsub(name, /\"/, "\"");
+
+		value = gsub(value, /'/, "\'");
+		value = gsub(value, /\"/, "\"");
 
 		# record order
 		if ( c$smtp?$headerKV ){
 			c$smtp$headerKV = c$smtp$headerKV[:-1];
-			c$smtp$headerKV = string_cat(c$smtp$headerKV, ", ('", h$name, "','", h$value, "')]");
+			c$smtp$headerKV = string_cat(c$smtp$headerKV, ", ('", name, "','", value, "')]");
 		}else{
 			c$smtp$headerKV = "[";
-			c$smtp$headerKV = string_cat(c$smtp$headerKV, "('", h$name, "','", h$value, "')]");
+			c$smtp$headerKV = string_cat(c$smtp$headerKV, "('", name, "','", value, "')]");
 		}
 	}
 
