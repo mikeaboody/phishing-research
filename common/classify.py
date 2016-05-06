@@ -79,7 +79,7 @@ class Classify:
                 sample_size = test_X.shape[0]
                 indx = data['email_index'].reshape(sample_size, 1)
                 test_res = self.output_phish_probabilities(test_X, indx, root)
-                if test_res:
+                if test_res != None:
                     results = np.concatenate((results, test_res), 0)
         
         res_sorted = results[results[:,2].argsort()][::-1]
