@@ -3,6 +3,7 @@ import os
 import time
 import yaml
 import feature_classes as fc
+import traceback
 from classify import Classify  
 
 from multiprocessing import Pool
@@ -203,9 +204,13 @@ class PhishDetector(object):
 
 def run_generator(generator):
     #Load offline info for Lookup class
-
-    generator.run()
-    Lookup.writeStatistics()
+    try:
+        generator.run()
+        Lookup.writeStatistics()
+    except:
+        traceback.print_exc()
+        raise RuntimeError("thread raised an error")
+    
 
 if __name__ == '__main__':
     Lookup.loadAll()

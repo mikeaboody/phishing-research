@@ -6,11 +6,12 @@ import time
 import email.utils
 
 class Inbox():
-	def __init__(self, root):
+	def __init__(self, root=None):
 		self.emails = []
 		self.num_invalid_emails = 0
-		self.processEmails(root)
-		self.sort_emails()
+		if root != None:
+			self.processEmails(root)
+			self.sort_emails()
 	def processEmails(self, root):
 		if os.path.isfile(root) and root.endswith(".log"):
 			logFileName = root
@@ -56,46 +57,36 @@ class Inbox():
 
 class Email():
 	def __init__(self, headers_arg=None):
-		if not headers_arg:
-			self.header_dict = {}
-			self.ordered_headers = []
-		else:
-			self.header_dict = {}
-			self.ordered_headers = []
+		self.header_dict = {}
+		self.ordered_headers = []
+		if headers_arg != None:
 			for key, value in headers_arg:
-				if key.upper() not in self.header_dict:
-					self.header_dict[key.upper()] = value
-					self.ordered_headers.append(key.upper())
-				else:
 					values = self.get_all(key.upper())[:]
 					values.append(value)
 					self.header_dict[key.upper()] = values
+					self.ordered_headers.append(key.upper())
+
 	def __getitem__(self, key):
 		if key.upper() not in self.header_dict:
 			return None
-		return self.header_dict[key.upper()]
+		return self.get_all(key.upper())[0]
 	def __setitem__(self, key, value):
 		if key.upper() not in self.header_dict:
-			self.ordered_headers.append(key.upper())
-		self.header_dict[key.upper()] = value
+			self.header_dict[key.upper()] = []
+		self.header_dict[key.upper()].append(value)
+		self.ordered_headers.append(key.upper())
 	def __len__(self):
 		return len(self.ordered_headers)
 	def __iter__(self):
 		return iter(self.ordered_headers)
 	def get_all(self, key):
-		if type(self.header_dict[key.upper()]) is list:
-			return self.header_dict[key.upper()]
-		else:
-			return [self.header_dict[key.upper()]]
+		if key.upper() not in self.header_dict:
+			return []
+		return self.header_dict[key.upper()]
+
 	def keys(self):
 		return self.ordered_headers
 	def values(self):
-		res = []
-		for key in self.ordered_headers:
-			res.append(self.header_dict[key])
-		return res
+		raise NotImplementedError
 	def items(self):
-		res = []
-		for key in self.ordered_headers:
-			res.append((key, self.header_dict[key]))
-		return res
+		raise NotImplementedError
