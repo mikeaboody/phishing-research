@@ -12,20 +12,11 @@ def is_person_empty(field):
 
 def getHeadersTupleList(msg, newFrom=None):
 	msg_tuples = []
-	headers_added = set()
-	for header in msg.keys():
-		if header in headers_added:
-			continue
+	for header, value in msg.items():
 		if newFrom != None and header == "From":
 			msg_tuples.append((header, newFrom))
 			continue
-		headers_added.add(header)
-		key, value = header, msg[header]
-		if msg.get_all(key) and len(msg.get_all(key)) > 1:
-			for v in msg.get_all(key):
-				msg_tuples.append((key, v))
-		else:
-			msg_tuples.append((key, value))
+		msg_tuples.append((header, value))
 	return msg_tuples
 
 def getSenderDir(sender):
