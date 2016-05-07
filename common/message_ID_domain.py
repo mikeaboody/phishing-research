@@ -99,6 +99,7 @@ class messageIDDomain_Detector(Detector):
     def orgGroups(self, sender, mID):
         try:
             newmID = mID
+            afterAT = mID
             afterAT = sender[sender.index("@")+1:]
 
             # if I have seen this pairing before, do not flag as FP
