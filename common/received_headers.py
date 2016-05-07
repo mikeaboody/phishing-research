@@ -102,7 +102,7 @@ class SenderReceiverProfile(dict):
             self[(sender, receiver)] = SenderReceiverPair(sender, receiver)
         srp = self[(sender, receiver)]
         newEmail = Email()
-        if (msg.get_all("Received") != None):
+        if (len(msg.get_all("Received")) != 0):
             for receivedHeader in msg.get_all("Received"):
                 rh = ReceivedHeader(receivedHeader)
                 newEmail.receivedHeaderList.append(rh)
@@ -117,12 +117,6 @@ class SenderReceiverProfile(dict):
                 for recHeader in em.receivedHeaderList:
                     RHList.append(recHeader.assignCIDR())
                 if RHList not in seq_rh_from:
-                    if seq_rh_from:
-                        bestEditDist = None
-                        for lst in seq_rh_from:
-                            ed = editdistance.eval(RHList, lst)
-                            if bestEditDist == None or bestEditDist > ed:
-                                bestEditDist = ed
                     seq_rh_from.append(RHList)
             srp.received_header_sequences = seq_rh_from
 
@@ -145,7 +139,7 @@ class ReceivedHeadersDetector(Detector):
 
     def modify_phish(self, phish, msg):
         phish["Received"] = None
-        if msg.get_all("Received"):
+        if len(msg.get_all("Received")) != 0:
             phish["Received"] = []
             recHeaders = msg.get_all("Received")[:]
             for i in range(len(recHeaders)):
@@ -164,7 +158,7 @@ class ReceivedHeadersDetector(Detector):
 
         # creating the received header list for this email
         srp = self.srp[(sender, receiver)]
-        if phish.get_all("Received"):
+        if len(phish.get_all("Received")) != 0:
             for recHeader in phish.get_all("Received"):
                 recHeader = ReceivedHeader(recHeader)
                 RHList.append(recHeader.assignCIDR())
