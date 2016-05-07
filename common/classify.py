@@ -77,6 +77,8 @@ class Classify:
                 data = sio.loadmat(path)
                 test_X = data['test_data']
                 sample_size = test_X.shape[0]
+                if sample_size == 0:
+                    continue
                 indx = data['email_index'].reshape(sample_size, 1)
                 test_res = self.output_phish_probabilities(test_X, indx, root)
                 if test_res != None:
@@ -178,6 +180,7 @@ class Classify:
         path_array = np.repeat(path_array, sample_size, axis=0).reshape(sample_size, 1)
         predictions = self.clf.predict(test_X).reshape(sample_size, 1)
         prob_phish = self.clf.predict_proba(test_X)[:,1].reshape(sample_size, 1)
+        prob_phish[prob_phish < float(0.0001)] = 0
         path_id = np.concatenate((path_array, indx), axis=1)
         res = np.empty(shape=(sample_size, 0))
         res = np.concatenate((res, path_id), 1)
