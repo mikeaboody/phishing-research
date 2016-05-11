@@ -38,21 +38,18 @@ class Inbox():
 		return iter(self.emails)
 	def sort_emails(self):
 		def compare_emails(email1, email2):
-			date_header1 = email1["Date"]
-			date_header2 = email2["Date"]
-			if date_header1 == date_header2:
-				return 0
-			if not date_header1 or not email.utils.parsedate(date_header1):
-				return 1
-			if not date_header2 or not email.utils.parsedate(date_header2):
-				return -1
-			time1 = time.mktime(email.utils.parsedate(date_header1))
-			time2 = time.mktime(email.utils.parsedate(date_header2))
+			time1 = email1.get_time()
+			time2 = email2.get_time()
 			if time1 == time2:
 				return 0
+			if time1 == None:
+				return 1
+			if time2 == None:
+				return -1
 			if time1 < time2:
 				return -1
 			return 1
+
 		self.emails = sorted(self.emails, cmp=compare_emails)
 
 class Email():
@@ -83,6 +80,20 @@ class Email():
 		if key.upper() not in self.header_dict:
 			return []
 		return self.header_dict[key.upper()]
+	def get_time(self):
+		date_header = self["Date"]
+		if not date_header:
+			return None
+		parsed_date = email.utils.parsedate(date_header)
+		if not parsed_date:
+			return None
+		try:
+			email_time = time.mktime(parsed_date)
+			return email_time
+		except ValueError:
+			return None
+		except OverflowError:
+			return None
 
 	def keys(self):
 		return self.ordered_headers
