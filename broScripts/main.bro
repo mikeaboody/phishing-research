@@ -217,16 +217,9 @@ event mime_one_header(c: connection, h: mime_header_rec) &priority=5
 	if ( ! c?$smtp ) return;
 		local name = h$name;
 		local value = h$value;
-
-		name = gsub(name, /'/, "\'");
-		name = gsub(name, /\"/, "\"");
-		name = gsub(name, /\\/, "\\");
-		name = escape_string(name);
-
-		value = gsub(value, /'/, "\'");
-		value = gsub(value, /\"/, "\"");
-		value = gsub(value, /\\/, "\\");
-		value = escape_string(value);
+		
+		name = to_string_literal(name);		
+		value = to_string_literal(value);
 
 		# record order
 		if ( c$smtp?$headerKV ){

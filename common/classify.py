@@ -1,11 +1,13 @@
+import os
+import json
+import pprint as pp
+from subprocess import call
+
 import numpy as np
 import scipy.io as sio
 from sklearn import linear_model, cross_validation
 from sklearn.utils import shuffle
-import pprint as pp
 from sklearn.externals import joblib
-import os
-import json
 
 class Classify:
     
@@ -62,6 +64,12 @@ class Classify:
         joblib.dump(self.clf, self.serial_to_path)
         print("Finished serializing.")
         
+    def clean_all(self):
+        try:
+            call(['rm', '-r', self.results_path])
+        except Exception as e:
+            pass
+
     def test_and_report(self):
         """ Assumptions:
          - test.mat exists in directory structure and
@@ -69,6 +77,7 @@ class Classify:
          - test.mat has data['email_index']
         Results is [path, index, probability]
         """
+        self.clean_all() 
         results = np.empty(shape=(0, 3), dtype='S200')
         
         for root, dirs, files in os.walk(self.path):
@@ -77,6 +86,8 @@ class Classify:
                 data = sio.loadmat(path)
                 test_X = data['test_data']
                 sample_size = test_X.shape[0]
+                if sample_size == 0:
+                    continue
                 indx = data['email_index'].reshape(sample_size, 1)
                 test_res = self.output_phish_probabilities(test_X, indx, root)
                 if test_res != None:
@@ -178,6 +189,7 @@ class Classify:
         path_array = np.repeat(path_array, sample_size, axis=0).reshape(sample_size, 1)
         predictions = self.clf.predict(test_X).reshape(sample_size, 1)
         prob_phish = self.clf.predict_proba(test_X)[:,1].reshape(sample_size, 1)
+        prob_phish[prob_phish < float(0.0001)] = 0
         path_id = np.concatenate((path_array, indx), axis=1)
         res = np.empty(shape=(sample_size, 0))
         res = np.concatenate((res, path_id), 1)
