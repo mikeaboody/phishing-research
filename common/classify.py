@@ -67,9 +67,7 @@ class Classify:
     def clean_all(self):
         try:
             call(['rm', '-r', self.results_path])
-            print("success")
         except Exception as e:
-            print("troll")
             pass
 
     def test_and_report(self):
@@ -81,7 +79,6 @@ class Classify:
         """
         self.clean_all() 
         results = np.empty(shape=(0, 3), dtype='S200')
-        
         
         for root, dirs, files in os.walk(self.path):
             if 'test.mat' in files:
