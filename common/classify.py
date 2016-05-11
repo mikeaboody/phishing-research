@@ -1,11 +1,13 @@
+import os
+import json
+import pprint as pp
+from subprocess import call
+
 import numpy as np
 import scipy.io as sio
 from sklearn import linear_model, cross_validation
 from sklearn.utils import shuffle
-import pprint as pp
 from sklearn.externals import joblib
-import os
-import json
 
 class Classify:
     
@@ -62,6 +64,14 @@ class Classify:
         joblib.dump(self.clf, self.serial_to_path)
         print("Finished serializing.")
         
+    def clean_all(self):
+        try:
+            call(['rm', '-r', self.results_path])
+            print("success")
+        except Exception as e:
+            print("troll")
+            pass
+
     def test_and_report(self):
         """ Assumptions:
          - test.mat exists in directory structure and
@@ -69,7 +79,9 @@ class Classify:
          - test.mat has data['email_index']
         Results is [path, index, probability]
         """
+        self.clean_all() 
         results = np.empty(shape=(0, 3), dtype='S200')
+        
         
         for root, dirs, files in os.walk(self.path):
             if 'test.mat' in files:
