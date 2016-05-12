@@ -41,9 +41,17 @@ abstract
 \subsection{Detectors}
 \subsubsection{X-Mailer header}
 
-The X-Mailer header denotes the type of software or mail client that a sender used to send the message. The value of the X-Mailer header often depends on the device used to send the message (and not just the domain part of the email address). For example, an email address with a domain part of	``gmail.com'' might have as its corresponding X-Mailer value ``iPhone Mail (12B466)''. Since the software and device used is a fundamental component of a sender's profile, it has the potential to act as sort of identity marker of a sender. As such, the detector constructed for this header relies on the consistency of the field throughout emails sent by the same sender.
+Some email clients append a header, the X-Mailer header, that identifies the name of the client application that was used to send the message.
+Thus, if present, the X-Mailer header indicates the type of software or mail client that a sender used to send the message.
+For example, an email sent from the iPhone default mail client might contain the X-Mailer value ``iPhone Mail (12B466)''.
+We expect the mail client used to send email (or set of mail clients) to be relatively stable over time for a particular sender, and in particular, it has the potential to act as sort of identity marker of a sender.
+Therefore, we built a detector that relies on the consistency of the X-Mailer field throughout emails sent by the same sender and alerts whenever it sees an email with a new X-Mailer value.
 
-The detector's sender profile keeps track of a mapping from senders (email addresses extracted from the From header) to a list of parsed X-Mailer values. However, since email clients update versions frequently, the detector attempts to take out any version numbers. For example, the parsed value of the X-Mailer value ``iPhone Mail (12B466)'' would be ``iPhone Mail''. In addition, if no such X-Mailer header exists in the email, the sender profile will instead append the python value ``None'' to the list of X-Mailer values. With this sender profile, the detector then is able to classify emails by the following process:
+The detector maintains a sender profile, which keeps track of the set of X-Mailer values seen for each particular sender.
+Since email clients update versions frequently, we parse the value of the X-Mailer header and heuristically attempt to remove version numbers.
+For example, the parsed value of the X-Mailer value ``iPhone Mail (12B466)'' would be ``iPhone Mail'';
+the latter is what we add to the sender profile.
+If no X-Mailer header exists in the email, the sender profile will instead append the python value ``None'' to the list of X-Mailer values. With this sender profile, the detector then is able to classify emails by the following process:
 
 \begin{enumerate}
 \item Extract the email address from the From header and the parsed value from the X-Mailer value (which is ``None'' if no such X-Mailer header exists in the email's headers).
