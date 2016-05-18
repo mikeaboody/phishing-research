@@ -77,7 +77,7 @@ try:
             continue
         with open(BRO_OUTPUT_FILE, 'a+') as f:
             for line in f:
-                if line == "-":
+                if line == "-" or line == "-\n":
                     total_only_hyphen += 1
                     continue
                 if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
