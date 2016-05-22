@@ -82,6 +82,7 @@ try:
                     continue
                 if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
                     try:
+                        line = line.replace("\\'", "\'")
                         headers = eval(line)
                     except SyntaxError as e:
                         if eval_error_count < 10:
