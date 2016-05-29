@@ -77,11 +77,12 @@ try:
             continue
         with open(BRO_OUTPUT_FILE, 'a+') as f:
             for line in f:
-                if line == "-":
+                if line == "-" or line == "-\n":
                     total_only_hyphen += 1
                     continue
                 if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
                     try:
+                        line = line.replace("\\'", "\'")
                         headers = eval(line)
                     except SyntaxError as e:
                         if eval_error_count < 10:
@@ -99,13 +100,13 @@ try:
                             break
                     if not is_person_empty(sender):
                         name, address = parseaddr(sender)
-                        name = name[:20]
-                        address = address[:50]
+                        name = name[:20].replace("/","")
+                        address = address[:50].replace("/","")
                     else:
                         name, address = '', ''
                     if name:
-                        first_subdir = name[:3]
-                        second_subdir = name[3:6]
+                        first_subdir = name[:3].replace("/", "")
+                        second_subdir = name[3:6].replace("/", "")
                         if second_subdir == '':
                             second_subdir = 'none'
                         sender_dir = "{}/{}/{}/{}/{}".format(OUTPUT_DIRECTORY,

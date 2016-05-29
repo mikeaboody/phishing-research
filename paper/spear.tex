@@ -40,8 +40,18 @@ abstract
 \input{architecture.tex}
 \subsection{Detectors}
 \subsubsection{X-Mailer header}
-\tab The X-Mailer header denotes the type of software or mail client that a sender used to send the message. The value of the X-Mailer header often depends on the device used to send the message (and not just the domain part of the email address). For example, an email address with a domain part of	``gmail.com'' might have as its corresponding X-Mailer value ``iPhone Mail (12B466)''. Since the software and device used is a fundamental component of a sender's profile, it has the potential to act as sort of identity marker of a sender. As such, the detector constructed for this header relies on the consistency of the field throughout emails sent by the same sender.\\
-\tab The detector's sender profile keeps track of a mapping from senders (email addresses extracted from the From header) to a list of parsed X-Mailer values. However, since email clients update versions frequently, the detector attempts to take out any version numbers. For example, the parsed value of the X-Mailer value ``iPhone Mail (12B466)'' would be ``iPhone Mail''. In addition, if no such X-Mailer header exists in the email, the sender profile will instead append the python value ``None'' to the list of X-Mailer values. With this sender profile, the detector then is able to classify emails by the following process:
+
+Some email clients append a header, the X-Mailer header, that identifies the name of the client application that was used to send the message.
+Thus, if present, the X-Mailer header indicates the type of software or mail client that a sender used to send the message.
+For example, an email sent from the iPhone default mail client might contain the X-Mailer value ``iPhone Mail (12B466)''.
+We expect the mail client used to send email (or set of mail clients) to be relatively stable over time for a particular sender, and in particular, it has the potential to act as sort of identity marker of a sender.
+Therefore, we built a detector that relies on the consistency of the X-Mailer field throughout emails sent by the same sender and alerts whenever it sees an email with a new X-Mailer value.
+
+The detector maintains a sender profile, which keeps track of the set of X-Mailer values seen for each particular sender.
+Since email clients update versions frequently, we parse the value of the X-Mailer header and heuristically attempt to remove version numbers.
+For example, the parsed value of the X-Mailer value ``iPhone Mail (12B466)'' would be ``iPhone Mail'';
+the latter is what we add to the sender profile.
+If no X-Mailer header exists in the email, the sender profile will instead append the python value ``None'' to the list of X-Mailer values. With this sender profile, the detector then is able to classify emails by the following process:
 
 \begin{enumerate}
 \item Extract the email address from the From header and the parsed value from the X-Mailer value (which is ``None'' if no such X-Mailer header exists in the email's headers).
@@ -50,7 +60,7 @@ abstract
 \item Otherwise, it is classified as phishing.
 \end{enumerate}
 
-\tab In the email dataset used in the Evaluation section, it was found that 97.75\% of senders remained consistent with their X-Mailer headers over time (i.e. the list tracked in the sender profile for a given sender had only one unique value of an X-Mailer in it).  Through this classification method and consistency, the detector exploits any lack of consistency of the X-Mailer header for a given sender.  However, the effects of the detector are limiting due to the sparseness of X-Mailer headers in emails (roughly 83.56\% of emails in the dataset used in the Evaluation). Since only 16.43\% of emails have X-Mailer headers, the detector will falsely classify many emails as safe when indeed they are phishing. For this reason, the detection rate (as well as the false alarm rate) is significantly low. Thus, the detector is mostly effective when it is classifying emails from senders that send emails that generally contain X-Mailer values, where the percentage of senders that consistently send the same X-Mailer is 97.05\%.
+In the email dataset used in the Evaluation section, it was found that 97.75\% of senders remained consistent with their X-Mailer headers over time (i.e. the list tracked in the sender profile for a given sender had only one unique value of an X-Mailer in it).  Through this classification method and consistency, the detector exploits any lack of consistency of the X-Mailer header for a given sender.  However, the effects of the detector are limiting due to the sparseness of X-Mailer headers in emails (roughly 83.56\% of emails in the dataset used in the Evaluation). Since only 16.43\% of emails have X-Mailer headers, the detector will falsely classify many emails as safe when indeed they are phishing. For this reason, the detection rate (as well as the false alarm rate) is significantly low. Thus, the detector is mostly effective when it is classifying emails from senders that send emails that generally contain X-Mailer values, where the percentage of senders that consistently send the same X-Mailer is 97.05\%.
 
 \subsubsection{Order of headers}
 
@@ -68,7 +78,7 @@ The Received header detector specifically uses the "from" part of the Received h
 
 From each Received header, we first want to extract the domain name and IP address from the "from". Since there are many IP addresses that can map to SMTP servers in the same domain, we attempt to find a uniform way of finding out where this particular Received header came from. Therefore, we represent the domain names and/or IP addresses in the "from" as the CIDR blocks they are a part of. If the "from" contains an domain name, we do a WhoIs lookup on the last portion of the domain name. For example, if the domain name is "123.abc.com", we would do a WhoIs lookup on "abc.com". We use the results from the WhoIs lookup to find the CIDR block that this domain is associated with. If the "from" doesn't contain a valid domain, but has an IP address that is not private, we do a reverse DNS lookup to get the domain that this IP address maps to and then perform the same WhoIs lookup process as before. If the "from" does not have a valid domain name or a valid (public) IP address, we assign a value of "Invalid" to this Received header. If this received header does not have a "from" to begin with, we assign a value of "None" to this Received header. Using this processing method of assigning a Received header to a CIDR block, we are able to create a "path", or an ordered list of these values, for an email. 
 
-For the sender profile of this detector, we map each sender to a list of "paths", ordered lists of CIDR blocks for each email sent by the sender. Let's say Alice sends an email to Bob. One such "path" in Bob's sender profile for Alice looks like the following: ["None", 1.2.3.4/16, "Invalid", 1.2.3.4/16, 6.7.8.9/24]. The following is the process we use when classifying an email:\\
+For the sender profile of this detector, we map each sender to a list of "paths", ordered lists of CIDR blocks for each email sent by the sender. Let's say Alice sends an email to Bob. One such "path" in Bob's sender profile for Alice looks like the following: ["None", 1.2.3.4/16, "Invalid", 1.2.3.4/16, 6.7.8.9/24]. The following is the process we use when classifying an email:
 
 \begin{enumerate}
 \item We construct the "path" that the Received headers take, based on the process described above.
@@ -76,7 +86,7 @@ For the sender profile of this detector, we map each sender to a list of "paths"
 \item We use an edit distance algorithm with a certain thresholds (0, 1, and 2) to measure the similarity of paths. For each threshold, we check to see if the path for this email is similar to a path currently in the sender profile for this sender. If a path is similar to one that is currently in the sender profile for this sender, we classify it as safe, otherwise, we classify it as phishing. This is done for each threshold. 
 \end{enumerate}
 
-There are a couple of limitations to this detector. One such limitation is the fact that not all Received headers have a "from". This results in having a "None" in the place of a CIDR block in some paths. Another limitation is that some "from" fields don't have a valid domain name or a public IP address that we could use to find the CIDR block. In this case, we have an "Invalid" in the place of a CIDR block. While our Received header detector mainly focuses on using the "from" field of the Received header, there is a lot more information that can be exploited. For example, we can analyze the "date" field and perform a similar classification as described in the Date header section of this paper.\\
+There are a couple of limitations to this detector. One such limitation is the fact that not all Received headers have a "from". This results in having a "None" in the place of a CIDR block in some paths. Another limitation is that some "from" fields don't have a valid domain name or a public IP address that we could use to find the CIDR block. In this case, we have an "Invalid" in the place of a CIDR block. While our Received header detector mainly focuses on using the "from" field of the Received header, there is a lot more information that can be exploited. For example, we can analyze the "date" field and perform a similar classification as described in the Date header section of this paper.
 
 TODO: Results
 
@@ -94,7 +104,7 @@ This header can be split into two parts using the "@" symbol. The part of the he
 
 The domain of the Message-ID refers to the domain of the email address that this email has been sent from. Usually, the domain in the Message-ID corresponds to the domain of the email address that an email was sent from. For example, if an email came from "alice@abc.com", a possible Message-ID domain could be "mail.abc.com". The Message-ID detector exploits this relationship to identify suspicious Message-ID domains.
 
-The sender profile for this detector keeps a mapping between the sender and a list of partial Message-ID domains it has seen. Partial, in this case, means that we only add the last part of the Message-ID domain to the sender profile. For example, if a Message-ID domain was "mail.abc.com", we would store "abc.com". This detector also keeps a global mapping of email address domains and Message-ID domains. All partial Message-ID domains that were seen with a particular email address domain are stored in this global mapping. Using this sender profile, we classify emails as follows:\\
+The sender profile for this detector keeps a mapping between the sender and a list of partial Message-ID domains it has seen. Partial, in this case, means that we only add the last part of the Message-ID domain to the sender profile. For example, if a Message-ID domain was "mail.abc.com", we would store "abc.com". This detector also keeps a global mapping of email address domains and Message-ID domains. All partial Message-ID domains that were seen with a particular email address domain are stored in this global mapping. Using this sender profile, we classify emails as follows:
 
 \begin{enumerate}
 \item Extract the Message-ID domain of an email and only keep the last part (as described above).
