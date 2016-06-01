@@ -116,7 +116,56 @@ TODO: Results
 
 
 \subsubsection{Date header}
-\subsubsection{Timezone}
+The date header contains information describing the date and time an email was sent. It appears in a variety of different formats, but generally resembles:\\
+
+Date: Wed, 18 Mar 2015 09:50:45 +0000 (UTC)\\
+
+We created two detectors based on the date header, one that looks at the characteristics of the formatting of the date information, and another that looks at the timezone an email was sent in.\\
+
+\textbf{Date: Format}\\
+
+In the emails that we looked at, we saw a wide variety of different date header formats. The idea behind the date format detector is to detect changes in date header formatting and report them to the classifier as features. The implicit assumption is that senders are likely to use the same formats repeatedly, and that a sudden change in date header format should raise a flag. Noticing that many of them shared similar format attributes, we created a representation for formats using a binary string. Each binary digit in the string represents whether or not a certain format attribute is present in the date header or missing (1 represents present, and 0 represents missing). The attributes we used were as follows.\\
+
+Does the header string contain:
+
+\begin{itemize}
+\item Abbreviation of day of the week (e.g. "Mon", "Tue").
+\item Timezone in parentheses (e.g. "(UTC)").
+\item Timezone without parentheses (e.g. "UTC").
+\item Timezone represented as an offset (e.g. "+8000").
+\item Contains the characters "Date:".
+\item Contains a comma followed by a space (i.e. ", ").
+\item Contains a comma followed by three spaces (i.e. ",   ").
+\end{itemize}
+
+Thus, the header we used as an example earlier, "Date: Wed, 18 Mar 2015 09:50:45 +0000 (UTC)", would yield the following binary representation:\\
+
+1101110\\
+
+The date format detector generates these binary strings from the date header and uses it to generate features for our classifier. We build up the sender profile with binary representations of the date headers seen in each email it processes, and we create a mapping of each binary representation to the number of times it has appeared in the emails of each sender. Once the sender profile has been constructed, for each email we encounter in training and classification, we generate the following three features based on the binary string representation of its date header:
+
+\begin{itemize}
+\item  0 if we have processed this exact binary representation for this sender before, 1 otherwise
+\item The number of times this binary representation has been seen for this sender
+\item The total number of date headers processed for this sender
+\end{itemize}
+
+TODO: Results\\
+
+\textbf{Date: Timezone}\\
+
+The timezone detector generates features based on the timezone inside the date header. Specifically, it looks at the timezone information reported as an offset (e.g. "+8000") and produces features that report changes to a sender's timezone. Having no timezone is represented as a timezone called "None", and is treated no different from other timezones.
+
+The sender profile is keeps track of a mapping from timezone as an offset to the number of times it has been seen in emails sent by each sender. During training and classification, we generate the following three features:
+
+\begin{itemize}
+\item  0 if we have processed this timezone for this sender before, 1 otherwise
+\item The number of times this timezone has been seen for this sender
+\item The total number of date headers processed for this sender
+\end{itemize}
+
+TODO: Results\\
+
 \subsubsection{Content-Type header}
 \subsubsection{Content-Transfer-Encoding header}
 \section{Evaluation}
