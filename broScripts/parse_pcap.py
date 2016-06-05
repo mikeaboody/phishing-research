@@ -54,6 +54,31 @@ def summary_stats():
 def is_person_empty(field):
     return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
+def parseLine(line):
+    lstOfTups = []
+
+    while True:
+        if "('" not in line or "')" not in line or "','" not in line:
+            return lstOfTups
+        startParen = line.index("('")
+        endParen = line.index("')")+1
+        comma = line.index("','") + 1
+
+        header = line[startParen+2:comma-1]
+        value = line[comma+2:endParen-1]
+
+        # remove duplicate escaping from Python
+        # matches the way eval deals with quotes
+        header = header.replace('\\\\\"', '\\\"')
+        value = value.replace('\\\\\"', '\\\"')
+
+        header = header.replace("\\\\\'", "\\\'")
+        value = value.replace("\\\\\'", "\\\'")
+
+        lstOfTups.append((header, value))
+
+        line = line[endParen+2:]
+
 try:
     print("======== Starting Pcap Parsing Phase ========")
     clean_all()
@@ -82,7 +107,7 @@ try:
                     continue
                 if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
                     try:
-                        headers = eval(line)
+                        headers = parseLine(line)
                     except SyntaxError as e:
                         if eval_error_count < 10:
                             eval_error_count += 1
@@ -144,7 +169,7 @@ try:
             for line in f:
                 if line[0] == '[' and line[-2] == ']':
                     try:
-                        headers = eval(line)
+                        headers = parseLine(line)
                     except SyntaxError as e:
                         total_failed_parse += 1
                         continue
