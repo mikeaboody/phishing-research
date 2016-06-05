@@ -69,11 +69,11 @@ def parseLine(line):
 
         # remove duplicate escaping from Python
         # matches the way eval deals with quotes
-        header.replace("\\\\\"", "\\\"")
-        value.replace("\\\\\"", "\\\"")
+        header = header.replace('\\\\\"', '\\\"')
+        value = value.replace('\\\\\"', '\\\"')
 
-        header.replace("\\\\\'", "\\\'")
-        value.replace("\\\\\'", "\\\'")
+        header = header.replace("\\\\\'", "\\\'")
+        value = value.replace("\\\\\'", "\\\'")
 
         lstOfTups.append((header, value))
 
