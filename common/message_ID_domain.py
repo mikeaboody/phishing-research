@@ -79,6 +79,8 @@ class messageIDDomain_Detector(Detector):
 
     # returns apoorva.dornadula@berkeley.edu given "Apoorva Dornadula <apoorva.dornadula@berkeley.edu>"
     def getEntireEmail(self, sender):
+        if sender == None:
+            return None
         if ("<" in sender and ">" in sender):
             leftBracket = sender.index("<")
             rightBracket = sender.index(">")
