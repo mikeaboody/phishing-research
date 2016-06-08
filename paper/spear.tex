@@ -44,14 +44,19 @@ abstract
 Some email clients append a header, the X-Mailer header, that identifies the name of the client application that was used to send the message.
 Thus, if present, the X-Mailer header indicates the type of software or mail client that a sender used to send the message.
 For example, an email sent from the iPhone default mail client might contain the X-Mailer value ``iPhone Mail (12B466)''.
-We expect the mail client used to send email (or set of mail clients) to be relatively stable over time for a particular sender, and in particular, it has the potential to act as sort of identity marker of a sender.
-Therefore, we built a detector that relies on the consistency of the X-Mailer field throughout emails sent by the same sender and alerts whenever it sees an email with a new X-Mailer value.
+We expect the mail client that an individual uses to send email will be
+relatively stable over time for a particular sender; in particular, it has the potential to act as sort of identity marker of a sender.
+Therefore, we built a detector that relies on the consistency of the X-Mailer field throughout emails sent by the same sender.
+The detector alerts whenever it sees an email with a new X-Mailer value.
 
 The detector maintains a sender profile, which keeps track of the set of X-Mailer values seen for each particular sender.
 Since email clients update versions frequently, we parse the value of the X-Mailer header and heuristically attempt to remove version numbers.
 For example, the parsed value of the X-Mailer value ``iPhone Mail (12B466)'' would be ``iPhone Mail'';
-the latter is what we add to the sender profile.
-If no X-Mailer header exists in the email, the sender profile will instead append the python value ``None'' to the list of X-Mailer values. With this sender profile, the detector then is able to classify emails by the following process:
+we ignore the version (``12B466'') and add ``iPhone Mail'' to the sender profile.
+A missing X-Mailer header is treated as though one were present with a mail client value ``none.''
+If no X-Mailer header exists in the email, 
+
+The detector then classifies emails by the following process:
 
 \begin{enumerate}
 \item Extract the email address from the From header and the parsed value from the X-Mailer value (which is ``None'' if no such X-Mailer header exists in the email's headers).
@@ -60,7 +65,14 @@ If no X-Mailer header exists in the email, the sender profile will instead appen
 \item Otherwise, it is classified as phishing.
 \end{enumerate}
 
-In the email dataset used in the Evaluation section, it was found that 97.75\% of senders remained consistent with their X-Mailer headers over time (i.e. the list tracked in the sender profile for a given sender had only one unique value of an X-Mailer in it).  Through this classification method and consistency, the detector exploits any lack of consistency of the X-Mailer header for a given sender.  However, the effects of the detector are limiting due to the sparseness of X-Mailer headers in emails (roughly 83.56\% of emails in the dataset used in the Evaluation). Since only 16.43\% of emails have X-Mailer headers, the detector will falsely classify many emails as safe when indeed they are phishing. For this reason, the detection rate (as well as the false alarm rate) is significantly low. Thus, the detector is mostly effective when it is classifying emails from senders that send emails that generally contain X-Mailer values, where the percentage of senders that consistently send the same X-Mailer is 97.05\%.
+In the email dataset used in the Evaluation section, it was found that
+97.75\% of senders had only a single X-Mailer value seen, across all time.
+This consistency helps this detector achieve a relatively low false alarm
+rate.
+However, because many mail clients don't add a X-Mailer header,
+only 16.43\% of emails in this dataset have X-Mailer headers.
+Consequently, many attacks won't be detected by this detector:
+the detection rate is fairly low.
 
 \subsubsection{Order of headers}
 
