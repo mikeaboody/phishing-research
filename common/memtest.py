@@ -14,14 +14,15 @@ class MemTracker(object):
             os.remove(MemTracker.log_file_path)
         with open(MemTracker.log_file_path, "a") as f:
             f.write("Beggining memory tracking.\n\n")
-        MemTracker.heapy_instance = hpy()
-        MemTracker.heapy_instance.setrelheap()
 
 
     @classmethod
     def logMemory(cls, section_name):
         if MemTracker.log_file_path == None:
             raise RuntimeError("Initialize before calling.")
+        if MemTracker.heapy_instance == None:
+            MemTracker.heapy_instance = hpy()
+            MemTracker.heapy_instance.setrelheap()
         
         h = MemTracker.heapy_instance.heap()
         with open(MemTracker.log_file_path, "a") as f:
@@ -29,3 +30,12 @@ class MemTracker(object):
             for i in range(len(h)):
                 f.write(str(h[i]) + "\n")
             f.write("\n")
+
+MemTracker.initialize("file.log")
+MemTracker.logMemory("fi1")
+MemTracker.logMemory("fi2")
+lst = [i for i in range(10000)]
+MemTracker.logMemory("fi3")
+MemTracker.logMemory("fi4")
+lst = None
+MemTracker.logMemory("fi5")
