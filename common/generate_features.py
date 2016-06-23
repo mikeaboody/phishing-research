@@ -120,9 +120,12 @@ class FeatureGenerator(object):
     def generate_test_matrix(self, test_mbox):
         test_data_matrix = np.empty(shape=(self.num_emails - self.start_test_matrix_index, self.num_features))
     
+        test_mess_id = np.empty(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype='S200')
+        
         row_index = 0
         for i in range(self.start_test_matrix_index, self.num_emails):
             j = 0
+            test_mess_id[row_index] = test_mbox[i]["Message-ID"]
             for detector in self.detectors:
                 heuristic = detector.classify(test_mbox[i])
                 if type(heuristic) == list:
@@ -134,7 +137,7 @@ class FeatureGenerator(object):
                     j += 1
             row_index += 1
         test_email_index = np.arange(self.start_test_matrix_index, self.num_emails)
-        return test_data_matrix, test_email_index
+        return test_data_matrix, test_email_index, test_mess_id
     
     def generate_labels(self):
         label_matrix = np.empty(shape=(self.data_matrix_num_emails*2, 1))
@@ -161,11 +164,12 @@ class FeatureGenerator(object):
             sio.savemat(training_path, training_dict)
 
         if self.do_generate_test_matrix:
-            test_X, test_index = self.generate_test_matrix(self.emails)
+            test_X, test_index, test_mess_id= self.generate_test_matrix(self.emails)
             test_dict = {}
             test_dict['test_data'] = test_X
             test_dict['feature_names'] = self.feature_names
             test_dict['email_index'] = test_index
+            test_dict['message_id'] = test_mess_id
 
             test_path = os.path.join(self.output_directory, 'test.mat')
             sio.savemat(test_path, test_dict)
