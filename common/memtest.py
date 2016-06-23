@@ -30,12 +30,3 @@ class MemTracker(object):
             for i in range(len(h)):
                 f.write(str(h[i]) + "\n")
             f.write("\n")
-
-MemTracker.initialize("file.log")
-MemTracker.logMemory("fi1")
-MemTracker.logMemory("fi2")
-lst = [i for i in range(10000)]
-MemTracker.logMemory("fi3")
-MemTracker.logMemory("fi4")
-lst = None
-MemTracker.logMemory("fi5")
