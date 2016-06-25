@@ -35,7 +35,6 @@ class PhishDetector(object):
         self.parallel = None
 
         #Generator and Classifier
-        self.feature_generators = []
         self.classifier = None
 
 
@@ -117,6 +116,7 @@ class PhishDetector(object):
             'weights',
             'detectors',
             'emails_threshold',
+            'batch_threading_size',
             'results_size',
             'parallel',
             'num_threads',
@@ -137,47 +137,55 @@ class PhishDetector(object):
         self.detectors = detectors
         self.root_dir = os.path.abspath(self.root_dir)
 
-    def prep_features(self):
+    def prep_features(self, directory):   
+        regular_path = os.path.join(directory, self.regular_filename)
+        phish_path = os.path.join(directory, self.phish_filename)
+
+        feature_generator = FeatureGenerator(directory,
+                                             regular_path,
+                                             phish_path,
+                                             self.sender_profile_percentage,
+                                             self.data_matrix_percentage,
+                                             self.test_matrix_percentage,
+                                             self.detectors
+                                            )
+
+        feature_generator.do_generate_data_matrix = self.generate_data_matrix
+        feature_generator.do_generate_test_matrix = self.generate_test_matrix
+        return feature_generator
+
+
+    def generate_features(self):
         dir_to_generate = []
 
         for dirpath, dirnames, filenames in os.walk(self.root_dir):
-
             if ((self.generate_data_matrix and self.regular_filename in filenames and self.phish_filename in filenames)
                 or (self.generate_test_matrix and self.regular_filename in filenames)):
-
                 dir_to_generate.append(dirpath)
-
-        for directory in dir_to_generate:
-            regular_path = os.path.join(directory, self.regular_filename)
-            phish_path = os.path.join(directory, self.phish_filename)
-
-            feature_generator = FeatureGenerator(directory,
-                                                 regular_path,
-                                                 phish_path,
-                                                 self.sender_profile_percentage,
-                                                 self.data_matrix_percentage,
-                                                 self.test_matrix_percentage,
-                                                 self.detectors
-                                                )
-
-            feature_generator.do_generate_data_matrix = self.generate_data_matrix
-            feature_generator.do_generate_test_matrix = self.generate_test_matrix
-
-            self.feature_generators.append(feature_generator)
-
-    def generate_features(self):
-        self.prep_features()
         
+        BATCH_SIZE = self.batch_threading_size
         if self.parallel:
-            print('Generating features with {} threads in parallel...'.format(self.num_threads))
-            p = Pool(self.num_threads)
-            p.map(run_generator, self.feature_generators)
-            p.close()
-            p.join()
+            print('Generating features with {} threads in parallel with batch size {}...'.format(self.num_threads, BATCH_SIZE))
+            feature_generators = []
+            for directory in dir_to_generate:
+                feature_generator = self.prep_features(directory)
+                feature_generators.append(feature_generator)
+                if len(feature_generators) == BATCH_SIZE:
+                    p = Pool(self.num_threads)
+                    p.map(run_generator, feature_generators)
+                    p.close()
+                    p.join()
+                    feature_generators = []
+            if len(feature_generators) > 0:
+                p = Pool(self.num_threads)
+                p.map(run_generator, feature_generators)
+                p.close()
+                p.join()
         else:
             print('Generating features serially...')
-            for generator in self.feature_generators:
-                generator.run()
+            for directory in dir_to_generate:
+                feature_generator = self.prep_features(directory)
+                feature_generator.run()
 
     def generate_model_output(self):
         self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size, results_dir=self.result_path_out, serial_path=self.model_path_out)

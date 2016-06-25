@@ -14,6 +14,7 @@ model_path_out:                 model.plk
 result_path_out:                output
 results_size:                   10
 emails_threshold:               1000
+batch_threading_size:           20
 detectors:
     DateTimezoneDetector:       1
     MessageIdDetectorOne:       1
