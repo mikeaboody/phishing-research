@@ -1,8 +1,11 @@
 import re
 import os
 from netaddr import IPNetwork, IPAddress
+import socket
+from ipwhois import IPWhois
 
 class Lookup:
+    offline = False
     seen_pairings_keys = []
     seen_pairings = {}
     seen_domain_ip = {}
@@ -14,10 +17,12 @@ class Lookup:
     domain_tot = 0
 
     @classmethod
-    def loadAll(cls):
-        Lookup.loadCIDRs("cidr")
-        Lookup.loadDomainIPPairings("domains.txt")
-        Lookup.loadDomainOrgPairings("domain2Org.txt")
+    def initialize(cls, offline=True):
+        Lookup.offline = offline
+        if Lookup.offline:
+            Lookup.loadCIDRs("cidr")
+            Lookup.loadDomainIPPairings("domains.txt")
+            Lookup.loadDomainOrgPairings("domain2Org.txt")
         if os.path.exists("output/hit_rate.txt"):
             os.remove("output/hit_rate.txt")
 
@@ -61,57 +66,62 @@ class Lookup:
     # returns false if domain is invalid or private domain
     @classmethod
     def public_domain(cls, fromHeader):
-        domain = extract_domain(fromHeader)
-        if domain:
-            Lookup.domain_tot += 1
-            if domain in Lookup.seen_domain_ip:
-                Lookup.domain_hit += 1
-                return Lookup.seen_domain_ip[domain]
-        return False
-
-    # returns false if domain is invalid or private domain
-    @classmethod
-    def public_domainOld(cls, fromHeader):
-        domain = extract_domain(fromHeader)
-        if domain:
-            domain = get_endMessageIDDomain(domain)
-            try:
-                if (domain in Lookup.seen_domain_ip):
+        if Lookup.offline:
+            domain = extract_domain(fromHeader)
+            if domain:
+                Lookup.domain_tot += 1
+                if domain in Lookup.seen_domain_ip:
+                    Lookup.domain_hit += 1
                     return Lookup.seen_domain_ip[domain]
-                else:
-                    ip = socket.gethostbyname(domain)
-                    Lookup.seen_domain_ip[domain] = ip
-                    return ip
-            except:
-                return False
+            return False
+        else:
+            domain = extract_domain(fromHeader)
+            if domain:
+                Lookup.domain_tot += 1
+                domain = get_endMessageIDDomain(domain)
+                try:
+                    if (domain in Lookup.seen_domain_ip):
+                        Lookup.domain_hit += 1
+                        return Lookup.seen_domain_ip[domain]
+                    else:
+                        ip = socket.gethostbyname(domain)
+                        Lookup.seen_domain_ip[domain] = ip
+                        if ip:
+                            Lookup.domain_hit += 1
+                        return ip
+                except:
+                    return False
 
     @classmethod
     def getCIDR(cls, ip):
-        Lookup.cidr_tot += 1
-        for cidr in Lookup.seen_pairings_keys:
-            ip_bin = getBinaryRep(ip, cidr)
-            if ip_bin in Lookup.seen_pairings[cidr]:
-                Lookup.cidr_hit += 1
-                return cidr
-        return 32
-        
-    @classmethod
-    def getCIDROld(cls, ip):
-        try:
-            if ip in Lookup.seen_pairings:
-                return Lookup.seen_pairings[ip]
-            else:
-                obj = IPWhois(ip)
-                results = obj.lookup()
-                if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
-                    cidr = ip + "/32"
+        if Lookup.offline:
+            Lookup.cidr_tot += 1
+            for cidr in Lookup.seen_pairings_keys:
+                ip_bin = getBinaryRep(ip, cidr)
+                if ip_bin in Lookup.seen_pairings[cidr]:
+                    Lookup.cidr_hit += 1
+                    return cidr
+            return 32
+        else:
+            Lookup.cidr_tot += 1
+            try:
+                if ip in Lookup.seen_pairings:
+                    Lookup.cidr_hit += 1
+                    return Lookup.seen_pairings[ip]
                 else:
-                    cidr = results["nets"][0]["cidr"]
-                Lookup.seen_pairings[ip] = cidr
-                return cidr
-        except:
-            Lookup.seen_pairings[ip] = "Invalid"
-            return "Invalid"
+                    obj = IPWhois(ip)
+                    results = obj.lookup_whois()
+                    if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
+                        cidr = ip + "/32"
+                    else:
+                        cidr = results["nets"][0]["cidr"]
+                    Lookup.seen_pairings[ip] = cidr
+                    if cidr:
+                        Lookup.cidr_hit += 1
+                    return cidr
+            except:
+                Lookup.seen_pairings[ip] = "Invalid"
+                return "Invalid"
 
     @classmethod
     def writeStatistics(cls):

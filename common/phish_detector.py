@@ -37,6 +37,9 @@ class PhishDetector(object):
         #Generator and Classifier
         self.classifier = None
 
+        self.parse_config()
+        self.parse_args()
+
 
     def parse_args(self):
         """
@@ -117,6 +120,7 @@ class PhishDetector(object):
             'detectors',
             'emails_threshold',
             'batch_threading_size',
+            'offline',
             'results_size',
             'parallel',
             'num_threads',
@@ -136,6 +140,7 @@ class PhishDetector(object):
 
         self.detectors = detectors
         self.root_dir = os.path.abspath(self.root_dir)
+        Lookup.initialize(offline=self.offline)
 
     def prep_features(self, directory):   
         regular_path = os.path.join(directory, self.regular_filename)
@@ -196,9 +201,6 @@ class PhishDetector(object):
 
 
     def execute(self):
-        self.parse_config()
-        self.parse_args()
-        
         start_time = time.time()
 
         if self.generate_data_matrix or self.generate_test_matrix:
@@ -221,7 +223,6 @@ def run_generator(generator):
     
 
 if __name__ == '__main__':
-    Lookup.loadAll()
     detector = PhishDetector()
     detector.execute()
     
