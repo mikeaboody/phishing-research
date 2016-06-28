@@ -27,6 +27,5 @@ class MemTracker(object):
         h = MemTracker.heapy_instance.heap()
         with open(MemTracker.log_file_path, "a") as f:
             f.write("Memory statistics for '" + section_name + "':\n")
-            for i in range(len(h)):
-                f.write(str(h[i]) + "\n")
+            f.write(str(h) + "\n")
             f.write("\n")
