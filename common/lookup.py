@@ -100,8 +100,8 @@ class Lookup:
                 ip_bin = getBinaryRep(ip, cidr)
                 if ip_bin in Lookup.seen_pairings[cidr]:
                     Lookup.cidr_hit += 1
-                    return cidr
-            return 32
+                    return ip_bin
+            return getBinaryRep(ip, 32)
         else:
             Lookup.cidr_tot += 1
             try:
@@ -110,7 +110,7 @@ class Lookup:
                     return Lookup.seen_pairings[ip]
                 else:
                     obj = IPWhois(ip)
-                    results = obj.lookup_whois()
+                    results = obj.lookup()
                     if "nets" not in results.keys() or "cidr" not in results["nets"][0].keys():
                         cidr = ip + "/32"
                     else:
