@@ -9,6 +9,7 @@ from classify import Classify
 from multiprocessing import Pool
 from generate_features import FeatureGenerator
 from lookup import Lookup
+from memtest import MemTracker
 
 class PhishDetector(object):
 
@@ -188,9 +189,14 @@ class PhishDetector(object):
                 p.join()
         else:
             print('Generating features serially...')
+            dir_count = 0
+            log_mem_limit = 100000
             for directory in dir_to_generate:
+                if (dir_count + 1) % log_mem_limit == 0:
+                    MemTracker.logMemory("After generating features for " + str(dir_count + 1) + " senders")
                 feature_generator = self.prep_features(directory)
                 feature_generator.run()
+                dir_count += 1
 
     def generate_model_output(self):
         self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size, results_dir=self.result_path_out, serial_path=self.model_path_out)
@@ -202,12 +208,13 @@ class PhishDetector(object):
 
     def execute(self):
         start_time = time.time()
-
+        MemTracker.initialize("memory.log")
         if self.generate_data_matrix or self.generate_test_matrix:
             self.generate_features()
+        MemTracker.logMemory("After generating features/Before generating model")
         if self.generate_model:
             self.generate_model_output()
-
+        MemTracker.logMemory("After generating model")
         end_time = time.time()
 
         print ("Phish Detector took {} seconds to run.".format(int(end_time - start_time)))

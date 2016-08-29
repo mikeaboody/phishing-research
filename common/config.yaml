@@ -27,7 +27,7 @@ detectors:
     DateFormatDetector:         1
 
 #Parallel Settings
-parallel:                       1
+parallel:                       0
 num_threads:                    5
 
 #Do not modify unless you are certain what you are doing
