@@ -30,6 +30,9 @@ detectors:
 parallel:                       0
 num_threads:                    5
 
+#Memory Logging Settings
+memlog_minute_frequency:        60
+
 #Do not modify unless you are certain what you are doing
 regular_filename:               legit_emails.log
 phish_filename:                 phish_emails.log

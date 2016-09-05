@@ -4,12 +4,14 @@ import time
 import yaml
 import feature_classes as fc
 import traceback
+import datetime as dt
 from classify import Classify  
 
 from multiprocessing import Pool
 from generate_features import FeatureGenerator
 from lookup import Lookup
 from memtest import MemTracker
+
 
 class PhishDetector(object):
 
@@ -125,6 +127,7 @@ class PhishDetector(object):
             'results_size',
             'parallel',
             'num_threads',
+            'memlog_minute_frequency'
         ]
 
         try:
@@ -190,10 +193,14 @@ class PhishDetector(object):
         else:
             print('Generating features serially...')
             dir_count = 0
-            log_mem_limit = 100000
+            end_of_last_memory_track = dt.datetime.now()
             for directory in dir_to_generate:
-                if (dir_count + 1) % log_mem_limit == 0:
+                now = dt.datetime.now()
+                time_elapsed = now - end_of_last_memory_track
+                minutes_elapsed = time_elapsed.seconds / 60.0
+                if minutes_elapsed > self.memlog_minute_frequency: #15 seconds
                     MemTracker.logMemory("After generating features for " + str(dir_count + 1) + " senders")
+                    end_of_last_memory_track = dt.datetime.now()
                 feature_generator = self.prep_features(directory)
                 feature_generator.run()
                 dir_count += 1
