@@ -12,6 +12,9 @@ import feature_classes as fc
 from generate_features import FeatureGenerator
 from lookup import Lookup
 
+progress_logger = logging.getLogger('spear_phishing.progress')
+debug_logger = logging.getLogger('spear_phishing.debug')
+
 class PhishDetector(object):
 
     def __init__(self):
@@ -104,7 +107,7 @@ class PhishDetector(object):
         try:
             stream = file(self.config_path, 'r')
         except IOError:
-            logging.exception("Could not find yaml configuration file.")
+            debug_logger.exception("Could not find yaml configuration file.")
             raise
 
         config = yaml.load(stream)
@@ -132,7 +135,7 @@ class PhishDetector(object):
             for key in expected_config_keys:
                 setattr(self, key, config[key])
         except KeyError:
-            logging.exception("Configuration file missing entry")
+            debug_logger.exception("Configuration file missing entry")
             raise
 
         detectors = []
@@ -172,7 +175,7 @@ class PhishDetector(object):
         
         BATCH_SIZE = self.batch_threading_size
         if self.parallel:
-            logging.info('Generating features with {} threads in parallel with batch size {}...'.format(self.num_threads, BATCH_SIZE))
+            progress_logger.info('Generating features with {} threads in parallel with batch size {}...'.format(self.num_threads, BATCH_SIZE))
             feature_generators = []
             for directory in dir_to_generate:
                 feature_generator = self.prep_features(directory)
@@ -189,7 +192,7 @@ class PhishDetector(object):
                 p.close()
                 p.join()
         else:
-            logging.info('Generating features serially...')
+            progress_logger.info('Generating features serially...')
             for directory in dir_to_generate:
                 feature_generator = self.prep_features(directory)
                 feature_generator.run()
@@ -212,7 +215,7 @@ class PhishDetector(object):
 
         end_time = time.time()
 
-        logging.info("Phish Detector took {} seconds to run.".format(int(end_time - start_time)))
+        progress_logger.info("Phish Detector took {} seconds to run.".format(int(end_time - start_time)))
 
 def run_generator(generator):
     #Load offline info for Lookup class

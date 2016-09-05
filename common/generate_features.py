@@ -30,6 +30,8 @@ import scipy.io as sio
 
 import feature_classes as fc
 
+progress_logger = logging.getLogger('spear_phishing.progress')
+
 ############
 # FEATURES #
 ############
@@ -176,4 +178,4 @@ class FeatureGenerator(object):
             sio.savemat(test_path, test_dict)
             
         
-        logging.info(self.output_directory + " generated.")
+        progress_logger.info(self.output_directory + " generated.")
