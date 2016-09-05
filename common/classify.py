@@ -1,8 +1,9 @@
-import os
+from collections import OrderedDict
 import json
+import logging
+import os
 import pprint as pp
 from subprocess import call
-from collections import OrderedDict
 
 import numpy as np
 import scipy.io as sio
@@ -59,21 +60,21 @@ class Classify:
         self.X = X
         self.Y = Y
         self.data_size = len(X)
-        print("Finished concatenating training matrix.")
+        logging.info("Finished concatenating training matrix.")
 
     def cross_validate(self):
         validate_clf = linear_model.LogisticRegression(class_weight=self.weights)
         self.validation_acc = cross_validation.cross_val_score(validate_clf, self.X, self.Y.ravel(), cv=5)
-        print("Validation Accuracy: {}".format(self.validation_acc.mean()))
+        logging.info("Validation Accuracy: {}".format(self.validation_acc.mean()))
 
     def train_clf(self):
         self.clf.fit(self.X, self.Y.ravel())
-        print("Finished training classifier.")
+        logging.info("Finished training classifier.")
         self.clf_coef = self.clf.coef_[0]
 
     def serialize_clf(self):
         joblib.dump(self.clf, self.serial_to_path)
-        print("Finished serializing.")
+        logging.info("Finished serializing.")
         
     def clean_all(self):
         try:
@@ -115,7 +116,7 @@ class Classify:
         res_sorted = results[results[:,PROBA_IND].argsort()][::-1]
         self.num_phish, self.test_size = self.calc_phish(res_sorted)
         output = self.filter_output(res_sorted)
-        pp.pprint(output)
+        logging.info(pp.pformat(output))
         self.d_name_per_feat = self.parse_feature_names()
         self.pretty_print(output[0], "low_volume")
         self.pretty_print(output[1], "high_volume")

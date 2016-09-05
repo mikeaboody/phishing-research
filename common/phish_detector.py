@@ -1,12 +1,14 @@
 import argparse
+import logging
+from multiprocessing import Pool
 import os
 import time
-import yaml
-import feature_classes as fc
 import traceback
-from classify import Classify  
 
-from multiprocessing import Pool
+import yaml
+
+from classify import Classify
+import feature_classes as fc
 from generate_features import FeatureGenerator
 from lookup import Lookup
 
@@ -102,7 +104,7 @@ class PhishDetector(object):
         try:
             stream = file(self.config_path, 'r')
         except IOError:
-            print("Could not find yaml configuration file.")
+            logging.exception("Could not find yaml configuration file.")
             raise
 
         config = yaml.load(stream)
@@ -130,7 +132,7 @@ class PhishDetector(object):
             for key in expected_config_keys:
                 setattr(self, key, config[key])
         except KeyError:
-            print("Configuration file missing entry")
+            logging.exception("Configuration file missing entry")
             raise
 
         detectors = []
@@ -170,7 +172,7 @@ class PhishDetector(object):
         
         BATCH_SIZE = self.batch_threading_size
         if self.parallel:
-            print('Generating features with {} threads in parallel with batch size {}...'.format(self.num_threads, BATCH_SIZE))
+            logging.info('Generating features with {} threads in parallel with batch size {}...'.format(self.num_threads, BATCH_SIZE))
             feature_generators = []
             for directory in dir_to_generate:
                 feature_generator = self.prep_features(directory)
@@ -187,7 +189,7 @@ class PhishDetector(object):
                 p.close()
                 p.join()
         else:
-            print('Generating features serially...')
+            logging.info('Generating features serially...')
             for directory in dir_to_generate:
                 feature_generator = self.prep_features(directory)
                 feature_generator.run()
@@ -210,7 +212,7 @@ class PhishDetector(object):
 
         end_time = time.time()
 
-        print ("Phish Detector took {} seconds to run.".format(int(end_time - start_time)))
+        logging.info("Phish Detector took {} seconds to run.".format(int(end_time - start_time)))
 
 def run_generator(generator):
     #Load offline info for Lookup class
@@ -221,8 +223,6 @@ def run_generator(generator):
         traceback.print_exc()
         raise RuntimeError("thread raised an error")
     
-
-if __name__ == '__main__':
+def main():
     detector = PhishDetector()
     detector.execute()
-    
