@@ -1,7 +1,7 @@
 #Configuration file for PhishDetector
 
 #Data and Test Matrix Configurations
-root_dir:                       ../broScripts/output
+root_dir:                       regular
 sender_profile_percentage:      0.1
 data_matrix_percentage:         0.2
 test_matrix_percentage:         0.7
@@ -31,7 +31,8 @@ parallel:                       0
 num_threads:                    5
 
 #Memory Logging Settings
-memlog_minute_frequency:        60
+memlog_gen_features_frequency:  60
+memlog_classify_frequency:      1
 
 #Do not modify unless you are certain what you are doing
 regular_filename:               legit_emails.log

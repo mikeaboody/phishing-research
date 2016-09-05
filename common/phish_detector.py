@@ -127,7 +127,8 @@ class PhishDetector(object):
             'results_size',
             'parallel',
             'num_threads',
-            'memlog_minute_frequency'
+            'memlog_gen_features_frequency',
+            'memlog_classify_frequency'
         ]
 
         try:
@@ -198,7 +199,7 @@ class PhishDetector(object):
                 now = dt.datetime.now()
                 time_elapsed = now - end_of_last_memory_track
                 minutes_elapsed = time_elapsed.seconds / 60.0
-                if minutes_elapsed > self.memlog_minute_frequency: #15 seconds
+                if minutes_elapsed > self.memlog_gen_features_frequency:
                     MemTracker.logMemory("After generating features for " + str(dir_count + 1) + " senders")
                     end_of_last_memory_track = dt.datetime.now()
                 feature_generator = self.prep_features(directory)
@@ -206,7 +207,7 @@ class PhishDetector(object):
                 dir_count += 1
 
     def generate_model_output(self):
-        self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size, results_dir=self.result_path_out, serial_path=self.model_path_out)
+        self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size, results_dir=self.result_path_out, serial_path=self.model_path_out, memlog_freq=self.memlog_classify_frequency)
         self.classifier.generate_training()
         self.classifier.train_clf()
         self.classifier.cross_validate()
