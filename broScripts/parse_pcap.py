@@ -55,15 +55,22 @@ def is_person_empty(field):
     return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
 def parseLine(line):
+    global total_failed_parse
+    fullLine = line
     lstOfTups = []
-
     while True:
         if "('" not in line or "')" not in line or "','" not in line:
+            if line and line != '\n':
+                raise ValueError("This email could not be fully parsed: " + fullLine)
+                return []
             return lstOfTups
         startParen = line.index("('")
         endParen = line.index("')")+1
         comma = line.index("','") + 1
 
+        if endParen < comma:
+            raise ValueError("This email's header or value has a quote+parenthesis: " + fullLine)
+            return []
         header = line[startParen+2:comma-1]
         value = line[comma+2:endParen-1]
 
@@ -108,11 +115,10 @@ try:
                 if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
                     try:
                         headers = parseLine(line)
-                    except SyntaxError as e:
+                    except (SyntaxError, ValueError) as e:
                         if eval_error_count < 10:
                             eval_error_count += 1
-                            print(e)
-                            print(line)
+                        print(e)
                         total_failed_parse += 1
                         continue
                     sender = ''
@@ -120,7 +126,6 @@ try:
                         if k == 'FROM':
                             sender = v
                             senders_seen.write(v + '\n')
-                            # senders_seen.append(v)
                             break
                     if not is_person_empty(sender):
                         name, address = parseaddr(sender)
@@ -170,16 +175,13 @@ try:
                 if line[0] == '[' and line[-2] == ']':
                     try:
                         headers = parseLine(line)
-                    except SyntaxError as e:
+                    except (SyntaxError, ValueError) as e:
                         total_failed_parse += 1
+                        print(e)
                         continue
                     sender = ''
                     for k, v in headers:
                         if k == 'FROM':
-                            # sender = v
-                            # while sender == v:
-                            #     new_index = np.random.randint(num_senders)
-                            #     sender = senders_seen[new_index]
                             sender = senders_seen.readline().strip() # Remove newline character
                             from_index = headers.index((k, v))
                             headers.pop(from_index)
