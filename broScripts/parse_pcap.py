@@ -27,6 +27,8 @@ total_phish_emails = 0
 total_failed_parse = 0
 total_pcaps = 0
 total_only_hyphen = 0
+total_full_parse_error = 0
+total_quote_paren_error = 0
 num_pcaps_bro_failed = 0
 
 eval_error_count = 0
@@ -49,18 +51,22 @@ def summary_stats():
     print("Number of pcaps parsed: {}".format(total_pcaps))
     print("Number of pcaps that Bro failed to parse: {}".format(num_pcaps_bro_failed))
     print("Number of emails represented only by a hyphen: {}".format(total_only_hyphen))
+    print("Number of emails that could not be parsed fully: {}".format(total_full_parse_error))
+    print("Number of emails with a quote+parenthesis in the header or header value: {}".format(total_quote_paren_error))
     print("")
 
 def is_person_empty(field):
     return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
 def parseLine(line):
-    global total_failed_parse
+    global total_full_parse_error
+    global total_quote_paren_error
     fullLine = line
     lstOfTups = []
     while True:
         if "('" not in line or "')" not in line or "','" not in line:
             if line and line != '\n':
+                total_full_parse_error += 1
                 raise ValueError("This email could not be fully parsed: " + fullLine)
                 return []
             return lstOfTups
@@ -69,6 +75,7 @@ def parseLine(line):
         comma = line.index("','") + 1
 
         if endParen < comma:
+            total_quote_paren_error += 1
             raise ValueError("This email's header or value has a quote+parenthesis: " + fullLine)
             return []
         header = line[startParen+2:comma-1]
