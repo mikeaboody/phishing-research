@@ -1,8 +1,9 @@
-import os
+from collections import OrderedDict
 import json
+import logging
+import os
 import pprint as pp
 from subprocess import call
-from collections import OrderedDict
 
 import numpy as np
 import scipy.io as sio
@@ -17,8 +18,9 @@ TEST_IND = 3
 MESS_ID_IND = 4
 TOTAL_SIZE = 5
 
-class Classify:
+progress_logger = logging.getLogger('spear_phishing.progress')
 
+class Classify:
     def __init__(self, w, email_path, volume_split, bucket_size, results_dir="output", serial_path="clf.pkl"):
         self.weights = {1.0: w['positive'], 0.0: w['negative']}
         self.clf = linear_model.LogisticRegression(class_weight=self.weights)
@@ -59,21 +61,21 @@ class Classify:
         self.X = X
         self.Y = Y
         self.data_size = len(X)
-        print("Finished concatenating training matrix.")
+        progress_logger.info("Finished concatenating training matrix.")
 
     def cross_validate(self):
         validate_clf = linear_model.LogisticRegression(class_weight=self.weights)
         self.validation_acc = cross_validation.cross_val_score(validate_clf, self.X, self.Y.ravel(), cv=5)
-        print("Validation Accuracy: {}".format(self.validation_acc.mean()))
+        progress_logger.info("Validation Accuracy: {}".format(self.validation_acc.mean()))
 
     def train_clf(self):
         self.clf.fit(self.X, self.Y.ravel())
-        print("Finished training classifier.")
+        progress_logger.info("Finished training classifier.")
         self.clf_coef = self.clf.coef_[0]
 
     def serialize_clf(self):
         joblib.dump(self.clf, self.serial_to_path)
-        print("Finished serializing.")
+        progress_logger.info("Finished serializing.")
         
     def clean_all(self):
         try:
@@ -115,7 +117,7 @@ class Classify:
         res_sorted = results[results[:,PROBA_IND].argsort()][::-1]
         self.num_phish, self.test_size = self.calc_phish(res_sorted)
         output = self.filter_output(res_sorted)
-        pp.pprint(output)
+        progress_logger.info(pp.pformat(output))
         self.d_name_per_feat = self.parse_feature_names()
         self.pretty_print(output[0], "low_volume")
         self.pretty_print(output[1], "high_volume")
