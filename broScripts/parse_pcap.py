@@ -28,6 +28,8 @@ total_phish_emails = 0
 total_failed_parse = 0
 total_pcaps = 0
 total_only_hyphen = 0
+total_full_parse_error = 0
+total_quote_paren_error = 0
 num_pcaps_bro_failed = 0
 
 eval_error_count = 0
@@ -52,21 +54,33 @@ def summary_stats():
     progress_logger.info("Number of pcaps parsed: {}".format(total_pcaps))
     progress_logger.info("Number of pcaps that Bro failed to parse: {}".format(num_pcaps_bro_failed))
     progress_logger.info("Number of emails represented only by a hyphen: {}".format(total_only_hyphen))
+    progress_logger.info("Number of emails that could not be parsed fully: {}".format(total_full_parse_error))
+    progress_logger.info("Number of emails with a quote+parenthesis in the header or header value: {}".format(total_quote_paren_error))
     progress_logger.info("======== Finished Pcap Parsing Phase ========")
 
 def is_person_empty(field):
     return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
 def parseLine(line):
+    global total_full_parse_error
+    global total_quote_paren_error
+    fullLine = line
     lstOfTups = []
-
     while True:
         if "('" not in line or "')" not in line or "','" not in line:
+            if line and line != '\n':
+                total_full_parse_error += 1
+                raise ValueError("This email could not be fully parsed: " + fullLine)
+                return []
             return lstOfTups
         startParen = line.index("('")
         endParen = line.index("')")+1
         comma = line.index("','") + 1
 
+        if endParen < comma:
+            total_quote_paren_error += 1
+            raise ValueError("This email's header or value has a quote+parenthesis: " + fullLine)
+            return []
         header = line[startParen+2:comma-1]
         value = line[comma+2:endParen-1]
 
@@ -81,7 +95,6 @@ def parseLine(line):
         lstOfTups.append((header, value))
 
         line = line[endParen+2:]
-
 try:
     progress_logger.info("======== Starting Pcap Parsing Phase ========")
     clean_all()
@@ -95,7 +108,6 @@ try:
 
     # Generating legit emails
     senders_seen = open(SENDERS_FILE, 'a+')
-    # senders_seen = []
     for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
         try:
             call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
@@ -111,11 +123,10 @@ try:
                 if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
                     try:
                         headers = parseLine(line)
-                    except SyntaxError as e:
+                    except (SyntaxError, ValueError) as e:
                         if eval_error_count < 10:
                             eval_error_count += 1
                             debug_logger.exception(e)
-                            debug_logger.info(line)
                         total_failed_parse += 1
                         continue
                     sender = ''
@@ -123,7 +134,6 @@ try:
                         if k == 'FROM':
                             sender = v
                             senders_seen.write(v + '\n')
-                            # senders_seen.append(v)
                             break
                     if not is_person_empty(sender):
                         name, address = parseaddr(sender)
@@ -166,23 +176,19 @@ try:
 
     # Generating phish emails
     senders_seen = open(SENDERS_FILE)
-    # num_senders = len(senders_seen)
     for filename in glob.glob(BRO_LOG_DIRECTORY + '/*.log'):
         with open(filename, 'a+') as f:
             for line in f:
                 if line[0] == '[' and line[-2] == ']':
                     try:
                         headers = parseLine(line)
-                    except SyntaxError as e:
-                        total_failed_parse += 1
+                    except (SyntaxError, ValueError) as e:
+                        # total_failed_parse += 1
+                        # print(e)
                         continue
                     sender = ''
                     for k, v in headers:
                         if k == 'FROM':
-                            # sender = v
-                            # while sender == v:
-                            #     new_index = np.random.randint(num_senders)
-                            #     sender = senders_seen[new_index]
                             sender = senders_seen.readline().strip() # Remove newline character
                             from_index = headers.index((k, v))
                             headers.pop(from_index)
