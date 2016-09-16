@@ -1,5 +1,6 @@
 from email.utils import parseaddr
 import glob
+import logging
 import os
 import random
 import re
@@ -27,10 +28,15 @@ total_phish_emails = 0
 total_failed_parse = 0
 total_pcaps = 0
 total_only_hyphen = 0
+total_full_parse_error = 0
+total_quote_paren_error = 0
 num_pcaps_bro_failed = 0
 
 eval_error_count = 0
 mkdir_error_count = 0
+
+progress_logger = logging.getLogger('spear_phishing.progress')
+debug_logger = logging.getLogger('spear_phishing.debug')
 
 def clean_all():
     try:
@@ -40,30 +46,41 @@ def clean_all():
         pass
 
 def summary_stats():
-    print("")
-    print("======== Summary Stats for Pcap Parsing Phase ========")
-    print("Number of unique senders: {}".format(total_senders))
-    print("Number of emails successfully parsed: {}".format(total_legit_emails))
-    print("Number of pseudo-phish emails generated: {}".format(total_phish_emails))
-    print("Number of emails failed to parse: {}".format(total_failed_parse))
-    print("Number of pcaps parsed: {}".format(total_pcaps))
-    print("Number of pcaps that Bro failed to parse: {}".format(num_pcaps_bro_failed))
-    print("Number of emails represented only by a hyphen: {}".format(total_only_hyphen))
-    print("")
+    progress_logger.info("======== Summary Stats for Pcap Parsing Phase ========")
+    progress_logger.info("Number of unique senders: {}".format(total_senders))
+    progress_logger.info("Number of emails successfully parsed: {}".format(total_legit_emails))
+    progress_logger.info("Number of pseudo-phish emails generated: {}".format(total_phish_emails))
+    progress_logger.info("Number of emails failed to parse: {}".format(total_failed_parse))
+    progress_logger.info("Number of pcaps parsed: {}".format(total_pcaps))
+    progress_logger.info("Number of pcaps that Bro failed to parse: {}".format(num_pcaps_bro_failed))
+    progress_logger.info("Number of emails represented only by a hyphen: {}".format(total_only_hyphen))
+    progress_logger.info("Number of emails that could not be parsed fully: {}".format(total_full_parse_error))
+    progress_logger.info("Number of emails with a quote+parenthesis in the header or header value: {}".format(total_quote_paren_error))
+    progress_logger.info("======== Finished Pcap Parsing Phase ========")
 
 def is_person_empty(field):
     return field == '' or field == '-' or field == '<>' or field == '(empty)' or field == 'undisclosed'
 
 def parseLine(line):
+    global total_full_parse_error
+    global total_quote_paren_error
+    fullLine = line
     lstOfTups = []
-
     while True:
         if "('" not in line or "')" not in line or "','" not in line:
+            if line and line != '\n':
+                total_full_parse_error += 1
+                raise ValueError("This email could not be fully parsed: " + fullLine)
+                return []
             return lstOfTups
         startParen = line.index("('")
         endParen = line.index("')")+1
         comma = line.index("','") + 1
 
+        if endParen < comma:
+            total_quote_paren_error += 1
+            raise ValueError("This email's header or value has a quote+parenthesis: " + fullLine)
+            return []
         header = line[startParen+2:comma-1]
         value = line[comma+2:endParen-1]
 
@@ -78,9 +95,8 @@ def parseLine(line):
         lstOfTups.append((header, value))
 
         line = line[endParen+2:]
-
 try:
-    print("======== Starting Pcap Parsing Phase ========")
+    progress_logger.info("======== Starting Pcap Parsing Phase ========")
     clean_all()
     try:
         if not os.path.exists(OUTPUT_DIRECTORY):
@@ -88,16 +104,15 @@ try:
         if not os.path.exists(BRO_LOG_DIRECTORY):
             os.makedirs(BRO_LOG_DIRECTORY)
     except Exception as e:
-        print(e)
+        debug_logger.exception(e)
 
     # Generating legit emails
     senders_seen = open(SENDERS_FILE, 'a+')
-    # senders_seen = []
     for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
         try:
             call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
         except Exception as e:
-            print('Could not invoke bro on {}'.format(filename))
+            debug_logger.warn('Could not invoke bro on {}'.format(filename))
             num_pcaps_bro_failed += 1
             continue
         with open(BRO_OUTPUT_FILE, 'a+') as f:
@@ -108,11 +123,10 @@ try:
                 if line[0] == '[' and line[-2] == ']': # Check that this line represents an email
                     try:
                         headers = parseLine(line)
-                    except SyntaxError as e:
+                    except (SyntaxError, ValueError) as e:
                         if eval_error_count < 10:
                             eval_error_count += 1
-                            print(e)
-                            print(line)
+                            debug_logger.exception(e)
                         total_failed_parse += 1
                         continue
                     sender = ''
@@ -120,7 +134,6 @@ try:
                         if k == 'FROM':
                             sender = v
                             senders_seen.write(v + '\n')
-                            # senders_seen.append(v)
                             break
                     if not is_person_empty(sender):
                         name, address = parseaddr(sender)
@@ -139,14 +152,14 @@ try:
                         name = 'noname'
                         sender_dir = "{}/{}/{}".format(OUTPUT_DIRECTORY, name, address)
                     if not os.path.exists(sender_dir):
-                        print('Creating Output Directory for {}'.format(name))
+                        progress_logger.info('Creating Output Directory for {}'.format(name))
                         try:
                             os.makedirs(sender_dir)
                             total_senders += 1
                         except Exception as e:
                             if mkdir_error_count < 10:
                                 mkdir_error_count += 1
-                                print(e)
+                                debug_logger.exception(e)
                     with open('{}/legit_emails.log'.format(sender_dir), 'a') as output_file:
                         output_file.write(line)
                         total_legit_emails += 1
@@ -155,7 +168,7 @@ try:
         try:
             call(['mv', BRO_OUTPUT_FILE, '{}/{}'.format(BRO_LOG_DIRECTORY, bro_filename)])
         except Exception as e:
-            print("Unable to move {}".format(bro_filename))
+            debug_logger.exception("Unable to move {}".format(bro_filename))
         total_pcaps += 1
     senders_seen.close()
 
@@ -163,23 +176,19 @@ try:
 
     # Generating phish emails
     senders_seen = open(SENDERS_FILE)
-    # num_senders = len(senders_seen)
     for filename in glob.glob(BRO_LOG_DIRECTORY + '/*.log'):
         with open(filename, 'a+') as f:
             for line in f:
                 if line[0] == '[' and line[-2] == ']':
                     try:
                         headers = parseLine(line)
-                    except SyntaxError as e:
-                        total_failed_parse += 1
+                    except (SyntaxError, ValueError) as e:
+                        # total_failed_parse += 1
+                        # print(e)
                         continue
                     sender = ''
                     for k, v in headers:
                         if k == 'FROM':
-                            # sender = v
-                            # while sender == v:
-                            #     new_index = np.random.randint(num_senders)
-                            #     sender = senders_seen[new_index]
                             sender = senders_seen.readline().strip() # Remove newline character
                             from_index = headers.index((k, v))
                             headers.pop(from_index)
@@ -202,13 +211,13 @@ try:
                         name = 'noname'
                         sender_dir = "{}/{}/{}".format(OUTPUT_DIRECTORY, name, address)
                     if not os.path.exists(sender_dir):
-                        print("Missing sender directory for {}".format(sender_dir))
+                        debug_logger.warning("Missing sender directory for {}".format(sender_dir))
                         continue
                     with open('{}/phish_emails.log'.format(sender_dir), 'a') as output_file:
                         output_file.write(str(headers) + '\n')
                         total_phish_emails += 1
     if not total_phish_emails == total_legit_emails:
-        print('Found {} phishing emails, {} legitimate emails'.format(total_phish_emails, total_legit_emails))
+        debug_logger.warning('Found {} phishing emails, {} legitimate emails'.format(total_phish_emails, total_legit_emails))
     senders_seen.close()
 finally:
     summary_stats()

@@ -20,14 +20,17 @@ The output of your file will be two .mat files 'training.mat' and 'test.mat'.
     -'test_data'
 """
 
+import logging
 import os
 import sys
-import inbox
 
+import inbox
 import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
+
+progress_logger = logging.getLogger('spear_phishing.progress')
 
 ############
 # FEATURES #
@@ -175,4 +178,4 @@ class FeatureGenerator(object):
             sio.savemat(test_path, test_dict)
             
         
-        print(self.output_directory + " generated.")
+        progress_logger.info(self.output_directory + " generated.")

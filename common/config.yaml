@@ -1,7 +1,7 @@
 #Configuration file for PhishDetector
 
 #Data and Test Matrix Configurations
-root_dir:                       regular
+root_dir:                       ../broScripts/output
 sender_profile_percentage:      0.1
 data_matrix_percentage:         0.2
 test_matrix_percentage:         0.7
