@@ -11,6 +11,8 @@ from sklearn import linear_model, cross_validation
 from sklearn.utils import shuffle
 from sklearn.externals import joblib
 
+from priorityHeap import PriorityQueue
+
 PATH_IND = 0
 LEGIT_IND = 1
 PROBA_IND = 2
@@ -30,12 +32,12 @@ class Classify:
         self.bucket_thres = volume_split
         self.bucket_size = bucket_size
         self.feature_names = None
-        
+
     def generate_training(self):
         X = None
         Y = None
         found_training_file = False
-        for root, dirs, files in os.walk(self.email_path): 
+        for root, dirs, files in os.walk(self.email_path):
             if 'training.mat' in files:
                 found_training_file = True
                 path = os.path.join(root, "training.mat")
@@ -76,7 +78,7 @@ class Classify:
     def serialize_clf(self):
         joblib.dump(self.clf, self.serial_to_path)
         progress_logger.info("Finished serializing.")
-        
+
     def clean_all(self):
         try:
             call(['rm', '-r', self.results_dir])
@@ -90,12 +92,19 @@ class Classify:
          - test.mat has data['email_index']
         Results is [path, index, probability]
         """
-        self.clean_all() 
+        self.clean_all()
         if not os.path.exists(self.results_dir):
-            os.makedirs(self.results_dir) 
+            os.makedirs(self.results_dir)
 
-        results = np.empty(shape=(0, TOTAL_SIZE), dtype='S200')
-        
+        #results = np.empty(shape=(0, TOTAL_SIZE), dtype='S200')
+
+        lowVolumeTop10 = PriorityQueue()
+        lowVolumeSenders = set()
+        highVolumeTop10 = PriorityQueue()
+        highVolumeSenders = set()
+
+        numPhish, testSize = 0, 0
+
         for root, dirs, files in os.walk(self.email_path):
             if 'test.mat' in files:
                 path = os.path.join(root, "test.mat")
@@ -109,20 +118,53 @@ class Classify:
                 test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
-                    results = np.concatenate((results, test_res), 0)
-        
-        self.write_as_matfile(results)
+                    testSize += 1
+                    probability = float(test_res[0][2])
+                    if probability > 0.5:
+                        numPhish += 1
+                    # check if sender is already in priority heap
+                    sender = self.get_sender(path)
+                    if not sender in lowVolumeSenders and not sender in highVolumeSenders:
+                        emailPath = test_res[0][0]
+                        num_emails = sum(1 for line in open(emailPath))
+                        if num_emails < self.bucket_thres:
+                            lowVolumeSenders.add(sender)
+                            popped = lowVolumeTop10.push(test_res, probability)
+                            if popped:
+                                lowVolumeSenders.remove(self.get_sender(popped[0]))
+                        else:
+                            highVolumeSenders.add(sender)
+                            popped = highVolumeTop10.push(test_res, probability)
+                            if popped:
+                                highVolumeSenders.remove(self.get_sender(popped[0]))
+                        # writing to mat file
+                        # figure out how to append to this file when writing to it
+                        self.write_as_matfile(test_res)
+
+
+        import pdb; pdb.set_trace()
+
+        # self.write_as_matfile(results)
         # Deletes message_id column, because no longer needed.
-        results = np.delete(results, MESS_ID_IND, 1)
-        res_sorted = results[results[:,PROBA_IND].argsort()][::-1]
-        self.num_phish, self.test_size = self.calc_phish(res_sorted)
-        output = self.filter_output(res_sorted)
+        #results = np.delete(results, MESS_ID_IND, 1)
+        #res_sorted = results[results[:,PROBA_IND].argsort()][::-1]
+        self.num_phish, self.test_size = numPhish, testSize
+        #output = self.filter_output(res_sorted)
+        output = self.createOutput(highVolumeTop10, lowVolumeTop10)
         progress_logger.info(pp.pformat(output))
         self.d_name_per_feat = self.parse_feature_names()
         self.pretty_print(output[0], "low_volume")
         self.pretty_print(output[1], "high_volume")
         self.write_summary_output(output)
-    
+
+    def createOutput(self, highPQ, lowPQ):
+        highVolume, lowVolume = [], []
+        for i in range(highPQ.getLength()):
+            highVolume.append(highPQ.pop())
+        for i in range(lowPQ.getLength()):
+            lowVolume.append(lowPQ.pop())
+        return [highVolume, lowVolume]
+
     def write_as_matfile(self, results):
         # Don't write the test_indx, only [path, indx, phish_prob, message_id]
         results = np.delete(results, TEST_IND, 1)
@@ -164,7 +206,7 @@ class Classify:
                 d_contribution[curr] = 0
             d_contribution[curr] += product[i]
         return OrderedDict(sorted(d_contribution.items(), key=lambda t: t[1], reverse=True))
-        
+
     def parse_feature_names(self):
         f_names = np.char.strip(self.feature_names, " ")
         # Assumes feature names are formatted as "ExampleDetector-0" meaning the
@@ -211,7 +253,7 @@ class Classify:
             for i, line in enumerate(fp):
                 if i == indx:
                     return line
-    
+
     def filter_output(self, lst):
         self.buckets = [0, 0]
         unique_sender = set()
@@ -230,18 +272,18 @@ class Classify:
             results[indx].append(lst[i].tolist())
             i += 1
         return results
-            
+
     def check_buckets(self, num_emails):
         bucket = 0 if num_emails < self.bucket_thres else 1
         return self.buckets[bucket] >= self.bucket_size, bucket
-            
+
     def get_sender(self, path):
         return path.split('/')[-2]
-    
+
     def output_phish_probabilities(self, test_X, indx, path, test_indx, test_mess_id):
         # Outputs matrix with columns:
         # [path, index_in_legit_email, prob_phish, test_indx, message_id]
-        # test_indx necessary for relooking up the test_indxth sample of 
+        # test_indx necessary for relooking up the test_indxth sample of
         # the test matrix when ranking feature contribution.
         sample_size = test_X.shape[0]
         if sample_size == 0:
@@ -260,4 +302,3 @@ class Classify:
         # Assumes prob_phish is 3rd column (index 2) and sorts by that.
         res_sorted = res[res[:,PROBA_IND].argsort()][::-1]
         return res_sorted
-    
