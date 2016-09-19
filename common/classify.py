@@ -142,12 +142,8 @@ class Classify:
                         self.write_as_matfile(test_res)
 
 
-        # self.write_as_matfile(results)
-        # Deletes message_id column, because no longer needed.
-        #results = np.delete(results, MESS_ID_IND, 1)
-        #res_sorted = results[results[:,PROBA_IND].argsort()][::-1]
+
         self.num_phish, self.test_size = numPhish, testSize
-        #output = self.filter_output(res_sorted)
         output = self.createOutput(highVolumeTop10, lowVolumeTop10)
         progress_logger.info(pp.pformat(output))
         self.d_name_per_feat = self.parse_feature_names()
