@@ -118,11 +118,19 @@ class Classify:
                 test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
+                    import pdb; pdb.set_trace()
                     testSize += 1
                     probability = float(test_res[0][2])
                     if probability > 0.5:
                         numPhish += 1
                     # check if sender is already in priority heap
+                    # update so that if multiple senders encountered - then one with highest probability stays
+                    # keep the info about the email that was flagged - not just the sender
+                    # iterate through test_res number of columns (so per email)
+                    # only compute num_emails once per sender - cache
+                    # split up into different methods
+                    # have functions to add and check if a sender is already there in the queue itself (change to be a list)
+                    # have priority queue create the output of the top 10 senders
                     sender = self.get_sender(path)
                     if not sender in lowVolumeSenders and not sender in highVolumeSenders:
                         emailPath = test_res[0][0]
@@ -137,10 +145,6 @@ class Classify:
                             popped = highVolumeTop10.push(test_res[0], probability)
                             if popped:
                                 highVolumeSenders.remove(self.get_sender(popped[0]))
-                        # writing to mat file
-                        # figure out how to append to this file when writing to it
-                        self.write_as_matfile(test_res)
-
 
 
         self.num_phish, self.test_size = numPhish, testSize
