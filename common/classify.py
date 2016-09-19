@@ -129,20 +129,18 @@ class Classify:
                         num_emails = sum(1 for line in open(emailPath))
                         if num_emails < self.bucket_thres:
                             lowVolumeSenders.add(sender)
-                            popped = lowVolumeTop10.push(test_res, probability)
+                            popped = lowVolumeTop10.push(test_res[0], probability)
                             if popped:
                                 lowVolumeSenders.remove(self.get_sender(popped[0]))
                         else:
                             highVolumeSenders.add(sender)
-                            popped = highVolumeTop10.push(test_res, probability)
+                            popped = highVolumeTop10.push(test_res[0], probability)
                             if popped:
                                 highVolumeSenders.remove(self.get_sender(popped[0]))
                         # writing to mat file
                         # figure out how to append to this file when writing to it
                         self.write_as_matfile(test_res)
 
-
-        import pdb; pdb.set_trace()
 
         # self.write_as_matfile(results)
         # Deletes message_id column, because no longer needed.
@@ -160,9 +158,9 @@ class Classify:
     def createOutput(self, highPQ, lowPQ):
         highVolume, lowVolume = [], []
         for i in range(highPQ.getLength()):
-            highVolume.append(highPQ.pop())
+            highVolume.append(list(highPQ.pop()))
         for i in range(lowPQ.getLength()):
-            lowVolume.append(lowPQ.pop())
+            lowVolume.append(list(lowPQ.pop()))
         return [highVolume, lowVolume]
 
     def write_as_matfile(self, results):
@@ -171,7 +169,6 @@ class Classify:
         output_dict = {}
         output_dict["phish_proba"] = results
         output_dict["column_names"] = ["path_to_email", "index_of_email", "phish_probability", "message_id_of_email"]
-
         matfile_path = os.path.join(self.results_dir, 'phish_proba.mat')
         sio.savemat(matfile_path, output_dict)
 
