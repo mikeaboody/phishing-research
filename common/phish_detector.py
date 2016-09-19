@@ -129,6 +129,7 @@ class PhishDetector(object):
             'results_size',
             'parallel',
             'num_threads',
+            'logging_interval',
         ]
 
         try:
@@ -168,14 +169,20 @@ class PhishDetector(object):
     def generate_features(self):
         dir_to_generate = []
 
+        progress_logger.info('Starting directory aggregation in feature generation.')
+        start_time = time.time()
         for dirpath, dirnames, filenames in os.walk(self.root_dir):
             if ((self.generate_data_matrix and self.regular_filename in filenames and self.phish_filename in filenames)
                 or (self.generate_test_matrix and self.regular_filename in filenames)):
                 dir_to_generate.append(dirpath)
+        end_time = time.time()
+        min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+        progress_logger.info('Finished directory aggregation in feature generation in {} minutes, {} seconds'.format(min_elapsed, sec_elapsed))
         
         BATCH_SIZE = self.batch_threading_size
         if self.parallel:
-            progress_logger.info('Generating features with {} threads in parallel with batch size {}...'.format(self.num_threads, BATCH_SIZE))
+            progress_logger.info('Starting feature generation with {} threads in parallel with batch size {}...'.format(self.num_threads, BATCH_SIZE))
+            start_time = time.time()
             feature_generators = []
             for directory in dir_to_generate:
                 feature_generator = self.prep_features(directory)
@@ -191,11 +198,26 @@ class PhishDetector(object):
                 p.map(run_generator, feature_generators)
                 p.close()
                 p.join()
+            end_time = time.time()
+            min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+            progress_logger.info('Finished feature generation in {} minutes, {} seconds.'.format(min_elapsed, sec_elapsed))
         else:
-            progress_logger.info('Generating features serially...')
+            progress_logger.info('Starting feature generation serially...')
+            start_time = time.time()
+            last_logged_time = start_time
+            dir_count = 0
             for directory in dir_to_generate:
+                dir_count += 1
+                curr_time = time.time()
+                if (curr_time - last_logged_time) > self.logging_interval * 60:
+                    progress_logger.info('Generating feature #{}'.format(dir_count))
+                    progress_logger.info('Feature generation has run for {} minutes'.format(int((curr_time - start_time) / 60)))
+                    last_logged_time = curr_time
                 feature_generator = self.prep_features(directory)
                 feature_generator.run()
+            end_time = time.time()
+            min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+            progress_logger.info('Finished feature generation in {} minutes, {} seconds.'.format(min_elapsed, sec_elapsed))
 
     def generate_model_output(self):
         self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size, results_dir=self.result_path_out, serial_path=self.model_path_out)
@@ -214,8 +236,8 @@ class PhishDetector(object):
             self.generate_model_output()
 
         end_time = time.time()
-
-        progress_logger.info("Phish Detector took {} seconds to run.".format(int(end_time - start_time)))
+        min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+        progress_logger.info("Phish Detector took {} minutes, {} seconds to run.".format(min_elapsed, sec_elapsed))
 
 def run_generator(generator):
     #Load offline info for Lookup class

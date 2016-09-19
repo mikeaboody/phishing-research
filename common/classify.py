@@ -4,6 +4,7 @@ import logging
 import os
 import pprint as pp
 from subprocess import call
+import time
 
 import numpy as np
 import scipy.io as sio
@@ -35,6 +36,8 @@ class Classify:
         X = None
         Y = None
         found_training_file = False
+        progress_logger.info("Starting to build training matrix.")
+        start_time = time.time()
         for root, dirs, files in os.walk(self.email_path): 
             if 'training.mat' in files:
                 found_training_file = True
@@ -61,14 +64,18 @@ class Classify:
         self.X = X
         self.Y = Y
         self.data_size = len(X)
-        progress_logger.info("Finished concatenating training matrix.")
+        end_time = time.time()
+        min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+        progress_logger.info("Finished concatenating training matrix in {} minutes, {} seconds.".format(min_elapsed, sec_elapsed))
 
     def cross_validate(self):
+        progress_logger.info("Starting cross validation.")
         validate_clf = linear_model.LogisticRegression(class_weight=self.weights)
         self.validation_acc = cross_validation.cross_val_score(validate_clf, self.X, self.Y.ravel(), cv=5)
         progress_logger.info("Validation Accuracy: {}".format(self.validation_acc.mean()))
 
     def train_clf(self):
+        progress_logger.info("Starting to train classifier.")
         self.clf.fit(self.X, self.Y.ravel())
         progress_logger.info("Finished training classifier.")
         self.clf_coef = self.clf.coef_[0]
@@ -94,9 +101,19 @@ class Classify:
         if not os.path.exists(self.results_dir):
             os.makedirs(self.results_dir) 
 
+        logging_interval = 60 # TODO(matthew): Move to config.yaml
+        progress_logger.info("Starting to test on data.")
+        start_time = time.time()
+        last_logged_time = start_time
+
         results = np.empty(shape=(0, TOTAL_SIZE), dtype='S200')
         
         for root, dirs, files in os.walk(self.email_path):
+            curr_time = time.time()
+            if (curr_time - last_logged_time) > logging_interval * 60:
+                progress_logger.info('Exploring directory: {}'.format(root))
+                progress_logger.info('Testing has run for {} minutes'.format(int((curr_time - start_time) / 60)))
+                last_logged_time = curr_time
             if 'test.mat' in files:
                 path = os.path.join(root, "test.mat")
                 data = sio.loadmat(path)
@@ -122,6 +139,9 @@ class Classify:
         self.pretty_print(output[0], "low_volume")
         self.pretty_print(output[1], "high_volume")
         self.write_summary_output(output)
+        end_time = time.time()
+        min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+        progress_logger.info("Finished testing on data in {} minutes, {} seconds".format(min_elapsed, sec_elapsed))
     
     def write_as_matfile(self, results):
         # Don't write the test_indx, only [path, indx, phish_prob, message_id]
