@@ -29,16 +29,3 @@ class PriorityQueue:
     def pop(self):
         self._size -= 1
         return heapq.heappop(self._queue)[-1]
-
-## main
-# q = PriorityQueue()
-# q.push("Six", 6)
-# q.push("Seven", 7)
-# q.push("Eight", 8)
-# q.push("Nine", 9)
-# q.push("Ten", 10)
-# q.push("One", 1)
-# q.push("Two", 2)
-# q.push("Three", 3)
-# q.push("Four", 4)
-# q.push("Five", 5)
