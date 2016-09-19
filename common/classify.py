@@ -157,7 +157,7 @@ class Classify:
             highVolume.append(list(highPQ.pop()))
         for i in range(lowPQ.getLength()):
             lowVolume.append(list(lowPQ.pop()))
-        return [highVolume, lowVolume]
+        return [highVolume[::-1], lowVolume[::-1]]
 
     def write_as_matfile(self, results):
         # Don't write the test_indx, only [path, indx, phish_prob, message_id]
