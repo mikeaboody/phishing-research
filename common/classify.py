@@ -11,7 +11,7 @@ from sklearn import linear_model, cross_validation
 from sklearn.utils import shuffle
 from sklearn.externals import joblib
 
-from priorityHeap import PriorityQueue
+from priorityQueue import PriorityQueue
 
 PATH_IND = 0
 LEGIT_IND = 1
@@ -99,11 +99,10 @@ class Classify:
         #results = np.empty(shape=(0, TOTAL_SIZE), dtype='S200')
 
         lowVolumeTop10 = PriorityQueue()
-        lowVolumeSenders = set()
         highVolumeTop10 = PriorityQueue()
-        highVolumeSenders = set()
 
         numPhish, testSize = 0, 0
+        numEmails4Sender = {}
 
         for root, dirs, files in os.walk(self.email_path):
             if 'test.mat' in files:
@@ -118,37 +117,31 @@ class Classify:
                 test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
-                    import pdb; pdb.set_trace()
-                    testSize += 1
-                    probability = float(test_res[0][2])
-                    if probability > 0.5:
-                        numPhish += 1
-                    # check if sender is already in priority heap
-                    # update so that if multiple senders encountered - then one with highest probability stays
-                    # keep the info about the email that was flagged - not just the sender
-                    # iterate through test_res number of columns (so per email)
-                    # only compute num_emails once per sender - cache
-                    # split up into different methods
-                    # have functions to add and check if a sender is already there in the queue itself (change to be a list)
-                    # have priority queue create the output of the top 10 senders
-                    sender = self.get_sender(path)
-                    if not sender in lowVolumeSenders and not sender in highVolumeSenders:
-                        emailPath = test_res[0][0]
-                        num_emails = sum(1 for line in open(emailPath))
-                        if num_emails < self.bucket_thres:
-                            lowVolumeSenders.add(sender)
-                            popped = lowVolumeTop10.push(test_res[0], probability)
-                            if popped:
-                                lowVolumeSenders.remove(self.get_sender(popped[0]))
-                        else:
-                            highVolumeSenders.add(sender)
-                            popped = highVolumeTop10.push(test_res[0], probability)
-                            if popped:
-                                highVolumeSenders.remove(self.get_sender(popped[0]))
+                    for email in test_res:
+                        testSize += 1
+                        probability = float(email[2])
+                        if probability > 0.5:
+                            numPhish += 1
 
+                        # TODO(Apoorva): keep the info about the email that was flagged - not just the sender
+                        # TODO(Apoorva):split up into different methods
+
+                        sender = self.get_sender(email[0])
+                        emailPath = email[0]
+                        if sender not in numEmails4Sender:
+                            num_emails = sum(1 for line in open(emailPath))
+                            numEmails4Sender[sender] = num_emails
+                        else:
+                            num_emails = numEmails4Sender[sender]
+
+                        if num_emails < self.bucket_thres:
+                            lowVolumeTop10.push(email, probability)
+                        else:
+                            highVolumeTop10.push(email, probability)
 
         self.num_phish, self.test_size = numPhish, testSize
-        output = self.createOutput(highVolumeTop10, lowVolumeTop10)
+        output = [highVolumeTop10.createOutput(), lowVolumeTop10.createOutput()]
+        #output = self.createOutput(highVolumeTop10, lowVolumeTop10)
         progress_logger.info(pp.pformat(output))
         self.d_name_per_feat = self.parse_feature_names()
         self.pretty_print(output[0], "low_volume")
