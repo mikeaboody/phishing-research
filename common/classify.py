@@ -96,8 +96,6 @@ class Classify:
         if not os.path.exists(self.results_dir):
             os.makedirs(self.results_dir)
 
-        #results = np.empty(shape=(0, TOTAL_SIZE), dtype='S200')
-
         lowVolumeTop10 = PriorityQueue()
         highVolumeTop10 = PriorityQueue()
 
@@ -119,21 +117,20 @@ class Classify:
                 if test_res is not None:
                     for email in test_res:
                         testSize += 1
+                        sender = self.get_sender(email[0])
+                        emailPath = email[0]
                         probability = float(email[2])
                         if probability > 0.5:
                             numPhish += 1
 
-                        # TODO(Apoorva): keep the info about the email that was flagged - not just the sender
-                        # TODO(Apoorva):split up into different methods
-
-                        sender = self.get_sender(email[0])
-                        emailPath = email[0]
+                        # caches the num_emails value for each sender
                         if sender not in numEmails4Sender:
                             num_emails = sum(1 for line in open(emailPath))
                             numEmails4Sender[sender] = num_emails
                         else:
                             num_emails = numEmails4Sender[sender]
 
+                        # checks which priority queue to add item to
                         if num_emails < self.bucket_thres:
                             lowVolumeTop10.push(email, probability)
                         else:
@@ -141,29 +138,11 @@ class Classify:
 
         self.num_phish, self.test_size = numPhish, testSize
         output = [highVolumeTop10.createOutput(), lowVolumeTop10.createOutput()]
-        #output = self.createOutput(highVolumeTop10, lowVolumeTop10)
         progress_logger.info(pp.pformat(output))
         self.d_name_per_feat = self.parse_feature_names()
         self.pretty_print(output[0], "low_volume")
         self.pretty_print(output[1], "high_volume")
         self.write_summary_output(output)
-
-    def createOutput(self, highPQ, lowPQ):
-        highVolume, lowVolume = [], []
-        for i in range(highPQ.getLength()):
-            highVolume.append(list(highPQ.pop()))
-        for i in range(lowPQ.getLength()):
-            lowVolume.append(list(lowPQ.pop()))
-        return [highVolume[::-1], lowVolume[::-1]]
-
-    def write_as_matfile(self, results):
-        # Don't write the test_indx, only [path, indx, phish_prob, message_id]
-        results = np.delete(results, TEST_IND, 1)
-        output_dict = {}
-        output_dict["phish_proba"] = results
-        output_dict["column_names"] = ["path_to_email", "index_of_email", "phish_probability", "message_id_of_email"]
-        matfile_path = os.path.join(self.results_dir, 'phish_proba.mat')
-        sio.savemat(matfile_path, output_dict)
 
     def calc_phish(self, res_sorted):
         test_size = len(res_sorted)
@@ -243,29 +222,6 @@ class Classify:
             for i, line in enumerate(fp):
                 if i == indx:
                     return line
-
-    def filter_output(self, lst):
-        self.buckets = [0, 0]
-        unique_sender = set()
-        i = 0
-        results = [[], []]
-        while sum(self.buckets) < self.bucket_size*2 and i < len(lst):
-            path = lst[i][0]
-            sender = self.get_sender(path)
-            num_emails = sum(1 for line in open(path))
-            buckets_full, indx = self.check_buckets(num_emails)
-            if sender in unique_sender or buckets_full:
-                i += 1
-                continue
-            unique_sender.add(sender)
-            self.buckets[indx] += 1
-            results[indx].append(lst[i].tolist())
-            i += 1
-        return results
-
-    def check_buckets(self, num_emails):
-        bucket = 0 if num_emails < self.bucket_thres else 1
-        return self.buckets[bucket] >= self.bucket_size, bucket
 
     def get_sender(self, path):
         return path.split('/')[-2]

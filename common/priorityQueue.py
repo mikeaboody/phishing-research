@@ -54,7 +54,13 @@ class PriorityQueue:
     def createOutput(self):
         results = []
         for item in self._queue[::-1]:
-            results.append(item[2].tolist())
+            currentItem = item[2].tolist()
+            with open(currentItem[0]) as fp:
+                for i, line in enumerate(fp):
+                    if i == int(currentItem[1]):
+                        currentItem.append(line)
+                        break
+            results.append(currentItem)
         return results
 
     def __str__(self):
