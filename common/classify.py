@@ -58,7 +58,7 @@ class Classify:
                 Y = np.concatenate((Y, part_Y), axis=0)
         if not found_training_file:
             raise RuntimeError("Cannot find 'training.mat' files.")
-        if X == None:
+        if X is None:
             raise RuntimeError("Not enough data found in 'training.mat' files. Try running on more pcaps.")
 
         X, Y = shuffle(X, Y)
@@ -121,7 +121,7 @@ class Classify:
                 indx = data['email_index'].reshape(sample_size, 1)
                 test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
-                if test_res != None:
+                if test_res is not None:
                     results = np.concatenate((results, test_res), 0)
             num_senders_completed += 1
         
