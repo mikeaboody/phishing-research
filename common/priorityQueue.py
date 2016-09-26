@@ -20,7 +20,7 @@ class PriorityQueue:
         # if so, checks to see if probability should be updated
         thisSender = item[0]
         if thisSender in self._uniqueSenders:
-            senderIndex = 0
+            senderIndex = None
             for i in range(len(self._queue)):
                 if self._queue[i][2][0] == thisSender:
                     senderIndex = i
