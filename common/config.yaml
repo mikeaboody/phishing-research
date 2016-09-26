@@ -27,8 +27,12 @@ detectors:
     DateFormatDetector:         1
 
 #Parallel Settings
-parallel:                       1
+parallel:                       0
 num_threads:                    5
+
+#Memory Logging Settings
+memlog_gen_features_frequency:  60
+memlog_classify_frequency:      1
 
 #Do not modify unless you are certain what you are doing
 regular_filename:               legit_emails.log

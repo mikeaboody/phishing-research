@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import datetime as dt
 import json
 import logging
 import os
@@ -12,6 +13,8 @@ from sklearn import linear_model, cross_validation
 from sklearn.utils import shuffle
 from sklearn.externals import joblib
 
+from memtest import MemTracker
+
 PATH_IND = 0
 LEGIT_IND = 1
 PROBA_IND = 2
@@ -22,7 +25,8 @@ TOTAL_SIZE = 5
 progress_logger = logging.getLogger('spear_phishing.progress')
 
 class Classify:
-    def __init__(self, w, email_path, volume_split, bucket_size, results_dir="output", serial_path="clf.pkl"):
+
+    def __init__(self, w, email_path, volume_split, bucket_size, results_dir="output", serial_path="clf.pkl", memlog_freq=-1):
         self.weights = {1.0: w['positive'], 0.0: w['negative']}
         self.clf = linear_model.LogisticRegression(class_weight=self.weights)
         self.email_path = email_path
@@ -31,6 +35,7 @@ class Classify:
         self.bucket_thres = volume_split
         self.bucket_size = bucket_size
         self.feature_names = None
+        self.memlog_freq = memlog_freq
         
     def generate_training(self):
         X = None
@@ -107,13 +112,22 @@ class Classify:
         last_logged_time = start_time
 
         results = np.empty(shape=(0, TOTAL_SIZE), dtype='S200')
-        
+
+        end_of_last_memory_track = dt.datetime.now()
+        num_senders_completed = 0
         for root, dirs, files in os.walk(self.email_path):
             curr_time = time.time()
             if (curr_time - last_logged_time) > logging_interval * 60:
                 progress_logger.info('Exploring directory: {}'.format(root))
                 progress_logger.info('Testing has run for {} minutes'.format(int((curr_time - start_time) / 60)))
                 last_logged_time = curr_time
+            if self.memlog_freq >= 0:
+                now = dt.datetime.now()
+                time_elapsed = now - end_of_last_memory_track
+                minutes_elapsed = time_elapsed.seconds / 60.0
+                if minutes_elapsed > self.memlog_freq:
+                    MemTracker.logMemory("After completing " + str(num_senders_completed) + " iterations in test_and_report")
+                    end_of_last_memory_track = dt.datetime.now()
             if 'test.mat' in files:
                 path = os.path.join(root, "test.mat")
                 data = sio.loadmat(path)
@@ -127,6 +141,7 @@ class Classify:
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
                     results = np.concatenate((results, test_res), 0)
+            num_senders_completed += 1
         
         self.write_as_matfile(results)
         # Deletes message_id column, because no longer needed.
@@ -280,4 +295,3 @@ class Classify:
         # Assumes prob_phish is 3rd column (index 2) and sorts by that.
         res_sorted = res[res[:,PROBA_IND].argsort()][::-1]
         return res_sorted
-    
