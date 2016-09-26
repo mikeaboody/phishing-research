@@ -12,13 +12,10 @@ class PriorityQueue:
     def getLength(self):
         return self._size
 
-    # returns the popped item
-    # returns None if no item is popped off
-    def push(self, item, priority):
-        # maintains the queue to have 10 elements or less
-        # element with lowest priority gets popped off
-        # in this case, the element with the lowest probability gets popped off
 
+    # adds item to priority queue if among the top 10 emails with highest priority
+    # only one email is maintained in the priority queue per sender
+    def push(self, item, priority):
         # checks to see if this sender is already in that priority queue
         # if so, checks to see if probability should be updated
         thisSender = item[0]
@@ -40,11 +37,11 @@ class PriorityQueue:
         self._uniqueSenders.add(item[0])
         self._size += 1
 
+        # maintains the queue to have 10 elements or less
         if self._size > 10:
             popped = self._queue.pop(0)
             self._uniqueSenders.remove(popped[2][0])
             self._size -= 1
-            return popped
 
     # elements with a higher probability get popped off first
     def pop(self):
