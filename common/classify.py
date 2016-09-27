@@ -13,6 +13,7 @@ from sklearn import linear_model, cross_validation
 from sklearn.utils import shuffle
 from sklearn.externals import joblib
 
+from priorityQueue import PriorityQueue
 from memtest import MemTracker
 
 PATH_IND = 0
@@ -35,12 +36,14 @@ class Classify:
         self.bucket_thres = volume_split
         self.bucket_size = bucket_size
         self.feature_names = None
+
         self.memlog_freq = memlog_freq
-        
+
     def generate_training(self):
         X = None
         Y = None
         found_training_file = False
+
         logging_interval = 60 # TODO(matthew): Move to config.yaml
         progress_logger.info("Starting to build training matrix.")
         start_time = time.time()
@@ -52,6 +55,7 @@ class Classify:
                 progress_logger.info('Exploring directory #{}'.format(num_senders_completed))
                 progress_logger.info('Building training matrix has run for {} minutes'.format(int((curr_time - start_time) / 60)))
                 last_logged_time = curr_time
+
             if 'training.mat' in files:
                 found_training_file = True
                 path = os.path.join(root, "training.mat")
@@ -97,7 +101,7 @@ class Classify:
     def serialize_clf(self):
         joblib.dump(self.clf, self.serial_to_path)
         progress_logger.info("Finished serializing.")
-        
+
     def clean_all(self):
         try:
             call(['rm', '-r', self.results_dir])
@@ -111,9 +115,15 @@ class Classify:
          - test.mat has data['email_index']
         Results is [path, index, probability]
         """
-        self.clean_all() 
+        self.clean_all()
         if not os.path.exists(self.results_dir):
-            os.makedirs(self.results_dir) 
+            os.makedirs(self.results_dir)
+
+        low_volume_top_10 = PriorityQueue()
+        high_volume_top_10 = PriorityQueue()
+
+        numPhish, testSize = 0, 0
+        numEmails4Sender = {}
 
         logging_interval = 60 # TODO(matthew): Move to config.yaml
         progress_logger.info("Starting to test on data.")
@@ -124,6 +134,7 @@ class Classify:
 
         end_of_last_memory_track = dt.datetime.now()
         num_senders_completed = 0
+
         for root, dirs, files in os.walk(self.email_path):
             curr_time = time.time()
             if (curr_time - last_logged_time) > logging_interval * 60:
@@ -149,39 +160,39 @@ class Classify:
                 test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
-                    results = np.concatenate((results, test_res), 0)
-            num_senders_completed += 1
-        
-        self.write_as_matfile(results)
-        # Deletes message_id column, because no longer needed.
-        results = np.delete(results, MESS_ID_IND, 1)
-        res_sorted = results[results[:,PROBA_IND].argsort()][::-1]
-        self.num_phish, self.test_size = self.calc_phish(res_sorted)
-        output = self.filter_output(res_sorted)
+                    for email in test_res:
+                        testSize += 1
+                        sender = self.get_sender(email[0])
+                        emailPath = email[0]
+                        probability = float(email[2])
+                        if probability > 0.5:
+                            numPhish += 1
+
+                        # caches the num_emails value for each sender
+                        if sender not in numEmails4Sender:
+                            num_emails = sum(1 for line in open(emailPath))
+                            numEmails4Sender[sender] = num_emails
+                        else:
+                            num_emails = numEmails4Sender[sender]
+
+                        # checks which priority queue to add item to
+                        if num_emails < self.bucket_thres:
+                            low_volume_top_10.push(email, probability)
+                        else:
+                            high_volume_top_10.push(email, probability)
+
+        self.num_phish, self.test_size = numPhish, testSize
+        output = [high_volume_top_10.createOutput(), low_volume_top_10.createOutput()]
+        progress_logger.info(pp.pformat(output))
+
         self.d_name_per_feat = self.parse_feature_names()
         self.pretty_print(output[0], "low_volume")
         self.pretty_print(output[1], "high_volume")
         self.write_summary_output(output)
+
         end_time = time.time()
         min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
         progress_logger.info("Finished testing on data in {} minutes, {} seconds. {} directories tested.".format(min_elapsed, sec_elapsed, num_senders_completed))
-    
-    def write_as_matfile(self, results):
-        # Don't write the test_indx, only [path, indx, phish_prob, message_id]
-        results = np.delete(results, TEST_IND, 1)
-        output_dict = {}
-        output_dict["phish_proba"] = results
-        output_dict["column_names"] = ["path_to_email", "index_of_email", "phish_probability", "message_id_of_email"]
-
-        matfile_path = os.path.join(self.results_dir, 'phish_proba.mat')
-        sio.savemat(matfile_path, output_dict)
-
-    def calc_phish(self, res_sorted):
-        test_size = len(res_sorted)
-        num_phish = sum(map(lambda x: 1 if float(x[2]) > 0.5 else 0, res_sorted))
-        if test_size == 0:
-            return None, "No test matrix."
-        return num_phish, test_size
 
     def pretty_print(self, output, folder_name):
         for i, row in enumerate(output):
@@ -207,7 +218,7 @@ class Classify:
                 d_contribution[curr] = 0
             d_contribution[curr] += product[i]
         return OrderedDict(sorted(d_contribution.items(), key=lambda t: t[1], reverse=True))
-        
+
     def parse_feature_names(self):
         f_names = np.char.strip(self.feature_names, " ")
         # Assumes feature names are formatted as "ExampleDetector-0" meaning the
@@ -254,37 +265,14 @@ class Classify:
             for i, line in enumerate(fp):
                 if i == indx:
                     return line
-    
-    def filter_output(self, lst):
-        self.buckets = [0, 0]
-        unique_sender = set()
-        i = 0
-        results = [[], []]
-        while sum(self.buckets) < self.bucket_size*2 and i < len(lst):
-            path = lst[i][0]
-            sender = self.get_sender(path)
-            num_emails = sum(1 for line in open(path))
-            buckets_full, indx = self.check_buckets(num_emails)
-            if sender in unique_sender or buckets_full:
-                i += 1
-                continue
-            unique_sender.add(sender)
-            self.buckets[indx] += 1
-            results[indx].append(lst[i].tolist())
-            i += 1
-        return results
-            
-    def check_buckets(self, num_emails):
-        bucket = 0 if num_emails < self.bucket_thres else 1
-        return self.buckets[bucket] >= self.bucket_size, bucket
-            
+
     def get_sender(self, path):
         return path.split('/')[-2]
-    
+
     def output_phish_probabilities(self, test_X, indx, path, test_indx, test_mess_id):
         # Outputs matrix with columns:
         # [path, index_in_legit_email, prob_phish, test_indx, message_id]
-        # test_indx necessary for relooking up the test_indxth sample of 
+        # test_indx necessary for relooking up the test_indxth sample of
         # the test matrix when ranking feature contribution.
         sample_size = test_X.shape[0]
         if sample_size == 0:
