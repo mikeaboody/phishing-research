@@ -42,6 +42,8 @@ defined in detector.py.
 """
 
 class FeatureGenerator(object):
+    DIR_NUM = 0
+
     def __init__(self,
                  output_directory,
                  filename,
@@ -177,5 +179,5 @@ class FeatureGenerator(object):
             test_path = os.path.join(self.output_directory, 'test.mat')
             sio.savemat(test_path, test_dict)
             
-        
-        progress_logger.info(self.output_directory + " generated.")
+        FeatureGenerator.DIR_NUM += 1
+        progress_logger.info('Data and features generated for directory #{}'.format(FeatureGenerator.DIR_NUM))
