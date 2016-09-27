@@ -1,10 +1,10 @@
 import argparse
+import datetime as dt
 import logging
 from multiprocessing import Pool
 import os
 import time
 import traceback
-import datetime as dt
 
 import yaml
 
@@ -13,7 +13,6 @@ import feature_classes as fc
 from generate_features import FeatureGenerator
 from lookup import Lookup
 from memtest import MemTracker
-
 
 progress_logger = logging.getLogger('spear_phishing.progress')
 debug_logger = logging.getLogger('spear_phishing.debug')
@@ -133,6 +132,7 @@ class PhishDetector(object):
             'results_size',
             'parallel',
             'num_threads',
+            'logging_interval',
             'memlog_gen_features_frequency',
             'memlog_classify_frequency'
         ]
@@ -174,14 +174,20 @@ class PhishDetector(object):
     def generate_features(self):
         dir_to_generate = []
 
+        progress_logger.info('Starting directory aggregation in feature generation.')
+        start_time = time.time()
         for dirpath, dirnames, filenames in os.walk(self.root_dir):
             if ((self.generate_data_matrix and self.regular_filename in filenames and self.phish_filename in filenames)
                 or (self.generate_test_matrix and self.regular_filename in filenames)):
                 dir_to_generate.append(dirpath)
+        end_time = time.time()
+        min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+        progress_logger.info('Finished directory aggregation in feature generation in {} minutes, {} seconds'.format(min_elapsed, sec_elapsed))
         
         BATCH_SIZE = self.batch_threading_size
         if self.parallel:
-            progress_logger.info('Generating features with {} threads in parallel with batch size {}...'.format(self.num_threads, BATCH_SIZE))
+            progress_logger.info('Starting feature generation with {} threads in parallel with batch size {}...'.format(self.num_threads, BATCH_SIZE))
+            start_time = time.time()
             feature_generators = []
             for directory in dir_to_generate:
                 feature_generator = self.prep_features(directory)
@@ -197,20 +203,33 @@ class PhishDetector(object):
                 p.map(run_generator, feature_generators)
                 p.close()
                 p.join()
+            end_time = time.time()
+            min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+            progress_logger.info('Finished feature generation in {} minutes, {} seconds.'.format(min_elapsed, sec_elapsed))
         else:
-            progress_logger.info('Generating features serially...')
+            progress_logger.info('Starting feature generation serially...')
+            start_time = time.time()
+            last_logged_time = start_time
             dir_count = 0
             end_of_last_memory_track = dt.datetime.now()
             for directory in dir_to_generate:
+                dir_count += 1
+                curr_time = time.time()
+                if (curr_time - last_logged_time) > self.logging_interval * 60:
+                    progress_logger.info('Processing directory #{} of {}'.format(dir_count, len(dir_to_generate)))
+                    progress_logger.info('Feature generation has run for {} minutes'.format(int((curr_time - start_time) / 60)))
+                    last_logged_time = curr_time
                 now = dt.datetime.now()
                 time_elapsed = now - end_of_last_memory_track
                 minutes_elapsed = time_elapsed.seconds / 60.0
                 if minutes_elapsed > self.memlog_gen_features_frequency:
-                    MemTracker.logMemory("After generating features for " + str(dir_count + 1) + " senders")
+                    MemTracker.logMemory("After generating features for " + str(dir_count) + " senders")
                     end_of_last_memory_track = dt.datetime.now()
                 feature_generator = self.prep_features(directory)
                 feature_generator.run()
-                dir_count += 1
+            end_time = time.time()
+            min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+            progress_logger.info('Finished feature generation in {} minutes, {} seconds.'.format(min_elapsed, sec_elapsed))
 
     def generate_model_output(self):
         self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size, results_dir=self.result_path_out, serial_path=self.model_path_out, memlog_freq=self.memlog_classify_frequency)
@@ -230,8 +249,8 @@ class PhishDetector(object):
             self.generate_model_output()
         MemTracker.logMemory("After generating model")
         end_time = time.time()
-
-        progress_logger.info("Phish Detector took {} seconds to run.".format(int(end_time - start_time)))
+        min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+        progress_logger.info("Phish Detector took {} minutes, {} seconds to run.".format(min_elapsed, sec_elapsed))
 
 def run_generator(generator):
     #Load offline info for Lookup class
