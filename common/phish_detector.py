@@ -216,7 +216,7 @@ class PhishDetector(object):
                 dir_count += 1
                 curr_time = time.time()
                 if (curr_time - last_logged_time) > self.logging_interval * 60:
-                    progress_logger.info('Generating feature #{}'.format(dir_count))
+                    progress_logger.info('Processing directory #{} of {}'.format(dir_count, len(dir_to_generate)))
                     progress_logger.info('Feature generation has run for {} minutes'.format(int((curr_time - start_time) / 60)))
                     last_logged_time = curr_time
                 now = dt.datetime.now()

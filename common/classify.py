@@ -41,9 +41,17 @@ class Classify:
         X = None
         Y = None
         found_training_file = False
+        logging_interval = 60 # TODO(matthew): Move to config.yaml
         progress_logger.info("Starting to build training matrix.")
         start_time = time.time()
-        for root, dirs, files in os.walk(self.email_path): 
+        last_logged_time = start_time
+        num_senders_completed = 0
+        for root, dirs, files in os.walk(self.email_path):
+            curr_time = time.time()
+            if (curr_time - last_logged_time) > logging_interval * 60:
+                progress_logger.info('Exploring directory #{}'.format(num_senders_completed))
+                progress_logger.info('Building training matrix has run for {} minutes'.format(int((curr_time - start_time) / 60)))
+                last_logged_time = curr_time
             if 'training.mat' in files:
                 found_training_file = True
                 path = os.path.join(root, "training.mat")
@@ -60,6 +68,7 @@ class Classify:
                     continue
                 X = np.concatenate((X, part_X), axis=0)
                 Y = np.concatenate((Y, part_Y), axis=0)
+            num_senders_completed += 1
         if not found_training_file:
             raise RuntimeError("Cannot find 'training.mat' files.")
         if X is None:
@@ -71,7 +80,7 @@ class Classify:
         self.data_size = len(X)
         end_time = time.time()
         min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
-        progress_logger.info("Finished concatenating training matrix in {} minutes, {} seconds.".format(min_elapsed, sec_elapsed))
+        progress_logger.info("Finished concatenating training matrix in {} minutes, {} seconds. {} directories seen.".format(min_elapsed, sec_elapsed, num_senders_completed))
 
     def cross_validate(self):
         progress_logger.info("Starting cross validation.")
@@ -118,7 +127,7 @@ class Classify:
         for root, dirs, files in os.walk(self.email_path):
             curr_time = time.time()
             if (curr_time - last_logged_time) > logging_interval * 60:
-                progress_logger.info('Exploring directory: {}'.format(root))
+                progress_logger.info('Exploring directory #{}'.format(num_senders_completed))
                 progress_logger.info('Testing has run for {} minutes'.format(int((curr_time - start_time) / 60)))
                 last_logged_time = curr_time
             if self.memlog_freq >= 0:
@@ -156,7 +165,7 @@ class Classify:
         self.write_summary_output(output)
         end_time = time.time()
         min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
-        progress_logger.info("Finished testing on data in {} minutes, {} seconds".format(min_elapsed, sec_elapsed))
+        progress_logger.info("Finished testing on data in {} minutes, {} seconds. {} directories tested.".format(min_elapsed, sec_elapsed, num_senders_completed))
     
     def write_as_matfile(self, results):
         # Don't write the test_indx, only [path, indx, phish_prob, message_id]
