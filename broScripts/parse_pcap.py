@@ -108,6 +108,7 @@ try:
 
     # Generating legit emails
     senders_seen = open(SENDERS_FILE, 'a+')
+    dir_num = 0
     for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
         try:
             call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
@@ -152,7 +153,8 @@ try:
                         name = 'noname'
                         sender_dir = "{}/{}/{}".format(OUTPUT_DIRECTORY, name, address)
                     if not os.path.exists(sender_dir):
-                        progress_logger.info('Creating Output Directory for {}'.format(name))
+                        dir_num += 1
+                        progress_logger.info('Creating Directory #{}'.format(dir_num))
                         try:
                             os.makedirs(sender_dir)
                             total_senders += 1
