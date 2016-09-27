@@ -96,8 +96,8 @@ class Classify:
         if not os.path.exists(self.results_dir):
             os.makedirs(self.results_dir)
 
-        lowVolumeTop10 = PriorityQueue()
-        highVolumeTop10 = PriorityQueue()
+        low_volume_top_10 = PriorityQueue()
+        high_volume_top_10 = PriorityQueue()
 
         numPhish, testSize = 0, 0
         numEmails4Sender = {}
@@ -132,24 +132,17 @@ class Classify:
 
                         # checks which priority queue to add item to
                         if num_emails < self.bucket_thres:
-                            lowVolumeTop10.push(email, probability)
+                            low_volume_top_10.push(email, probability)
                         else:
-                            highVolumeTop10.push(email, probability)
+                            high_volume_top_10.push(email, probability)
 
         self.num_phish, self.test_size = numPhish, testSize
-        output = [highVolumeTop10.createOutput(), lowVolumeTop10.createOutput()]
+        output = [high_volume_top_10.createOutput(), low_volume_top_10.createOutput()]
         progress_logger.info(pp.pformat(output))
         self.d_name_per_feat = self.parse_feature_names()
         self.pretty_print(output[0], "low_volume")
         self.pretty_print(output[1], "high_volume")
         self.write_summary_output(output)
-
-    def calc_phish(self, res_sorted):
-        test_size = len(res_sorted)
-        num_phish = sum(map(lambda x: 1 if float(x[2]) > 0.5 else 0, res_sorted))
-        if test_size == 0:
-            return None, "No test matrix."
-        return num_phish, test_size
 
     def pretty_print(self, output, folder_name):
         for i, row in enumerate(output):

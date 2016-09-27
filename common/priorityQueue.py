@@ -2,6 +2,8 @@ import bisect
 
 class PriorityQueue:
     def __init__(self):
+        # self._queue has a tuple with three values: (priority, self._id, and item)
+        # The priority is the probability and the item is an email represented by a numpy array
         self._queue = []
         self._size = 0
         self._id = 0
@@ -65,17 +67,3 @@ class PriorityQueue:
 
     def __repr__(self):
         return str(self._queue)
-
-# main
-# pq = PriorityQueue()
-# pq.push(["hi7", 7], 7)
-# pq.push(["hi8", 8], 8)
-# pq.push(["hi9", 9], 9)
-# pq.push(["hi10", 10], 10)
-# pq.push(["hi11", 11], 11)
-# pq.push(["hi1", 1], 1)
-# pq.push(["hi2", 2], 2)
-# pq.push(["hi3", 3], 3)
-# pq.push(["hi4", 4], 4)
-# pq.push(["hi5", 5], 5)
-# pq.push(["hi6", 6], 6)
