@@ -158,7 +158,6 @@ class Classify:
         res_sorted = results[results[:,PROBA_IND].argsort()][::-1]
         self.num_phish, self.test_size = self.calc_phish(res_sorted)
         output = self.filter_output(res_sorted)
-        progress_logger.info(pp.pformat(output))
         self.d_name_per_feat = self.parse_feature_names()
         self.pretty_print(output[0], "low_volume")
         self.pretty_print(output[1], "high_volume")
