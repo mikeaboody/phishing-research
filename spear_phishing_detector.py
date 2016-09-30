@@ -37,7 +37,7 @@ def main():
     init_logger('spear_phishing.progress', OUTPUT_DIRECTORY + '/progress.log')
     init_logger('spear_phishing.debug', OUTPUT_DIRECTORY + '/debug.log')
 
-    progress_logger = logging.getLogger('spear_phishing')
+    progress_logger = logging.getLogger('spear_phishing.progress')
     progress_logger.info('Starting Spear Phishing Detector.')
     # TODO(matthew): Refactor parse_pcap to have a main method.
     from broScripts import parse_pcap
