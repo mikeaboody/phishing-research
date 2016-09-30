@@ -23,7 +23,7 @@
 
 ### Instructions
 1.  Gather PCAP files you would like to analyze
-    *   Option 1 (recommended): place your pcaps in ```broScripts/input/``` (and delete the ```input000.pcap``` and ```input001.pcap``` that were already there)
+    *   Option 1 (recommended): place your pcaps in ```broScripts/input/``` (and delete the ```input000.pcap``` and ```input001.pcap``` that were already there).  make sure the files end in a ```*.pcap``` extension.
     *   Option 2: Edit line 12 in ```broScripts/parse_pcap.py``` so that ```PCAP_DIRECTORY``` is the path to the directory containing the PCAP files
 2.  Delete any existing logs (in the root directory of the repository you cloned) that may be left over from prior runs:
     	rm output/*.log
