@@ -183,7 +183,9 @@ class Classify:
 
         self.num_phish, self.test_size = numPhish, testSize
         output = [high_volume_top_10.createOutput(), low_volume_top_10.createOutput()]
-        progress_logger.info(pp.pformat(output))
+
+        # DEBUG information - don't print to main log
+        # debug_logger.info(pp.pformat(output))
 
         self.d_name_per_feat = self.parse_feature_names()
         self.pretty_print(output[0], "low_volume")
