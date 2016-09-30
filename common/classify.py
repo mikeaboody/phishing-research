@@ -182,14 +182,16 @@ class Classify:
                             high_volume_top_10.push(email, probability)
 
         self.num_phish, self.test_size = numPhish, testSize
-        output = [high_volume_top_10.createOutput(), low_volume_top_10.createOutput()]
+        low_volume_output = low_volume_top_10.createOutput()
+        high_volume_output = high_volume_top_10.createOutput()
+        output = [low_volume_output, high_volume_output]
 
         # DEBUG information - don't print to main log
         # debug_logger.info(pp.pformat(output))
 
         self.d_name_per_feat = self.parse_feature_names()
-        self.pretty_print(output[0], "low_volume")
-        self.pretty_print(output[1], "high_volume")
+        self.pretty_print(low_volume_output, "low_volume")
+        self.pretty_print(high_volume_output, "high_volume")
         self.write_summary_output(output)
 
         end_time = time.time()
