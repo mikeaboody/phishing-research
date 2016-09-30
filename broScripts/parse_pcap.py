@@ -172,6 +172,7 @@ try:
         except Exception as e:
             debug_logger.exception("Unable to move {}".format(bro_filename))
         total_pcaps += 1
+    progress_logger.info('Done.  Created #{} directories.'.format(dir_num))
     senders_seen.close()
 
     os.system('shuf {} > /dev/null'.format(SENDERS_FILE))
