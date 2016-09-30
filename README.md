@@ -25,13 +25,15 @@
 1.  Gather PCAP files you would like to analyze
     *   Option 1 (recommended): place your pcaps in ```broScripts/input/``` (and delete the ```input000.pcap``` and ```input001.pcap``` that were already there)
     *   Option 2: Edit line 12 in ```broScripts/parse_pcap.py``` so that ```PCAP_DIRECTORY``` is the path to the directory containing the PCAP files
-2.  Run the following command from the root directory of the repository you initially cloned
+2.  Delete any existing logs (in the root directory of the repository you cloned) that may be left over from prior runs:
+    	rm output/*.log
+3.  Run the following command from the root directory of the repository you initially cloned
 
     	python spear_phishing_detector.py --all
-3.  There will be a ```common/output``` directory with 3 things, a ```low_volume``` directory, a ```high_volume``` directory, and an ```output.txt``` (you can ignore the ```output.txt```).
+4.  There will be a ```common/output``` directory with 3 things, a ```low_volume``` directory, a ```high_volume``` directory, and an ```output.txt``` (you can ignore the ```output.txt```).
 The ```low_volume``` directory contains emails from senders who send low volume emails (<1000 emails).  Look at email headers in the JSON file in descending filename order.  Likewise for the high_volume directory.
 
-4. There will also be an ```output``` directory with 4 different files:  ```current.log```, ```debug.log```, ```memory.log```, and ```progress.log```. ```current.log``` has all logs, ```debug.log``` has error logs, ```memory.log``` has logs on memory profiling, and ```progress.log``` contains logs keeping track of the progress of the detector. ```current.log``` and ```debug.log``` contain sensitive information. 
+5. There will also be an ```output``` directory with 4 different files:  ```current.log```, ```debug.log```, ```memory.log```, and ```progress.log```. ```current.log``` has all logs, ```debug.log``` has error logs, ```memory.log``` has logs on memory profiling, and ```progress.log``` contains logs keeping track of the progress of the detector. ```current.log``` and ```debug.log``` contain sensitive information.  ```progress.log``` and ```memory.log``` have been sanitized and shouldn't contain any sensitive/confidential information.
 
 ### How To Run Phish Detector
 You should really only have to run
