@@ -119,6 +119,9 @@ class Classify:
         if not os.path.exists(self.results_dir):
             os.makedirs(self.results_dir)
 
+        # creates this file in common/output
+        email_probabilities = open(os.path.join("output", "email_probabilities.txt"), "w")
+
         low_volume_top_10 = PriorityQueue()
         high_volume_top_10 = PriorityQueue()
 
@@ -165,6 +168,7 @@ class Classify:
                         sender = self.get_sender(email[0])
                         emailPath = email[0]
                         probability = float(email[2])
+                        message_ID = email[4].strip(" ")
                         if probability > 0.5:
                             numPhish += 1
 
@@ -181,6 +185,10 @@ class Classify:
                         else:
                             high_volume_top_10.push(email, probability)
 
+                        # writes an email's message ID and phish probability to a file
+                        email_probabilities.write(message_ID + "," + str(probability) + "\n")
+	
+	email_probabilities.close()
         self.num_phish, self.test_size = numPhish, testSize
         low_volume_output = low_volume_top_10.createOutput()
         high_volume_output = high_volume_top_10.createOutput()
