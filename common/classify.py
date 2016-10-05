@@ -187,7 +187,8 @@ class Classify:
 
                         # writes an email's message ID and phish probability to a file
                         email_probabilities.write(message_ID + "," + str(probability) + "\n")
-
+	
+	email_probabilities.close()
         self.num_phish, self.test_size = numPhish, testSize
         low_volume_output = low_volume_top_10.createOutput()
         high_volume_output = high_volume_top_10.createOutput()
