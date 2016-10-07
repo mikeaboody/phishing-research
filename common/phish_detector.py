@@ -207,7 +207,7 @@ class PhishDetector(object):
             min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
             progress_logger.info('Finished feature generation in {} minutes, {} seconds.'.format(min_elapsed, sec_elapsed))
         else:
-            progress_logger.info('Starting feature generation serially...')
+            progress_logger.info('Starting feature generation serially for {} directories'.format(len(dir_to_generate)))
             start_time = time.time()
             last_logged_time = start_time
             dir_count = 0
