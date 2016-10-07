@@ -25,6 +25,18 @@ class Detector(object):
         return
 
     @abc.abstractmethod
+    def update_sender_profile(self, key, value):
+        """Updates the sender profile map after classification.
+
+        Keyword arguments:
+        key -- the key to update or add to the sender profile
+        value -- the corresponding value to update
+
+        No return value.
+        """
+        return
+
+    @abc.abstractmethod
     def classify(self, phish):
         """Determine if phish is detected as a phishing email by checking if
            it is in the sender's profile.
