@@ -5,6 +5,7 @@ import os
 import random
 import re
 from subprocess import call
+import time
 
 import numpy as np
 
@@ -97,6 +98,8 @@ def parseLine(line):
         line = line[endParen+2:]
 try:
     progress_logger.info("======== Starting Pcap Parsing Phase ========")
+    start_time = time.time()
+    last_logged_time = start_time
     clean_all()
     try:
         if not os.path.exists(OUTPUT_DIRECTORY):
@@ -154,7 +157,10 @@ try:
                         sender_dir = "{}/{}/{}".format(OUTPUT_DIRECTORY, name, address)
                     if not os.path.exists(sender_dir):
                         dir_num += 1
-                        progress_logger.info('Creating Directory #{}'.format(dir_num))
+                        curr_time = time.time()
+                        if curr_time - last_logged_time > 60: # Only log every 60 seconds.
+                            last_logged_time = curr_time
+                            progress_logger.info('Creating Directory #{}'.format(dir_num))
                         try:
                             os.makedirs(sender_dir)
                             total_senders += 1
@@ -172,7 +178,9 @@ try:
         except Exception as e:
             debug_logger.exception("Unable to move {}".format(bro_filename))
         total_pcaps += 1
-    progress_logger.info('Done.  Created #{} directories.'.format(dir_num))
+    end_time = time.time()
+    min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
+    progress_logger.info('Done. Created {} directories in {} minutes, {} seconds.'.format(dir_num, min_elapsed, sec_elapsed))
     senders_seen.close()
 
     os.system('shuf {} > /dev/null'.format(SENDERS_FILE))
