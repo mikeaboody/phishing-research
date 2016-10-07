@@ -97,25 +97,25 @@ def parseLine(line):
         line = line[endParen+2:]
 try:
     progress_logger.info("======== Starting Pcap Parsing Phase ========")
-    clean_all()
-    try:
-        if not os.path.exists(OUTPUT_DIRECTORY):
-            os.makedirs(OUTPUT_DIRECTORY)
-        if not os.path.exists(BRO_LOG_DIRECTORY):
-            os.makedirs(BRO_LOG_DIRECTORY)
-    except Exception as e:
-        debug_logger.exception(e)
+    #clean_all()
+    #try:
+    #    if not os.path.exists(OUTPUT_DIRECTORY):
+    #        os.makedirs(OUTPUT_DIRECTORY)
+    #    if not os.path.exists(BRO_LOG_DIRECTORY):
+    #        os.makedirs(BRO_LOG_DIRECTORY)
+    #except Exception as e:
+    #    debug_logger.exception(e)
 
     # Generating legit emails
     senders_seen = open(SENDERS_FILE, 'a+')
     dir_num = 0
     for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
-        try:
-            call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
-        except Exception as e:
-            debug_logger.warn('Could not invoke bro on {}'.format(filename))
-            num_pcaps_bro_failed += 1
-            continue
+        #try:
+        #    call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
+        #except Exception as e:
+        #    debug_logger.warn('Could not invoke bro on {}'.format(filename))
+        #    num_pcaps_bro_failed += 1
+        #    continue
         with open(BRO_OUTPUT_FILE, 'a+') as f:
             for line in f:
                 if line == "-" or line == "-\n":
@@ -167,10 +167,10 @@ try:
                         total_legit_emails += 1
         last_index = filename.rfind('/')
         bro_filename = filename[last_index + 1:-4] + 'log'
-        try:
-            call(['mv', BRO_OUTPUT_FILE, '{}/{}'.format(BRO_LOG_DIRECTORY, bro_filename)])
-        except Exception as e:
-            debug_logger.exception("Unable to move {}".format(bro_filename))
+        #try:
+        #    call(['mv', BRO_OUTPUT_FILE, '{}/{}'.format(BRO_LOG_DIRECTORY, bro_filename)])
+        #except Exception as e:
+        #    debug_logger.exception("Unable to move {}".format(bro_filename))
         total_pcaps += 1
     progress_logger.info('Done.  Created #{} directories.'.format(dir_num))
     senders_seen.close()
