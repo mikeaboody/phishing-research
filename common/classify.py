@@ -93,7 +93,7 @@ class Classify:
         progress_logger.info("Validation Accuracy: {}".format(self.validation_acc.mean()))
 
     def train_clf(self):
-        progress_logger.info("Starting to train classifier.")
+        progress_logger.info("Starting to train classifier. Training on {} data points and {} features.".format(self.X.shape[0], self.X.shape[1]))
         self.clf.fit(self.X, self.Y.ravel())
         progress_logger.info("Finished training classifier.")
         self.clf_coef = self.clf.coef_[0]
