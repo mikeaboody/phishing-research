@@ -7,6 +7,7 @@ class Detector(object):
     __metaclass__ = abc.ABCMeta
     """Length of list returned by classify()."""
     NUM_HEURISTICS = 1
+    USE_NAME = False
 
     def __init__(self, regular_mbox):
         self.inbox = regular_mbox
@@ -67,8 +68,11 @@ class Detector(object):
 
         Returns the sender stored in msg's From header.
         """
-
-        return msg["From"]
+        from_header = msg["From"]
+        if Detector.USE_NAME:
+            return extract_name(from_header)
+        else:
+            return extract_email(from_header)
 
     def make_phish(self):
         """Generates a phishy email."""

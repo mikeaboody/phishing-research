@@ -5,6 +5,7 @@ root_dir:                       ../broScripts/output
 sender_profile_percentage:      0.1
 data_matrix_percentage:         0.2
 test_matrix_percentage:         0.7
+use_name_in_from:               1
 
 #Model Training and Classification Settings
 weights:
