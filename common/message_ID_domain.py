@@ -42,7 +42,7 @@ class messageIDDomain_Detector(Detector):
         return mID
         
     def classify(self, phish):
-        sender = self.getEntireEmail(phish["From"])
+        sender = self.getEntireEmail(self.extract_from(phish))
         mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
 
         if sender in self.sender_profile.keys():
@@ -153,7 +153,7 @@ class messageIDDomain_Detector(Detector):
             msg = self.inbox[i]
             # if "List-Unsubscribe" in msg.keys():
             #     continue
-            sender = self.getEntireEmail(msg["From"])
+            sender = self.getEntireEmail(self.extract_from(msg))
             if sender:
                 emails_with_sender += 1
                 mID = self.get_endMessageIDDomain(self.get_messageIDDomain(msg))

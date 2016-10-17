@@ -82,8 +82,9 @@ class ReceivedHeader:
 
 class SenderReceiverProfile(dict):
 
-    def __init__(self, inbox, num_samples):
+    def __init__(self, inbox, num_samples, detector):
         self.inbox = inbox
+        self.detector = detector
         self.analyze(num_samples)
 
     def analyze(self, num_samples):
@@ -96,7 +97,7 @@ class SenderReceiverProfile(dict):
         self.createReceivedHeaderSequences()
 
     def appendEmail(self, msg):
-        sender = extract_email(msg, "From")
+        sender = extract_email(self.detector.extract_from(msg))
         receiver = ""
         if (sender, receiver) not in self:
             self[(sender, receiver)] = SenderReceiverPair(sender, receiver)
@@ -148,7 +149,7 @@ class ReceivedHeadersDetector(Detector):
 
     def classify(self, phish):
         RHList = []
-        sender = extract_email(phish, "From")
+        sender = extract_email(self.extract_from(phish))
         receiver = ""
         edit_distances = [0, 1, 2]
         feature_vector = [0 for _ in range(len(edit_distances))]
@@ -178,10 +179,9 @@ class ReceivedHeadersDetector(Detector):
         return feature_vector
 
     def create_sender_profile(self, num_samples):
-        self.srp = SenderReceiverProfile(self.inbox, num_samples)
+        self.srp = SenderReceiverProfile(self.inbox, num_samples, self)
 
-def extract_email(msg, header):
-    from_header = msg[header]
+def extract_email(from_header):
     if not from_header:
         return None
     from_header = from_header.lower()
