@@ -97,7 +97,7 @@ class SenderReceiverProfile(dict):
         self.createReceivedHeaderSequences()
 
     def appendEmail(self, msg):
-        sender = extract_email(self.detector.extract_from(msg))
+        sender = self.detector.extract_from(msg)
         receiver = ""
         if (sender, receiver) not in self:
             self[(sender, receiver)] = SenderReceiverPair(sender, receiver)
@@ -149,7 +149,7 @@ class ReceivedHeadersDetector(Detector):
 
     def classify(self, phish):
         RHList = []
-        sender = extract_email(self.extract_from(phish))
+        sender = self.extract_from(phish)
         receiver = ""
         edit_distances = [0, 1, 2]
         feature_vector = [0 for _ in range(len(edit_distances))]
@@ -181,12 +181,12 @@ class ReceivedHeadersDetector(Detector):
     def create_sender_profile(self, num_samples):
         self.srp = SenderReceiverProfile(self.inbox, num_samples, self)
 
-def extract_email(from_header):
-    if not from_header:
-        return None
-    from_header = from_header.lower()
-    r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
-    return r.group() if r else from_header
+# def extract_email(from_header):
+#     if not from_header:
+#         return None
+#     from_header = from_header.lower()
+#     r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
+#     return r.group() if r else from_header
 
 def removeSpaces(s):
     exp = " +$"

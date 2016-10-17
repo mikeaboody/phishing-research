@@ -67,6 +67,7 @@ class Detector(object):
 
         Returns the sender stored in msg's From header.
         """
+
         return msg["From"]
 
     def make_phish(self):
@@ -85,3 +86,23 @@ class Detector(object):
         phish['Subject'] = random_msg['Subject'] 
         phish = self.modify_phish(phish, random_msg)
         return phish
+
+# returns apoorva.dornadula@berkeley.edu given "Apoorva Dornadula <apoorva.dornadula@berkeley.edu>"
+def extract_email(from_header):
+    if from_header == None:
+        return None
+    if ("<" in from_header and ">" in from_header):
+        leftBracket = from_header.index("<")
+        rightBracket = from_header.index(">")
+        return from_header[leftBracket+1:rightBracket]
+    return from_header
+
+def extract_name(from_header):
+    if not from_header:
+        return None
+    from_header = from_header.lower()
+    r = re.compile(" *<.*> *")
+    from_header = r.sub("", from_header)
+    r = re.compile("^ +")
+    from_header = r.sub("", from_header)
+    return from_header

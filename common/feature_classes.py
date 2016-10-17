@@ -192,13 +192,3 @@ class XMailerDetector(Detector):
                 return s
         return False
 
-    def extract_name(self, msg):
-        from_header = msg["From"]
-        if not from_header:
-            return None
-        from_header = from_header.lower()
-        r = re.compile(" *<.*> *")
-        from_header = r.sub("", from_header)
-        r = re.compile("^ +")
-        from_header = r.sub("", from_header)
-        return from_header
