@@ -80,6 +80,7 @@ class Classify:
 
         X, Y = shuffle(X, Y)
         self.X = X
+        np.savez("dataMatrix", np.vstack([self.feature_names, self.X]))
         self.Y = Y
         self.data_size = len(X)
         end_time = time.time()
