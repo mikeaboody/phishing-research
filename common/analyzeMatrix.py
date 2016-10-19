@@ -13,7 +13,6 @@ for i in range(numFeatures):
   col = data[:,i]
   feature_name = str(col[0]).strip(" ")
   col = col[1:].astype(np.float)
-  import pdb; pdb.set_trace()
   outputStats.write("{}: mean = {}, standard deviation = {}, max = {}, min = {}\n".format(feature_name, col.mean(), col.std(), col.max(), col.min()))
 
 outputStats.close()
