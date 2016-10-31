@@ -4,7 +4,7 @@ import mailbox
 def createFile(inbox):
     i = 0
     for msg in inbox:
-        if i >= 10:
+        if i >= 50:
             break
         print(i)
         line = "["

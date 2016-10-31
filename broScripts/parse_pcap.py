@@ -168,10 +168,10 @@ try:
                         total_legit_emails += 1
         last_index = filename.rfind('/')
         bro_filename = filename[last_index + 1:-4] + 'log'
-        #try:
-        #    call(['mv', BRO_OUTPUT_FILE, '{}/{}'.format(BRO_LOG_DIRECTORY, bro_filename)])
-        #except Exception as e:
-        #    debug_logger.exception("Unable to move {}".format(bro_filename))
+        try:
+            call(['cp', BRO_OUTPUT_FILE, '{}/{}'.format(BRO_LOG_DIRECTORY, "mbox.log")])
+        except Exception as e:
+            debug_logger.exception("Unable to move {}".format(bro_filename))
         total_pcaps += 1
     progress_logger.info('Done.  Created #{} directories.'.format(dir_num))
     senders_seen.close()
