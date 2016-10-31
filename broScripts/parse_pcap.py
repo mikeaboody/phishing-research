@@ -97,19 +97,20 @@ def parseLine(line):
         line = line[endParen+2:]
 try:
     progress_logger.info("======== Starting Pcap Parsing Phase ========")
-    #clean_all()
-    #try:
-    #    if not os.path.exists(OUTPUT_DIRECTORY):
-    #        os.makedirs(OUTPUT_DIRECTORY)
-    #    if not os.path.exists(BRO_LOG_DIRECTORY):
-    #        os.makedirs(BRO_LOG_DIRECTORY)
-    #except Exception as e:
-    #    debug_logger.exception(e)
+    clean_all()
+    try:
+        if not os.path.exists(OUTPUT_DIRECTORY):
+            os.makedirs(OUTPUT_DIRECTORY)
+        if not os.path.exists(BRO_LOG_DIRECTORY):
+            os.makedirs(BRO_LOG_DIRECTORY)
+    except Exception as e:
+        debug_logger.exception(e)
 
     # Generating legit emails
     senders_seen = open(SENDERS_FILE, 'a+')
     dir_num = 0
-    for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
+    #for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
+    for filename in ["file"]:
         #try:
         #    call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
         #except Exception as e:

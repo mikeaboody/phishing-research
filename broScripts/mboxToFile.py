@@ -4,9 +4,15 @@ import mailbox
 def createFile(inbox):
     i = 0
     for msg in inbox:
+        if i >= 10:
+            break
         print(i)
         line = "["
         for header, value in msg.items():
+            value = value.replace("\r", "")
+            value = value.replace("\n", "")
+            if header == "From":
+                header = "FROM"
             if len(line) == 1:
                 line += "('"+ header + "','" + value +"')"
             else:
