@@ -5,6 +5,7 @@ import logging
 import os
 import pprint as pp
 from subprocess import call
+import sys
 import time
 
 import numpy as np
@@ -13,8 +14,8 @@ from sklearn import linear_model, cross_validation
 from sklearn.utils import shuffle
 from sklearn.externals import joblib
 
-from priorityQueue import PriorityQueue
 from memtest import MemTracker
+from priorityQueue import PriorityQueue
 
 PATH_IND = 0
 LEGIT_IND = 1
@@ -27,7 +28,7 @@ progress_logger = logging.getLogger('spear_phishing.progress')
 
 class Classify:
 
-    def __init__(self, w, email_path, volume_split, bucket_size, results_dir="output", serial_path="clf.pkl", memlog_freq=-1):
+    def __init__(self, w, email_path, volume_split, bucket_size, results_dir="output", serial_path="clf.pkl", memlog_freq=-1, debug_training=False):
         self.weights = {1.0: w['positive'], 0.0: w['negative']}
         self.clf = linear_model.LogisticRegression(class_weight=self.weights)
         self.email_path = email_path
@@ -38,6 +39,7 @@ class Classify:
         self.feature_names = None
 
         self.memlog_freq = memlog_freq
+        self.debug_training = debug_training
 
     def generate_training(self):
         X = None
@@ -80,8 +82,9 @@ class Classify:
 
         X, Y = shuffle(X, Y)
         self.X = X
-        np.savez("dataMatrix", np.vstack([self.feature_names, self.X]))
         self.Y = Y
+        # Save training data matrix and training labels to training_data.npz.
+        np.savez("training_data", X=np.vstack([self.feature_names, self.X]), Y=self.Y)
         self.data_size = len(X)
         end_time = time.time()
         min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
@@ -95,9 +98,14 @@ class Classify:
 
     def train_clf(self):
         progress_logger.info("Starting to train classifier. Training on {} data points and {} features.".format(self.X.shape[0], self.X.shape[1]))
-        self.clf.fit(self.X, self.Y.ravel())
-        progress_logger.info("Finished training classifier.")
-        self.clf_coef = self.clf.coef_[0]
+        # If debug mode, run debug script and then exit without executing the rest of the pipeline.
+        if self.debug_training:
+            import debug_training
+            sys.exit(0)
+        else:
+            self.clf.fit(self.X, self.Y.ravel())
+            progress_logger.info("Finished training classifier.")
+            self.clf_coef = self.clf.coef_[0]
 
     def serialize_clf(self):
         joblib.dump(self.clf, self.serial_to_path)

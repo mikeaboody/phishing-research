@@ -4,7 +4,9 @@ import os
 
 from common import phish_detector
 
-# Usage: python spear_phishing_detector.py --all
+# Usage:
+# Normal operation: python spear_phishing_detector.py --all
+# Debug mode: python spear_phishing_detector.py --debug_training
 
 OUTPUT_DIRECTORY = "output"
 
