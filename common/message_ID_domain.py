@@ -42,7 +42,7 @@ class messageIDDomain_Detector(Detector):
         return mID
         
     def classify(self, phish):
-        sender = self.getEntireEmail(phish["From"])
+        sender = self.extract_from(phish)
         mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
 
         if sender in self.sender_profile.keys():
@@ -76,16 +76,6 @@ class messageIDDomain_Detector(Detector):
             i = part.index(".")
             return part[i+1:]
         return email[indexAt+1:indexEnd]
-
-    # returns apoorva.dornadula@berkeley.edu given "Apoorva Dornadula <apoorva.dornadula@berkeley.edu>"
-    def getEntireEmail(self, sender):
-        if sender == None:
-            return None
-        if ("<" in sender and ">" in sender):
-            leftBracket = sender.index("<")
-            rightBracket = sender.index(">")
-            return sender[leftBracket+1:rightBracket]
-        return sender
 
     # returns True if FP and email will not be flagged
     def noreplyFP(self, sender, messageID):
@@ -153,7 +143,7 @@ class messageIDDomain_Detector(Detector):
             msg = self.inbox[i]
             # if "List-Unsubscribe" in msg.keys():
             #     continue
-            sender = self.getEntireEmail(msg["From"])
+            sender = self.extract_from(msg)
             if sender:
                 emails_with_sender += 1
                 mID = self.get_endMessageIDDomain(self.get_messageIDDomain(msg))

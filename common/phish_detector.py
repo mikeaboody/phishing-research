@@ -9,6 +9,7 @@ import traceback
 import yaml
 
 from classify import Classify
+from detector import Detector
 import feature_classes as fc
 from generate_features import FeatureGenerator
 from lookup import Lookup
@@ -122,6 +123,7 @@ class PhishDetector(object):
             'sender_profile_percentage',
             'data_matrix_percentage',
             'test_matrix_percentage',
+            'use_name_in_from',
             'model_path_out',
             'result_path_out',
             'weights',
@@ -172,6 +174,9 @@ class PhishDetector(object):
 
 
     def generate_features(self):
+        if self.use_name_in_from != 0:
+            Detector.USE_NAME = True
+
         dir_to_generate = []
 
         progress_logger.info('Starting directory aggregation in feature generation.')
