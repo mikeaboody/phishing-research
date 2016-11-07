@@ -10,6 +10,8 @@ def createFile(inbox, num_emails):
         for header, value in msg.items():
             value = value.replace("\r", "")
             value = value.replace("\n", "")
+            value = value.replace("'", "\\'")
+            header = header.replace("'", "\\'")
             if header == "From":
                 header = "FROM"
             if len(line) == 1:
