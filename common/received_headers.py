@@ -181,13 +181,6 @@ class ReceivedHeadersDetector(Detector):
     def create_sender_profile(self, num_samples):
         self.srp = SenderReceiverProfile(self.inbox, num_samples, self)
 
-# def extract_email(from_header):
-#     if not from_header:
-#         return None
-#     from_header = from_header.lower()
-#     r = re.search("([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)", from_header)
-#     return r.group() if r else from_header
-
 def removeSpaces(s):
     exp = " +$"
     r = re.compile(exp)
