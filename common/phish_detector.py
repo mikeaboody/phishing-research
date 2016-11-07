@@ -73,10 +73,14 @@ class PhishDetector(object):
         parser.add_argument('--classify',
                             action='store_true',
                             help=('Run ML model on test matrix'))
+        parser.add_argument('--debug_training',
+                            action='store_true',
+                            help=('Debug the training step of the pipeline.'))
         
         args = parser.parse_args()
 
         run = False
+        self.debug_training = False
         if args.all:
             self.generate_data_matrix = True
             self.generate_test_matrix = True
@@ -100,6 +104,14 @@ class PhishDetector(object):
         if args.classify:
             self.classify = True
             run = True
+        if args.debug_training:
+            self.generate_data_matrix = True
+            self.generate_test_matrix = True
+            self.generate_model = True
+            self.classify = True
+            self.debug_training = True
+            run = True
+
 
         if not run:
             parser.error('You must run with at least one flag')
@@ -237,7 +249,14 @@ class PhishDetector(object):
             progress_logger.info('Finished feature generation in {} minutes, {} seconds.'.format(min_elapsed, sec_elapsed))
 
     def generate_model_output(self):
-        self.classifier = Classify(self.weights, self.root_dir, self.emails_threshold, self.results_size, results_dir=self.result_path_out, serial_path=self.model_path_out, memlog_freq=self.memlog_classify_frequency)
+        self.classifier = Classify(self.weights,
+                                   self.root_dir,
+                                   self.emails_threshold,
+                                   self.results_size,
+                                   results_dir=self.result_path_out,
+                                   serial_path=self.model_path_out,
+                                   memlog_freq=self.memlog_classify_frequency,
+                                   debug_training=self.debug_training)
         self.classifier.generate_training()
         self.classifier.train_clf()
         self.classifier.cross_validate()

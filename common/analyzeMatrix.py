@@ -1,12 +1,12 @@
 import numpy as np
 
 """
-Analyzes a file called dataMatrix.npz located in the same directory as the file. The first row of the data matrix is assumed to be the feature name. The output is stored in a file called matrixStatistics.txt.
+Analyzes a file called training_data.npz located in the same directory as the file. The first row of the data matrix is assumed to be the feature name. The output is stored in a file called matrixStatistics.txt.
 """
 
-dataMatrix = np.load("dataMatrix.npz")
+dataMatrix = np.load("training_data.npz")
 outputStats = open("matrixStatistics.txt", "w")
-data = dataMatrix["arr_0"]
+data = dataMatrix["X"]
 numFeatures = data.shape[1]
 numSamples = data.shape[0]
 for i in range(numFeatures):
