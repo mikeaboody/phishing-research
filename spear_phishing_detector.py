@@ -1,7 +1,7 @@
 import logging
 import logging.handlers
 import os
-
+import sys
 from common import phish_detector
 
 # Usage:
@@ -41,8 +41,12 @@ def main():
 
     progress_logger = logging.getLogger('spear_phishing.progress')
     progress_logger.info('Starting Spear Phishing Detector.')
-    # TODO(matthew): Refactor parse_pcap to have a main method.
-    from broScripts import parse_pcap
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "--mbox":
+        from broScripts import parse_pcap_mbox
+    else:
+        # TODO(matthew): Refactor parse_pcap to have a main method.
+        from broScripts import parse_pcap
     os.chdir('common')
     phish_detector.main()
     os.chdir('..')

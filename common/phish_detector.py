@@ -76,6 +76,9 @@ class PhishDetector(object):
         parser.add_argument('--debug_training',
                             action='store_true',
                             help=('Debug the training step of the pipeline.'))
+        parser.add_argument('--mbox',
+                            action='store_true',
+                            help=('Use emails from mbox rather than pcaps'))
         
         args = parser.parse_args()
 
