@@ -1,3 +1,4 @@
+import logging
 import re
 import sys
 
@@ -12,6 +13,8 @@ from message_ID_domain import messageIDDomain_Detector
 from order_of_headers import OrderOfHeaderDetector
 from timezone import DateTimezoneDetector
 from received_headers import ReceivedHeadersDetector
+
+debug_logger = logging.getLogger('spear_phishing.debug')
 
 class MessageIdDetectorOne(Detector):
     DELIMITERS = ['.', '-', '$', '/', '%']
@@ -83,12 +86,12 @@ class MessageIdDetectorOne(Detector):
         sender = self.extract_from(phish)
         message_id = phish["Message-ID"]
         if message_id == None:
-            # print ("No message ID found")
-            return False
+            debug_logger.warn("No message ID found.")
+            return [0.0, 0.0]
         split_msg_id = message_id.split('@')
         if len(split_msg_id) < 2:
-            # print("Message-ID misformatted: {}".format(message_id))
-            return False
+            debug_logger.warn("Message-ID misformatted: {}".format(message_id))
+            return [0.0, 0.0]
         domain = split_msg_id[1][:-1]
         uid = split_msg_id[0][1:]
         common_delimiter, delimiter_count = self.most_common_delimiter(uid)
