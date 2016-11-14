@@ -149,7 +149,7 @@ try:
                             mkdir_error_count += 1
                             debug_logger.exception(e)
                 with open('{}/legit_emails.log'.format(sender_dir), 'a') as output_file:
-                    output_file.write(line)
+                    output_file.write(repr(headers) + '\n')
                     total_legit_emails += 1
     try:
         call(['cp', MBOX_FILE, '{}/{}'.format(BRO_LOG_DIRECTORY, MBOX_FILE_NAME)])
@@ -198,7 +198,7 @@ try:
                         debug_logger.warning("Missing sender directory for {}".format(sender_dir))
                         continue
                     with open('{}/phish_emails.log'.format(sender_dir), 'a') as output_file:
-                        output_file.write(str(headers) + '\n')
+                        output_file.write(repr(headers) + '\n')
                         total_phish_emails += 1
     if not total_phish_emails == total_legit_emails:
         debug_logger.warning('Found {} phishing emails, {} legitimate emails'.format(total_phish_emails, total_legit_emails))
