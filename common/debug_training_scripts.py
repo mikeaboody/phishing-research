@@ -14,7 +14,8 @@ parser.add_argument('--tol', dest="tol", type=float, default=1e-4)
 args = parser.parse_args()
 
 training_data = np.load("training_data.npz")
-train_X = training_data["X"][1:,:] # We don't need feature names
+# train_X = training_data["X"][1:,:] # We don't need feature names
+train_X = training_data["X"]
 train_Y = training_data["Y"]
 
 class_weights = {1.0: 0.5, 0.0: 1.0}
