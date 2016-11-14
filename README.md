@@ -40,3 +40,12 @@ You should really only have to run
     
     python spear_phishing_detector.py --all
 but if the settings seem off or you’d like to run part of the phish detector without doing everything (data, test, model, run), there is an amazing readme written in markdown by the great Jerry Cheng himself in the common folder at “common/phish_detector.md”. To use these other settings, you will have to use the run_all script until the functionality is integrated with spear_phishing_detector.py. In the ideal case, the user shouldn’t have to worry about these settings for an end-to-end test.
+
+If you would like to run the phish detector on a set of emails in a .mbox format, you can follow the steps below:
+
+1. ```cd broScripts```
+2. ```python mboxToFile.py <path to .mbox file> <optional: number of emails>```
+3. ```cd ..```
+4. ```python spear_phishing_detector.py --mbox --all```
+
+The ```--mbox``` flag must be the first flag. ```mboxToFile.py``` generates ```mbox.log``` in the ```broScripts``` director. The first three steps only have to be done the first time you are running the phish detector with the mbox flag (unless you would like to run the detector on a different subset of emails).
