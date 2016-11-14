@@ -84,7 +84,8 @@ class Classify:
         self.X = X
         self.Y = Y
         # Save training data matrix and training labels to training_data.npz.
-        np.savez("training_data", X=np.vstack([self.feature_names, self.X]), Y=self.Y)
+        # np.savez("training_data", X=np.vstack([self.feature_names, self.X]), Y=self.Y)
+        np.savez("training_data", X=self.X, Y=self.Y)
         self.data_size = len(X)
         end_time = time.time()
         min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
