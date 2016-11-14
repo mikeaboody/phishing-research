@@ -61,7 +61,7 @@ class MessageIdDetectorOne(Detector):
             sender = self.extract_from(msg)
             message_id = msg["Message-ID"]
             if message_id == None:
-                print ("No message ID found")
+                debug_logger.warn("No message ID found, during create_sender_profile().")
                 continue
             split_msg_id = message_id.split('@')
             if len(split_msg_id) < 2:
@@ -86,7 +86,7 @@ class MessageIdDetectorOne(Detector):
         sender = self.extract_from(phish)
         message_id = phish["Message-ID"]
         if message_id == None:
-            debug_logger.warn("No message ID found.")
+            debug_logger.warn("No message ID found, during classify().")
             return [0.0, 0.0]
         split_msg_id = message_id.split('@')
         if len(split_msg_id) < 2:

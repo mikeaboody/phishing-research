@@ -4,6 +4,9 @@ from random import shuffle
 import copy
 import time
 import email.utils
+import logging
+
+debug_logger = logging.getLogger('spear_phishing.debug')
 
 class Inbox():
 	def __init__(self, root=None):
@@ -21,7 +24,7 @@ class Inbox():
 						header_tuples = eval(line)
 						self.emails.append(Email(header_tuples))	
 					except:
-						print("INVALID EMAIL")
+						debug_logger.warn("Invalid Email, during processEmails()")
 						self.num_invalid_emails += 1
 		elif os.path.isdir(root):
 			for item in os.listdir(root):
