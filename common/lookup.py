@@ -1,6 +1,6 @@
 import re
 import os
-from netaddr import IPNetwork, IPAddress
+from netaddr import IPNetwork, IPAddress, ZEROFILL
 import socket
 from ipwhois import IPWhois
 
@@ -59,7 +59,7 @@ class Lookup:
     @classmethod
     def public_IP(cls, fromHeader):
         ip = extract_ip(fromHeader)
-        if ip and not (IPAddress(ip) in IPNetwork(Lookup.privateCIDR[0]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[1]) or IPAddress(ip) in IPNetwork(Lookup.privateCIDR[2])):
+        if ip and not (IPAddress(ip, flags=ZEROFILL) in IPNetwork(Lookup.privateCIDR[0]) or IPAddress(ip, flags=ZEROFILL) in IPNetwork(Lookup.privateCIDR[1]) or IPAddress(ip, flags=ZEROFILL) in IPNetwork(Lookup.privateCIDR[2])):
             return ip
         return None
 
