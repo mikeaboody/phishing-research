@@ -58,10 +58,16 @@ class Lookup:
     # returns cidr of public IP or returns false if there is no IP or if the IP is private
     @classmethod
     def public_IP(cls, fromHeader):
-        ip = extract_ip(fromHeader)
-        if ip and not (IPAddress(ip, flags=ZEROFILL) in IPNetwork(Lookup.privateCIDR[0]) or IPAddress(ip, flags=ZEROFILL) in IPNetwork(Lookup.privateCIDR[1]) or IPAddress(ip, flags=ZEROFILL) in IPNetwork(Lookup.privateCIDR[2])):
+        try:
+            ip = extract_ip(fromHeader)
+            if not ip:
+                return None
+            addr = IPAddress(ip, flags=ZEROFILL)
+            if addr in IPNetwork(Lookup.privateCIDR[0]) or addr in IPNetwork(Lookup.privateCIDR[1]) or addr in IPNetwork(Lookup.privateCIDR[2]):
+                return None
             return ip
-        return None
+        except Exception:
+            return None
 
     # returns false if domain is invalid or private domain
     @classmethod
