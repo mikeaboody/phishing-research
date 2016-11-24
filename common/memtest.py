@@ -2,6 +2,7 @@ import os
 from guppy import hpy
 import datetime as dt
 import logging
+import psutil
 
 class MemTracker(object):
     logger = None
@@ -17,14 +18,20 @@ class MemTracker(object):
         MemTracker.heapy_instance.setrelheap()
 
 
+    @staticmethod
+    def cur_mem_usage():
+        return psutil.Process().memory_info().rss
+
     @classmethod
     def logMemory(cls, section_name):
         if MemTracker.logger == None:
             raise RuntimeError("Initialize before calling.")
         MemTracker.logger.info("Memory statistics for '" + section_name + "':")
+        MemTracker.logger.info("Current total RSS: " + str(MemTracker.cur_mem_usage()))
         start = dt.datetime.now()
         h = MemTracker.heapy_instance.heap()
         MemTracker.logger.info(str(h))
         end = dt.datetime.now()
         delta = end - start
         MemTracker.logger.info("Profiling took " + str(delta.seconds) + " seconds.")
+
