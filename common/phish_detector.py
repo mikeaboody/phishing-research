@@ -14,6 +14,7 @@ import feature_classes as fc
 from generate_features import FeatureGenerator
 from lookup import Lookup
 from memtest import MemTracker
+import logs
 
 progress_logger = logging.getLogger('spear_phishing.progress')
 debug_logger = logging.getLogger('spear_phishing.debug')
@@ -234,6 +235,7 @@ class PhishDetector(object):
             end_of_last_memory_track = dt.datetime.now()
             for directory in dir_to_generate:
                 dir_count += 1
+                logs.context = {'feature gen': dir_count}
                 curr_time = time.time()
                 if (curr_time - last_logged_time) > self.logging_interval * 60:
                     progress_logger.info('Processing directory #{} of {}'.format(dir_count, len(dir_to_generate)))
@@ -247,6 +249,7 @@ class PhishDetector(object):
                     end_of_last_memory_track = dt.datetime.now()
                 feature_generator = self.prep_features(directory)
                 feature_generator.run()
+                logs.context = {}
             end_time = time.time()
             min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
             progress_logger.info('Finished feature generation in {} minutes, {} seconds.'.format(min_elapsed, sec_elapsed))

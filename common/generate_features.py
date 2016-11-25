@@ -85,12 +85,18 @@ class FeatureGenerator(object):
 
 
     def build_detectors(self, inbox):
+        logs.context['step'] = 'build_detectors'
         detectors = [Detector(inbox) for Detector in self.features]
         for i, detector in enumerate(detectors):
+            logs.context['detector'] = type(detector).__name__
             detector.create_sender_profile(self.sender_profile_num_emails)
+            logs.RateLimitedMemTracker.checkmem('finished creating sender profile')
+        del logs.context['step']
+        del logs.context['detector']
         return detectors
     
     def generate_data_matrix(self, inbox, phish_inbox):
+        logs.context['step'] = 'generate_data_matrix'
         data_matrix = np.empty(shape=(self.data_matrix_num_emails*2, self.num_features))
     
         row_index = 0
@@ -118,9 +124,11 @@ class FeatureGenerator(object):
                     data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             row_index += 1
+        del logs.context['step']
         return data_matrix
     
     def generate_test_matrix(self, test_mbox):
+        logs.context['step'] = 'generate_test_matrix'
         test_data_matrix = np.empty(shape=(self.num_emails - self.start_test_matrix_index, self.num_features))
     
         test_mess_id = np.empty(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype='S200')
@@ -140,6 +148,7 @@ class FeatureGenerator(object):
                     j += 1
             row_index += 1
         test_email_index = np.arange(self.start_test_matrix_index, self.num_emails)
+        del logs.context['step']
         return test_data_matrix, test_email_index, test_mess_id
     
     def generate_labels(self):

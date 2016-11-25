@@ -10,6 +10,9 @@ progress_logger = logging.getLogger('spear_phishing.progress')
 debug_logger = logging.getLogger('spear_phishing.debug')
 memory_logger = logging.getLogger('spear_phishing.memory')
 
+# Set this to provide additional context that will be logged
+context = {}
+
 class RateLimitedMemTracker(object):
     all_tasks = {}
 
@@ -21,7 +24,7 @@ class RateLimitedMemTracker(object):
         cur = MemTracker.cur_mem_usage()
         if cur >= 2*self.max_mem_logged:
             self.max_mem_logged = cur
-            MemTracker.logMemory(self.task)
+            MemTracker.logMemory(self.task + "; " + str(context))
 
     @classmethod
     def checkmem(cls, task):
@@ -41,9 +44,9 @@ class RateLimitedLog(object):
         self.times_called += 1
         if self.times_called < 2*self.last_logged:
             return
-        progress_logger.info("{} (#{}) {}".format(self.task, self.times_called, public))
+        progress_logger.info("{} (#{}): {}; {}".format(self.task, self.times_called, public, str(context)))
         if private != "":
-            debug_logger.info("{} (#{}) {}; {}".format(self.task, self.times_called, public, private))
+            debug_logger.info("{} (#{}): {}; {}; {}".format(self.task, self.times_called, public, str(context), private))
         self.last_logged = self.times_called
 
     @classmethod
@@ -85,8 +88,8 @@ class Watchdog(object):
 
     @staticmethod
     def timer_expired(sig, frame):
-        progress_logger.info('Watchdog expired (more than {} seconds passed)'.format(Watchdog.duration))
-        memory_logger.info('Watchdog expired, dumping all stack frames:'.format(Watchdog.duration))
+        progress_logger.info('Watchdog expired (more than {} seconds passed); {}'.format(Watchdog.duration, str(context)))
+        memory_logger.info('Dumping all stack frames after watchdog expired:'.format(Watchdog.duration))
         Watchdog.log_all_stack_frames()
         MemTracker.logMemory('watchdog expired')
         Watchdog.duration *= 2

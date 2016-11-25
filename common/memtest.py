@@ -7,6 +7,7 @@ import psutil
 class MemTracker(object):
     logger = None
     heapy_instance = None
+    proc = None
 
     @classmethod
     def initialize(cls, logger):
@@ -16,11 +17,12 @@ class MemTracker(object):
         MemTracker.logger.info("Logger set. Relative heap set. Ready for memory tracking")
         MemTracker.heapy_instance = hpy()
         MemTracker.heapy_instance.setrelheap()
+        MemTracker.proc = psutil.Process()
 
 
     @staticmethod
     def cur_mem_usage():
-        return psutil.Process().memory_info().rss
+        return proc.memory_info().rss
 
     @classmethod
     def logMemory(cls, section_name):
