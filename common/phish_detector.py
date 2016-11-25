@@ -272,15 +272,20 @@ class PhishDetector(object):
     def execute(self):
         start_time = time.time()
         MemTracker.initialize(memory_logger)
+        logs.context = {'phase': 'generate_features'}
         if self.generate_data_matrix or self.generate_test_matrix:
             self.generate_features()
+        logs.context = {}
         MemTracker.logMemory("After generating features/Before generating model")
+        logs.context = {'phase': 'generate_model_output'}
         if self.generate_model:
             self.generate_model_output()
+        logs.context = {}
         MemTracker.logMemory("After generating model")
         end_time = time.time()
         min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
         progress_logger.info("Phish Detector took {} minutes, {} seconds to run.".format(min_elapsed, sec_elapsed))
+        logs.RateLimitedLog.flushall()
 
 def run_generator(generator):
     #Load offline info for Lookup class
