@@ -56,9 +56,9 @@ class RateLimitedLog(object):
         cls.all_tasks[task].log_rate_limited(private, public)
 
     @classmethod
-    def flushall():
+    def flushall(cls):
         progress_logger.info('Summary of multiply-repeated log messages:')
-        s = sorted(all_tasks.values(), key=lambda l: l.times_called, reverse=True)
+        s = sorted(cls.all_tasks.values(), key=lambda l: l.times_called, reverse=True)
         for l in s:
             if l.times_called > 1:
                 progress_logger("{: >5} instances of {}".format(l.times_called, l.task))

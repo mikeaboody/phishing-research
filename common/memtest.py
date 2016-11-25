@@ -22,7 +22,7 @@ class MemTracker(object):
 
     @staticmethod
     def cur_mem_usage():
-        return proc.memory_info().rss
+        return MemTracker.proc.memory_info().rss
 
     @classmethod
     def logMemory(cls, section_name):
