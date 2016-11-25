@@ -17,7 +17,6 @@ from memtest import MemTracker
 import logs
 
 progress_logger = logging.getLogger('spear_phishing.progress')
-debug_logger = logging.getLogger('spear_phishing.debug')
 memory_logger = logging.getLogger('spear_phishing.memory')
 
 class PhishDetector(object):
@@ -127,7 +126,7 @@ class PhishDetector(object):
         try:
             stream = file(self.config_path, 'r')
         except IOError:
-            debug_logger.exception("Could not find yaml configuration file.")
+            progress_logger.exception("Could not find yaml configuration file.")
             raise
 
         config = yaml.load(stream)
@@ -159,7 +158,7 @@ class PhishDetector(object):
             for key in expected_config_keys:
                 setattr(self, key, config[key])
         except KeyError:
-            debug_logger.exception("Configuration file missing entry")
+            progress_logger.exception("Configuration file missing entry")
             raise
 
         detectors = []
