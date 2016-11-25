@@ -14,7 +14,7 @@ from order_of_headers import OrderOfHeaderDetector
 from timezone import DateTimezoneDetector
 from received_headers import ReceivedHeadersDetector
 
-debug_logger = logging.getLogger('spear_phishing.debug')
+import logs
 
 class MessageIdDetectorOne(Detector):
     DELIMITERS = ['.', '-', '$', '/', '%']
@@ -61,11 +61,11 @@ class MessageIdDetectorOne(Detector):
             sender = self.extract_from(msg)
             message_id = msg["Message-ID"]
             if message_id == None:
-                debug_logger.warn("No message ID found, during create_sender_profile().")
+                logs.RateLimitedLog.log("No message ID found, during create_sender_profile().")
                 continue
             split_msg_id = message_id.split('@')
             if len(split_msg_id) < 2:
-                print("Message-ID misformatted: {}".format(message_id))
+                logs.RateLimitedLog.log("Message-ID misformatted", private=message_id)
                 continue
             domain = split_msg_id[1][:-1]
             uid = split_msg_id[0][1:]
@@ -86,11 +86,11 @@ class MessageIdDetectorOne(Detector):
         sender = self.extract_from(phish)
         message_id = phish["Message-ID"]
         if message_id == None:
-            debug_logger.warn("No message ID found, during classify().")
+            logs.RateLimitedLog.log("No message ID found, during classify().")
             return [0.0, 0.0]
         split_msg_id = message_id.split('@')
         if len(split_msg_id) < 2:
-            debug_logger.warn("Message-ID misformatted: {}".format(message_id))
+            logs.RateLimitedLog.log("Message-ID misformatted", private=message_id)
             return [0.0, 0.0]
         domain = split_msg_id[1][:-1]
         uid = split_msg_id[0][1:]
