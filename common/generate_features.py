@@ -91,6 +91,7 @@ class FeatureGenerator(object):
         for i, detector in enumerate(detectors):
             logs.context['detector'] = type(detector).__name__
             detector.create_sender_profile(self.sender_profile_num_emails)
+            logs.Watchdog.reset()
             logs.RateLimitedMemTracker.checkmem('finished creating sender profile')
         del logs.context['step']
         del logs.context['detector']
@@ -113,6 +114,7 @@ class FeatureGenerator(object):
                     data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             row_index += 1
+        logs.Watchdog.reset()
         for i in range(self.start_data_matrix_index, self.start_test_matrix_index):
             j = 0
             for detector in self.detectors:
@@ -125,6 +127,7 @@ class FeatureGenerator(object):
                     data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             row_index += 1
+        logs.Watchdog.reset()
         del logs.context['step']
         return data_matrix
     
@@ -149,6 +152,7 @@ class FeatureGenerator(object):
                     j += 1
             row_index += 1
         test_email_index = np.arange(self.start_test_matrix_index, self.num_emails)
+        logs.Watchdog.reset()
         del logs.context['step']
         return test_data_matrix, test_email_index, test_mess_id
     

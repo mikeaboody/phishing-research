@@ -200,6 +200,7 @@ class PhishDetector(object):
             if ((self.generate_data_matrix and self.regular_filename in filenames and self.phish_filename in filenames)
                 or (self.generate_test_matrix and self.regular_filename in filenames)):
                 dir_to_generate.append(dirpath)
+                logs.Watchdog.reset()
         end_time = time.time()
         min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
         progress_logger.info('Finished directory aggregation in feature generation in {} minutes, {} seconds'.format(min_elapsed, sec_elapsed))
@@ -240,14 +241,15 @@ class PhishDetector(object):
                     progress_logger.info('Processing directory #{} of {}'.format(dir_count, len(dir_to_generate)))
                     progress_logger.info('Feature generation has run for {} minutes'.format(int((curr_time - start_time) / 60)))
                     last_logged_time = curr_time
+                feature_generator = self.prep_features(directory)
+                feature_generator.run()
+                logs.Watchdog.reset()
                 now = dt.datetime.now()
                 time_elapsed = now - end_of_last_memory_track
                 minutes_elapsed = time_elapsed.seconds / 60.0
                 if minutes_elapsed > self.memlog_gen_features_frequency:
-                    MemTracker.logMemory("After generating features for " + str(dir_count) + " senders")
+                    MemTracker.logMemory('After generating features for {}th sender'.format(dir_count))
                     end_of_last_memory_track = dt.datetime.now()
-                feature_generator = self.prep_features(directory)
-                feature_generator.run()
                 logs.context = {}
             end_time = time.time()
             min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
@@ -262,15 +264,21 @@ class PhishDetector(object):
                                    serial_path=self.model_path_out,
                                    memlog_freq=self.memlog_classify_frequency,
                                    debug_training=self.debug_training)
+        logs.Watchdog.reset()
         self.classifier.generate_training()
+        logs.Watchdog.reset()
         self.classifier.train_clf()
+        logs.Watchdog.reset()
         self.classifier.cross_validate()
+        logs.Watchdog.reset()
         self.classifier.test_and_report()
+        logs.Watchdog.reset()
 
 
     def execute(self):
         start_time = time.time()
         MemTracker.initialize(memory_logger)
+        logs.Watchdog.initialize()
         logs.context = {'phase': 'generate_features'}
         if self.generate_data_matrix or self.generate_test_matrix:
             self.generate_features()
