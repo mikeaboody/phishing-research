@@ -45,9 +45,9 @@ class messageIDDomain_Detector(Detector):
         sender = self.extract_from(phish)
         mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
 
-        if sender in self.sender_profile.keys():
+        if sender in self.sender_profile:
             if mID not in self.sender_profile[sender]:
-                if self.getEmailDomain(sender) in self.GLOBAL_SET.keys():
+                if self.getEmailDomain(sender) in self.GLOBAL_SET:
                     if mID not in self.GLOBAL_SET[self.getEmailDomain(sender)]:
                         if self.noreplyFP(sender, phish["Message-ID"]) or self.orgGroups(sender, mID):
                             return False
@@ -108,7 +108,7 @@ class messageIDDomain_Detector(Detector):
                     return False
 
             # if the domains are not in the file, then use CIDR blocks
-            if newmID in self.domainCompanyPairing.keys():
+            if newmID in self.domainCompanyPairing:
                 res11 = self.domainCompanyPairing[newmID]
             else:
                 # createDomain2OrgPair(newmID)
@@ -116,7 +116,7 @@ class messageIDDomain_Detector(Detector):
                 res11 = getBinaryRep(ip1, Lookup.getCIDR(ip1))
                 self.domainCompanyPairing[newmID] = res11
 
-            if afterAT in self.domainCompanyPairing.keys():
+            if afterAT in self.domainCompanyPairing:
                 res22 = self.domainCompanyPairing[afterAT]
             else:
                 # createDomain2OrgPair[afterAT]
@@ -149,12 +149,12 @@ class messageIDDomain_Detector(Detector):
                 mID = self.get_endMessageIDDomain(self.get_messageIDDomain(msg))
                 if mID == None:
                     no_messageIDDomain += 1
-                    if sender not in self.sender_profile.keys():
+                    if sender not in self.sender_profile:
                         self.sender_profile[sender] = set([])
                     self.sender_profile[sender].add("None")
                 else:
                     wasntInSenderProfile = False
-                    if sender in self.sender_profile.keys():
+                    if sender in self.sender_profile:
                         if mID not in self.sender_profile[sender]:
                             if self.toFlag(sender, mID):
                                 wasntInSenderProfile = True
@@ -162,7 +162,7 @@ class messageIDDomain_Detector(Detector):
                     else:
                         self.sender_profile[sender] = set([mID])
                     email_domain = self.getEmailDomain(sender)
-                    if email_domain not in self.GLOBAL_SET.keys():
+                    if email_domain not in self.GLOBAL_SET:
                         self.GLOBAL_SET[email_domain] = []
 
                     if mID not in self.GLOBAL_SET[email_domain]:
@@ -188,7 +188,7 @@ class messageIDDomain_Detector(Detector):
         for e, mIDs in self.sender_profile.items():
             distribution_of_num_mID_used[len(mIDs) - 1] += 1
 
-        uniqueSenders = len(self.sender_profile.keys())
+        uniqueSenders = len(self.sender_profile)
         total_emails = len(self.inbox)
         singleContent = distribution_of_num_mID_used[0]*1.0 / uniqueSenders * 100.0
         multipleContent = 0
