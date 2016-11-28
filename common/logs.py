@@ -67,7 +67,7 @@ class RateLimitedLog(object):
 
 
 class Watchdog(object):
-    duration = 5  # Initially, 10 minutes
+    duration = 600  # Initially, 10 minutes
 
     @classmethod
     def initialize(cls):
