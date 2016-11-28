@@ -84,15 +84,26 @@ class FeatureGenerator(object):
         self.start_test_matrix_index = self.start_data_matrix_index + self.data_matrix_num_emails
 
 
+    def should_enable_extra_debugging(self, inbox, detectors):
+        if len(inbox) < 10000:
+            return False
+        detector_names = ', '.join([type(d).__name__ for d in detectors])
+        progress_logger.info('Enabling extra debugging for large inbox, {}; RSS = {}, creating sender profiles for {}'.format(logs.context, MemTracker.cur_mem_usage(), detector_names))
+        return True
 
     def build_detectors(self, inbox):
         logs.context['step'] = 'build_detectors'
         detectors = [Detector(inbox) for Detector in self.features]
+        verbose = self.should_enable_extra_debugging(inbox, detectors)
         for i, detector in enumerate(detectors):
             logs.context['detector'] = type(detector).__name__
             detector.create_sender_profile(self.sender_profile_num_emails)
             logs.Watchdog.reset()
-            logs.RateLimitedMemTracker.checkmem('finished creating sender profile')
+            if verbose:
+                progress_logger.info('Finished creating {} sender profile, RSS = {}'.format(type(detector).__name__, MemTracker.cur_mem_usage()))
+                MemTracker.logMemory('finished creating {} sender profile'.format(type(detector).__name__))
+            else:
+                logs.RateLimitedMemTracker.checkmem('finished creating {} sender profile'.format(type(detector).__name__))
         del logs.context['step']
         del logs.context['detector']
         return detectors
