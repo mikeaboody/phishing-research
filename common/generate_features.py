@@ -29,6 +29,7 @@ import numpy as np
 import scipy.io as sio
 
 import feature_classes as fc
+import logs
 
 progress_logger = logging.getLogger('spear_phishing.progress')
 
@@ -83,14 +84,32 @@ class FeatureGenerator(object):
         self.start_test_matrix_index = self.start_data_matrix_index + self.data_matrix_num_emails
 
 
+    def should_enable_extra_debugging(self, inbox, detectors):
+        if len(inbox) < 10000:
+            return False
+        detector_names = ', '.join([type(d).__name__ for d in detectors])
+        progress_logger.info('Enabling extra debugging for large inbox, {}; RSS = {}, creating sender profiles for {}'.format(logs.context, MemTracker.cur_mem_usage(), detector_names))
+        return True
 
     def build_detectors(self, inbox):
+        logs.context['step'] = 'build_detectors'
         detectors = [Detector(inbox) for Detector in self.features]
+        verbose = self.should_enable_extra_debugging(inbox, detectors)
         for i, detector in enumerate(detectors):
+            logs.context['detector'] = type(detector).__name__
             detector.create_sender_profile(self.sender_profile_num_emails)
+            logs.Watchdog.reset()
+            if verbose:
+                progress_logger.info('Finished creating {} sender profile, RSS = {}'.format(type(detector).__name__, MemTracker.cur_mem_usage()))
+                MemTracker.logMemory('finished creating {} sender profile'.format(type(detector).__name__))
+            else:
+                logs.RateLimitedMemTracker.checkmem('finished creating {} sender profile'.format(type(detector).__name__))
+        del logs.context['step']
+        del logs.context['detector']
         return detectors
     
     def generate_data_matrix(self, inbox, phish_inbox):
+        logs.context['step'] = 'generate_data_matrix'
         data_matrix = np.empty(shape=(self.data_matrix_num_emails*2, self.num_features))
     
         row_index = 0
@@ -106,6 +125,7 @@ class FeatureGenerator(object):
                     data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             row_index += 1
+        logs.Watchdog.reset()
         for i in range(self.start_data_matrix_index, self.start_test_matrix_index):
             j = 0
             for detector in self.detectors:
@@ -118,9 +138,12 @@ class FeatureGenerator(object):
                     data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             row_index += 1
+        logs.Watchdog.reset()
+        del logs.context['step']
         return data_matrix
     
     def generate_test_matrix(self, test_mbox):
+        logs.context['step'] = 'generate_test_matrix'
         test_data_matrix = np.empty(shape=(self.num_emails - self.start_test_matrix_index, self.num_features))
     
         test_mess_id = np.empty(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype='S200')
@@ -140,6 +163,8 @@ class FeatureGenerator(object):
                     j += 1
             row_index += 1
         test_email_index = np.arange(self.start_test_matrix_index, self.num_emails)
+        logs.Watchdog.reset()
+        del logs.context['step']
         return test_data_matrix, test_email_index, test_mess_id
     
     def generate_labels(self):

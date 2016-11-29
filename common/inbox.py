@@ -5,8 +5,7 @@ import copy
 import time
 import email.utils
 import logging
-
-debug_logger = logging.getLogger('spear_phishing.debug')
+import logs
 
 class Inbox():
 	def __init__(self, root=None):
@@ -24,7 +23,7 @@ class Inbox():
 						header_tuples = eval(line)
 						self.emails.append(Email(header_tuples))	
 					except:
-						debug_logger.warn("Invalid Email, during processEmails()")
+                                                logs.RateLimitedLog("Invalid Email, during processEmails()", private=line)
 						self.num_invalid_emails += 1
 		elif os.path.isdir(root):
 			for item in os.listdir(root):
