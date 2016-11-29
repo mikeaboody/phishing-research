@@ -201,7 +201,7 @@ try:
                         output_file.write(repr(headers) + '\n')
                         total_phish_emails += 1
     if not total_phish_emails == total_legit_emails:
-        debug_logger.warning('Found {} phishing emails, {} legitimate emails'.format(total_phish_emails, total_legit_emails))
+        progress_logger.warning('Found {} phishing emails, {} legitimate emails'.format(total_phish_emails, total_legit_emails))
     senders_seen.close()
 finally:
     summary_stats()
