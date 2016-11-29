@@ -67,7 +67,7 @@ class ReceivedHeader:
             del self.breakdown[";"]
 
     def assignCIDR(self):
-        if not "from" in self.breakdown.keys():
+        if not "from" in self.breakdown:
             return "None"
         elif Lookup.public_domain(self.breakdown["from"]):
             ip = Lookup.public_domain(self.breakdown["from"])

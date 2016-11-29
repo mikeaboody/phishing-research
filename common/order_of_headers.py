@@ -37,7 +37,7 @@ class OrderOfHeaderDetector(Detector):
         detect = [1, 0, 0]
         ordering = self.find_ordering(phish, error=False)
         new_val = self.convert_to_list(ordering)
-        if sender in self.sender_profile.keys():
+        if sender in self.sender_profile:
             orderings = list(self.sender_profile[sender][FORMATS])
             for o in orderings:
                 if self.edit_distance_thresh(new_val, o):
@@ -55,7 +55,7 @@ class OrderOfHeaderDetector(Detector):
 
     def update_sender_profile(self, value, sender):
         new_format = 1
-        if sender not in self.sender_profile.keys():
+        if sender not in self.sender_profile:
             self.sender_profile[sender] = [set([value]), 1]
             new_format = 0
         else:
@@ -72,7 +72,7 @@ class OrderOfHeaderDetector(Detector):
         return new_format
 
     def update_entire_attribute(self, value):
-        if value not in self.entire_attribute.keys():
+        if value not in self.entire_attribute:
             self.entire_attribute[value] = 1
         else:
             self.entire_attribute[value] += 1
@@ -82,7 +82,7 @@ class OrderOfHeaderDetector(Detector):
         order = ""
         for i, k in enumerate(msg.keys()):
             k = k.lower()
-            if k not in self.header_map.keys():
+            if k not in self.header_map:
                 self.header_map[k] = len(self.header_map)
             curr = self.header_map[k]
             if name:
@@ -173,7 +173,7 @@ class OrderOfHeaderDetector(Detector):
                 named_order = self.ordering_to_name(order)
                 length = len(self.convert_to_list(order))
                 avg_length += length
-                if named_order not in self.full_order.keys():
+                if named_order not in self.full_order:
                     self.full_order[named_order] = 1
                 else:
                     self.full_order[named_order] += 1
@@ -197,11 +197,11 @@ class OrderOfHeaderDetector(Detector):
     def analyzing_sender_profile(self):
         len_ordering = {}
         count = 1
-        for sender in self.sender_profile.keys():
+        for sender in self.sender_profile:
             len_ordering[sender] = {}
             for ordering in self.sender_profile[sender][FORMATS]:
                 num = len(ordering.split(" "))
-                if num not in len_ordering[sender].keys():
+                if num not in len_ordering[sender]:
                     len_ordering[sender][num] = 1
                 else:
                     len_ordering[sender][num] += 1
@@ -217,7 +217,7 @@ class OrderOfHeaderDetector(Detector):
         #pprint.pprint(len_ordering)
 
     def add_dict(self, d, k):
-        if k not in d.keys():
+        if k not in d:
             d[k] = 1
         else:
             d[k] += 1
@@ -237,7 +237,7 @@ class OrderOfHeaderDetector(Detector):
         print("Length of map = " + str(len(self.header_map)))
         print(ordering_used)
 
-        uniqueSenders = len(self.sender_profile.keys())
+        uniqueSenders = len(self.sender_profile)
         total_emails = len(self.inbox)
         four = (functools.reduce(lambda x, y : x + y, self.ordering_used[:4])) / uniqueSenders * 100
         print("Total emails = " + str(total_emails))
