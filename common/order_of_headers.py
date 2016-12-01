@@ -102,7 +102,7 @@ class OrderOfHeaderDetector(Detector):
             #if curr_len == 10:
             #    break
             k = self.modify_header(k.lower())
-            if k not in self.header_map.keys():
+            if k not in self.header_map:
                 self.header_map[k] = len(self.header_map)
                 if error is True:
                     print(curr_len)

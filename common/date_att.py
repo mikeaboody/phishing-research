@@ -74,7 +74,7 @@ class DateData:
 
         is_new_format = True
         curr_zero = list(curr_format.zeros_seen)[0]
-        for seen_format in self.seen_formats.keys():
+        for seen_format in self.seen_formats:
             if (curr_format.same_hash(seen_format)):
                 is_new_format = False
                 self.seen_formats[seen_format] += 1
