@@ -186,7 +186,7 @@ class ReceivedHeadersDetector(Detector):
     def _log_large_profiles(self):
         nseq = 0
         for tup, srp in self.srp.items():
-            nseq = max(seq, len(srp.received_header_sequences))
+            nseq = max(nseq, len(srp.received_header_sequences))
         if nseq >= 256:
             debug_logger = logging.getLogger('spear_phishing.debug')
             debug_logger.info('Large number of received header sequences ({}) for sender; {}'.format(nseqs, logs.context))
