@@ -88,7 +88,7 @@ class FeatureGenerator(object):
         if len(inbox) < 10000:
             return False
         detector_names = ', '.join([type(d).__name__ for d in detectors])
-        progress_logger.info('Enabling extra debugging for large inbox, {}; RSS = {}, creating sender profiles for {}'.format(logs.context, MemTracker.cur_mem_usage(), detector_names))
+        progress_logger.info('Enabling extra debugging for large inbox with {} messages, {}; RSS = {}, creating sender profiles for {}'.format(len(inbox), logs.context, MemTracker.cur_mem_usage(), detector_names))
         return True
 
     def build_detectors(self, inbox):
