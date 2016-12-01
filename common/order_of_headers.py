@@ -7,6 +7,7 @@ from random import randint
 import sys
 import numpy as np
 import editdistance
+import logging
 
 NUM_EMAILS = 1
 FORMATS = 0
@@ -188,6 +189,16 @@ class OrderOfHeaderDetector(Detector):
             self.falsies = self.false_alarms / self.emails_with_sender * 100
         else:
             self.falsies = 1
+        self._debug_large_senders()
+
+
+    def _debug_large_senders(self):
+        nords = 0
+        for sender, prof in self.sender_profile.items():
+            nords = max(nords, len(prof[FORMATS]))
+        if nords > 256:
+            debug_logger = logging.getLogger('spear_phishing.debug')
+            debug_logger.info('Large number of orderings ({}) for sender; {}'.format(nords, logs.context))
 
     def trim_distributions(self, distr):
         while distr[len(distr)-1] == 0:

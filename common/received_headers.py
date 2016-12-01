@@ -6,6 +6,7 @@ from netaddr import IPNetwork, IPAddress
 import editdistance
 import os
 from lookup import Lookup
+import logs
 
 
 
@@ -180,6 +181,15 @@ class ReceivedHeadersDetector(Detector):
 
     def create_sender_profile(self, num_samples):
         self.srp = SenderReceiverProfile(self.inbox, num_samples, self)
+        self._log_large_profiles()
+
+    def _log_large_profiles(self):
+        nseq = 0
+        for tup, srp in self.srp.items():
+            nseq = max(seq, len(srp.received_header_sequences))
+        if nseq >= 256:
+            debug_logger = logging.getLogger('spear_phishing.debug')
+            debug_logger.info('Large number of received header sequences ({}) for sender; {}'.format(nseqs, logs.context))
 
 def removeSpaces(s):
     exp = " +$"
