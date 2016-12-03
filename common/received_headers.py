@@ -1,141 +1,53 @@
-from detector import Detector
-import sys
 import re
-import pdb
-from netaddr import IPNetwork, IPAddress
 import editdistance
-import os
-from lookup import Lookup
 import logging
+from collections import defaultdict
+from detector import Detector
+from lookup import Lookup
 import logs
+from edbag import EDBag
 
+"""Translate a hop in the mail path to its containing CIDR.
+   A hop is a string from the Received: header identifying the
+   server that the email passed through."""
+def lookup_cidr_from_hop(hop):
+    ip = Lookup.public_domain(hop)
+    if not ip:
+        ip = Lookup.public_IP(hop)
+    return Lookup.getCIDR(ip) if ip else None
 
+"""Given a Received: header, find the server it passed
+   through and look up the containing CIDR netblock."""
+def extract_cidr_from_rcvd_hdr(content):
+    content = content.translate(None, '\n\r\t')
+    for end_token in ["by", "via", "with", "id", "for", ";", "$"]
+        r = re.search('from +(.*) +' + end_token, content)
+        if r:
+            return lookup_cidr_from_hop(r.group(1).strip())
+    return None
 
-class SenderReceiverPair:
-    def __init__(self, sender, receiver):
-        self.receiver = receiver
-        self.sender = sender
-        self.emailList = []
-        self.received_header_sequences = []
-    def __str__(self):
-        s = ""
-        for email in self.emailList:
-            s += str(email) + "\n"
-        return s
+"""Given an email message, find the mail path.
+   The mail path is the set of servers it passed through,
+   except that we map each server's IP/domain name to the
+   CIDR netblock it is contained in."""
+def extract_mailpath_from_email(msg):
+    rhdrs = msg.get_all("Received")
+    return tuple(extract_cidr_from_rcvd_hdr(r) for r in rhdrs)
 
-class Email:
-    def __init__(self):
-        self.receivedHeaderList = []
+"""The sender profile for a single sender.
+   Contains the set of mailpaths seen in emails from this
+   sender, with a count indicating how many times each
+   mailpath was seen."""
+class Profile(EDBag):
+    def add_mailpath(self, mailpath):
+        self.add(mailpath)
 
-    def __str__(self):
-        s = ""
-        for rh in self.receivedHeaderList:
-            s += str(rh) + " | "
-        return s
-        
-class ReceivedHeader:
-
-    def __init__(self, content):
-        self.createBreakdown(content)
-        
-    def createBreakdown(self, content):
-        #very simple breakdown scheme for receiver headers
-        content_split = content.split("\n")
-        content = ""
-        for s in content_split:
-            content += s
-        content_split = content.split("\r")
-        content = ""
-        for s in content_split:
-            content += s
-        content_split = content.split("\t")
-        content = ""
-        for s in content_split:
-            content += s
-        breakdown = {}
-        possible_fields = ["from", "by", "via", "with", "id", "for", ";", "$"]
-        for i in range(len(possible_fields)):
-            start = possible_fields[i]
-            for j in range(i+1, len(possible_fields)):
-                end = possible_fields[j]
-                r = re.search(start + " +(.*) *" + end, content)
-                if r:
-                    match = r.group(1)
-                    breakdown[start] = removeSpaces(match)
-                    break
-        self.breakdown = breakdown
-        if ";" in self.breakdown:
-            self.breakdown["date"] = self.breakdown[";"]
-            del self.breakdown[";"]
-
-    def assignCIDR(self):
-        if not "from" in self.breakdown:
-            return "None"
-        elif Lookup.public_domain(self.breakdown["from"]):
-            ip = Lookup.public_domain(self.breakdown["from"])
-        elif Lookup.public_IP(self.breakdown["from"]):
-            ip = Lookup.public_IP(self.breakdown["from"])
-        else:
-            return "Invalid"
-        return Lookup.getCIDR(ip)
-
-    def __str__(self):
-        return str(self.breakdown)
-
-class SenderReceiverProfile(dict):
-
-    def __init__(self, inbox, num_samples, detector):
-        self.inbox = inbox
-        self.detector = detector
-        self.analyze(num_samples)
-
-    def analyze(self, num_samples):
-        count = 0
-        for msg in self.inbox:
-            self.appendEmail(msg)
-            count += 1
-            if count >= num_samples:
-                break
-        self.createReceivedHeaderSequences()
-
-    def appendEmail(self, msg):
-        sender = self.detector.extract_from(msg)
-        receiver = ""
-        if (sender, receiver) not in self:
-            self[(sender, receiver)] = SenderReceiverPair(sender, receiver)
-        srp = self[(sender, receiver)]
-        newEmail = Email()
-        if (len(msg.get_all("Received")) != 0):
-            for receivedHeader in msg.get_all("Received"):
-                rh = ReceivedHeader(receivedHeader)
-                newEmail.receivedHeaderList.append(rh)
-            srp.emailList.append(newEmail)
-
-    def createReceivedHeaderSequences(self):
-        for tup, srp in self.items():
-            seq_rh_from = []
-            for em in srp.emailList:
-                num_recHeaders = len(em.receivedHeaderList)
-                RHList = []
-                for recHeader in em.receivedHeaderList:
-                    RHList.append(recHeader.assignCIDR())
-                if RHList not in seq_rh_from:
-                    seq_rh_from.append(RHList)
-            srp.received_header_sequences = seq_rh_from
-
-    def writeReceivedHeadersToFile(self):
-        FILE = open("receivedHeaders", "a")
-        for tup, srp in self.items():
-            FILE.write("SRP******************************************\n")
-            FILE.write(str(tup) + ":\n")
-            for em in srp.emailList:
-                FILE.write("@@@------------------------------------------\n")
-                for rh in em.receivedHeaderList:
-                    FILE.write(str(rh) + "\n")
-            FILE.write("------------------------------------------\n")
+    def distance_to_closest(self, mailpath):
+        return self.closest_by_edit_distance(mailpath)[1]
 
 class ReceivedHeadersDetector(Detector):
     NUM_HEURISTICS = 3
+    sender_profile = defaultdict(Profile)
 
     def __init__(self, inbox):
         self.inbox = inbox
@@ -150,53 +62,29 @@ class ReceivedHeadersDetector(Detector):
         return phish
 
     def classify(self, phish):
-        RHList = []
         sender = self.extract_from(phish)
-        receiver = ""
-        edit_distances = [0, 1, 2]
-        feature_vector = [0 for _ in range(len(edit_distances))]
+        mailpath = extract_mailpath_from_email(phish)
 
-        if (sender, receiver) not in self.srp:
-            return feature_vector
+        if not sender in self.sender_profile:
+            return [0, 0, 0]
+        d = self.sender_profile[sender].distance_to_closest(mailpath)
 
-        # creating the received header list for this email
-        srp = self.srp[(sender, receiver)]
-        if len(phish.get_all("Received")) != 0:
-            for recHeader in phish.get_all("Received"):
-                recHeader = ReceivedHeader(recHeader)
-                RHList.append(recHeader.assignCIDR())
+        thresholds = [0, 1, 2]
+        return [1 if d > t else 0 for t in thresholds]
         
-        # checking to see if there is a "matching" received header
-        # list for this SRP
-        for i, threshold in enumerate(edit_distances):
-            if RHList not in srp.received_header_sequences:
-                if srp.received_header_sequences:
-                    bestEditDist = None
-                    for lst in srp.received_header_sequences:
-                        ed = editdistance.eval(RHList, lst)
-                        if bestEditDist == None or bestEditDist > ed:
-                            bestEditDist = ed
-                    if bestEditDist > threshold:
-                        feature_vector[i] = 1
-        return feature_vector
-
     def create_sender_profile(self, num_samples):
-        self.srp = SenderReceiverProfile(self.inbox, num_samples, self)
+        for i in range(num_samples):
+            msg = self.inbox[i]
+            sender = self.extract_from(phish)
+            mailpath = extract_mailpath_from_email(msg)
+            if sender:
+                self.sender_profile[sender].add_mailpath(mailpath)
         self._log_large_profiles()
 
     def _log_large_profiles(self):
-        nseq = 0
-        for tup, srp in self.srp.items():
-            nseq = max(nseq, len(srp.received_header_sequences))
-        if nseq >= 256:
+        maxpathlen = 0
+        for profile in self.sender_profile.itervalues():
+            maxpathlen = max(maxpathlen, len(profile))
+        if maxpathlen >= 256:
             debug_logger = logging.getLogger('spear_phishing.debug')
-            debug_logger.info('Large number of received header sequences ({}) for sender; {}'.format(nseqs, logs.context))
-
-def removeSpaces(s):
-    exp = " +$"
-    r = re.compile(exp)
-    s = r.sub("", s)
-    exp = "^ +"
-    r = re.compile(exp)
-    s = r.sub("", s)
-    return s
+            debug_logger.info('Large number of mailpaths ({}) for sender; {}'.format(maxpathlen, logs.context))
