@@ -20,7 +20,7 @@ def lookup_cidr_from_hop(hop):
    through and look up the containing CIDR netblock."""
 def extract_cidr_from_rcvd_hdr(content):
     content = content.translate(None, '\n\r\t')
-    for end_token in ["by", "via", "with", "id", "for", ";", "$"]
+    for end_token in ["by", "via", "with", "id", "for", ";", "$"]:
         r = re.search('from +(.*) +' + end_token, content)
         if r:
             return lookup_cidr_from_hop(r.group(1).strip())
@@ -75,7 +75,7 @@ class ReceivedHeadersDetector(Detector):
     def create_sender_profile(self, num_samples):
         for i in range(num_samples):
             msg = self.inbox[i]
-            sender = self.extract_from(phish)
+            sender = self.extract_from(msg)
             mailpath = extract_mailpath_from_email(msg)
             if sender:
                 self.sender_profile[sender].add_mailpath(mailpath)
