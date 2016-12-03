@@ -21,7 +21,7 @@ class EDBag(Counter):
             d = editdistance.eval(x, y)
             if not closest_dist or d < closest_dist:
                 closest = y
-                closest_dir = d
+                closest_dist = d
                 if d == 1:
                     # Optimization: nothing can be any closer, as
                     # we know there's nothing at edit distance 0 (x is not
