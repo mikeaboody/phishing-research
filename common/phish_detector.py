@@ -276,6 +276,9 @@ class PhishDetector(object):
 
 
     def execute(self):
+        detector_names = ', '.join([d.__name__ for d in self.detectors])
+        progress_logger.info("Config settings: use_name_in_from={}, parallel={}, detectors={}".format(self.use_name_in_from, self.parallel, detector_names))
+
         start_time = time.time()
         MemTracker.initialize(memory_logger)
         logs.Watchdog.initialize()
