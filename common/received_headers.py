@@ -6,6 +6,7 @@ from netaddr import IPNetwork, IPAddress
 import editdistance
 import os
 from lookup import Lookup
+import logging
 import logs
 
 
