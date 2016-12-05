@@ -3,6 +3,7 @@ from detector import Detector
 import functools
 import editdistance
 import logging
+import logs
 from edbag import EDBag
 
 class Profile(object):
