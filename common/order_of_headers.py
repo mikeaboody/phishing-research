@@ -64,7 +64,7 @@ class OrderOfHeaderDetector(Detector):
         order = []
         prev = None
         for hdr in msg.keys():
-            curr = self.modify_header(hdr.lower())
+            curr = intern(self.modify_header(hdr.lower()))
             if curr != prev:
                 order.append(curr)
             prev = curr
