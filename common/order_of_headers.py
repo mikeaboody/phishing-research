@@ -8,14 +8,18 @@ import sys
 import numpy as np
 import editdistance
 import logging
+from edbag import EDBag
 
 class Profile(object):
     num_emails = 0
-    formats = set()
+    formats = EDBag()
 
     def add_format(self, format):
         self.formats.add(format)
         self.num_emails += 1
+
+    def closest(self, format):
+        return self.formats.closest_by_edit_distance(format)
 
 class OrderOfHeaderDetector(Detector):
     NUM_HEURISTICS = 3
@@ -42,14 +46,11 @@ class OrderOfHeaderDetector(Detector):
         detect = [1, 0, 0]
         ordering = self.find_ordering(phish, error=False)
         if sender in self.sender_profile:
-            orderings = self.sender_profile[sender].formats
-            for o in orderings:
-                if self.edit_distance_thresh(ordering, o):
-                    # phishy? Nope.
-                    detect[0] = 0
-                    break
+            _, distance = self.sender_profile[sender].closest(ordering)
+            if distance <= self.threshold:
+                detect[0] = 0
             detect[1] = self.sender_profile[sender].num_emails
-            detect[2] = len(orderings)
+            detect[2] = len(self.sender_profile[sender].formats)
         else:
             detect[0] = 0
         return detect
