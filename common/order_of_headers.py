@@ -18,11 +18,11 @@ class Profile(object):
     orderings = EDBag()
 
     def add_order(self, order):
-        self.orders.add(order)
+        self.orderings.add(order)
         self.num_emails += 1
 
     def closest(self, order):
-        return self.orders.closest_by_edit_distance(order)
+        return self.orderings.closest_by_edit_distance(order)
 
 class OrderOfHeaderDetector(Detector):
     NUM_HEURISTICS = 3
@@ -43,7 +43,7 @@ class OrderOfHeaderDetector(Detector):
             if distance <= self.threshold:
                 detect[0] = 0
             detect[1] = self.sender_profile[sender].num_emails
-            detect[2] = len(self.sender_profile[sender].orders)
+            detect[2] = len(self.sender_profile[sender].orderings)
         else:
             detect[0] = 0
         return detect
@@ -114,7 +114,7 @@ class OrderOfHeaderDetector(Detector):
     def _debug_large_senders(self):
         nords = 0
         for sender, prof in self.sender_profile.items():
-            nords = max(nords, len(prof.orders))
+            nords = max(nords, len(prof.orderings))
         if nords > 256:
             debug_logger = logging.getLogger('spear_phishing.debug')
             debug_logger.info('Large number of orderings ({}) for sender; {}'.format(nords, logs.context))
@@ -129,7 +129,7 @@ class OrderOfHeaderDetector(Detector):
         count = 1
         for sender in self.sender_profile:
             len_ordering[sender] = {}
-            for ordering in self.sender_profile[sender].orders:
+            for ordering in self.sender_profile[sender].orderings:
                 num = len(ordering.split(" "))
                 if num not in len_ordering[sender]:
                     len_ordering[sender][num] = 1
@@ -139,7 +139,7 @@ class OrderOfHeaderDetector(Detector):
         # key: diff val: number of times I've seen
         count_diff = {}
         for sender, profile in self.sender_profile.items():
-            ordering = profile.orders
+            ordering = profile.orderings
             if len(ordering) > 1:
                 one = list(ordering)[0].split(" ")
                 two = list(ordering)[1].split(" ")
@@ -156,7 +156,7 @@ class OrderOfHeaderDetector(Detector):
     def interesting_stats(self):
         ordering_used = [0]*20
         for ordering in self.sender_profile.values():
-            num_orders = len(ordering.orders) - 1
+            num_orders = len(ordering.orderings) - 1
             total_len = len(ordering_used)
             if num_orders >= total_len:
                 ordering_used.extend([0] * (num_orders - total_len + 1))
