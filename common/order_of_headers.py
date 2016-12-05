@@ -10,16 +10,19 @@ import editdistance
 import logging
 from edbag import EDBag
 
+"""For each email, we extract the order in which the headers appeared;
+   this keeps track of all of the header-orders seen in any email from
+   a particular sender."""
 class Profile(object):
     num_emails = 0
-    formats = EDBag()
+    orderings = EDBag()
 
-    def add_format(self, format):
-        self.formats.add(format)
+    def add_order(self, order):
+        self.orders.add(order)
         self.num_emails += 1
 
-    def closest(self, format):
-        return self.formats.closest_by_edit_distance(format)
+    def closest(self, order):
+        return self.orders.closest_by_edit_distance(order)
 
 class OrderOfHeaderDetector(Detector):
     NUM_HEURISTICS = 3
@@ -31,17 +34,7 @@ class OrderOfHeaderDetector(Detector):
     def modify_phish(self, phish, msg):
         return phish
 
-    def edit_distance_thresh(self, orig, curr):
-        """Returns True if ORIG and CURR are <= self.threshold edit
-           distance apart. Assumes ORIG has been converted to a list,
-           and CURR has not been. """
-        diff = editdistance.eval(orig, curr)
-        if diff <= self.threshold:
-            return True
-        return False
-
     def classify(self, phish):
-        # total, emails, editdistance
         sender = self.extract_from(phish)
         detect = [1, 0, 0]
         ordering = self.find_ordering(phish, error=False)
@@ -50,7 +43,7 @@ class OrderOfHeaderDetector(Detector):
             if distance <= self.threshold:
                 detect[0] = 0
             detect[1] = self.sender_profile[sender].num_emails
-            detect[2] = len(self.sender_profile[sender].formats)
+            detect[2] = len(self.sender_profile[sender].orders)
         else:
             detect[0] = 0
         return detect
@@ -58,7 +51,7 @@ class OrderOfHeaderDetector(Detector):
     def update_sender_profile(self, value, sender):
         if sender not in self.sender_profile:
             self.sender_profile[sender] = Profile()
-        self.sender_profile[sender].add_format(value)
+        self.sender_profile[sender].add_order(value)
 
     def update_entire_attribute(self, value):
         if value not in self.entire_attribute:
@@ -79,7 +72,6 @@ class OrderOfHeaderDetector(Detector):
             order += (str(curr) + " ")
         order = order[:-1]
         return order
-
 
     def find_ordering(self, msg, error=False):
         """ Finds numbered header ordering from a given MSG. """
@@ -161,11 +153,10 @@ class OrderOfHeaderDetector(Detector):
                 self.update_entire_attribute(order)
         self._debug_large_senders()
 
-
     def _debug_large_senders(self):
         nords = 0
         for sender, prof in self.sender_profile.items():
-            nords = max(nords, len(prof.formats))
+            nords = max(nords, len(prof.orders))
         if nords > 256:
             debug_logger = logging.getLogger('spear_phishing.debug')
             debug_logger.info('Large number of orderings ({}) for sender; {}'.format(nords, logs.context))
@@ -180,7 +171,7 @@ class OrderOfHeaderDetector(Detector):
         count = 1
         for sender in self.sender_profile:
             len_ordering[sender] = {}
-            for ordering in self.sender_profile[sender].formats:
+            for ordering in self.sender_profile[sender].orders:
                 num = len(ordering.split(" "))
                 if num not in len_ordering[sender]:
                     len_ordering[sender][num] = 1
@@ -190,7 +181,7 @@ class OrderOfHeaderDetector(Detector):
         # key: diff val: number of times I've seen
         count_diff = {}
         for sender, profile in self.sender_profile.items():
-            ordering = profile.formats
+            ordering = profile.orders
             if len(ordering) > 1:
                 one = list(ordering)[0].split(" ")
                 two = list(ordering)[1].split(" ")
@@ -207,11 +198,11 @@ class OrderOfHeaderDetector(Detector):
     def interesting_stats(self):
         ordering_used = [0]*20
         for ordering in self.sender_profile.values():
-            num_formats = len(ordering.formats) - 1
+            num_orders = len(ordering.orders) - 1
             total_len = len(ordering_used)
-            if num_formats >= total_len:
-                ordering_used.extend([0] * (num_formats - total_len + 1))
-            ordering_used[num_formats] += 1
+            if num_orders >= total_len:
+                ordering_used.extend([0] * (num_orders - total_len + 1))
+            ordering_used[num_orders] += 1
         ordering_used = self.trim_distributions(ordering_used)
         self.ordering_used = ordering_used
         #pprint.pprint(self.header_map)
@@ -227,4 +218,3 @@ class OrderOfHeaderDetector(Detector):
         print("distribution_of_num_ordering_used = " + str(self.ordering_used))
         # print("false alarm rate ordering format = %.2f percent" % (self.falsies))
         print("percent of senders with <=4 ordering formats used = %.3f" % (four))
-
