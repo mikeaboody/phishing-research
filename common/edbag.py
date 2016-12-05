@@ -7,11 +7,13 @@ from repoze.lru import LRUCache
    Supports the interface of Counter.  Each element should be a
    tuple (or other hashable sequence)."""
 class EDBag(Counter):
-    cache = LRUCache(256)
+    cache1 = LRUCache(256) # values where distance=1
+    cache2 = LRUCache(256) # values where distance>1
 
     def add(self, x):
+        if not x in self:
+            self.cache2.clear()
         self[x] += 1
-        self.cache.clear()
 
     def closest_by_edit_distance(self, x):
         if x in self:
@@ -21,7 +23,10 @@ class EDBag(Counter):
 
         # Optimization: If we've looked up this value before, 
         # return previously computed answer.
-        cached_answer = self.cache.get(x)
+        cached_answer = self.cache1.get(x)
+        if cached_answer:
+            return cached_answer
+        cached_answer = self.cache2.get(x)
         if cached_answer:
             return cached_answer
 
@@ -36,8 +41,8 @@ class EDBag(Counter):
                     # Optimization: nothing can be any closer, as
                     # we know there's nothing at edit distance 0 (x is not
                     # in the multiset).
-                    break
+                    self.cache1.put(x, (closest, closest_dist))
+                    return (closest, closest_dist)
 
-        rv = (closest, closest_dist)
-        self.cache.put(x, rv)
-        return rv
+        self.cache2.put(x, (closest, closest_dist))
+        return (closest, closest_dist)
