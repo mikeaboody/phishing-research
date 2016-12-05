@@ -9,6 +9,8 @@ import time
 
 import numpy as np
 
+from common import logs
+
 FILE_PATH = os.path.realpath(__file__)
 DIR_NAME = os.path.dirname(FILE_PATH)
 
@@ -160,7 +162,7 @@ try:
                         curr_time = time.time()
                         if curr_time - last_logged_time > 60: # Only log every 60 seconds.
                             last_logged_time = curr_time
-                            progress_logger.info('Creating Directory #{}'.format(dir_num))
+                            logs.RateLimitedLog.log('Creating directory', public=str(dir_num))
                         try:
                             os.makedirs(sender_dir)
                             total_senders += 1

@@ -8,6 +8,8 @@ from subprocess import call
 
 import numpy as np
 
+from common import logs
+
 FILE_PATH = os.path.realpath(__file__)
 DIR_NAME = os.path.dirname(FILE_PATH)
 
@@ -140,7 +142,7 @@ try:
                     sender_dir = "{}/{}/{}".format(OUTPUT_DIRECTORY, name, address)
                 if not os.path.exists(sender_dir):
                     dir_num += 1
-                    progress_logger.info('Creating Directory #{}'.format(dir_num))
+                    logs.RateLimitedLog.log('Creating directory', public=str(dir_num))
                     try:
                         os.makedirs(sender_dir)
                         total_senders += 1
