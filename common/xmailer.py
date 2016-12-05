@@ -1,14 +1,6 @@
-import logging
-import re
-import sys
-
-# Needed for Message ID Domain
-import socket
-from ipwhois import IPWhois
-
 from collections import defaultdict
-
-import logs
+import re
+from detector import Detector
 
 class XMailerDetector(Detector):
     def __init__(self, inbox):

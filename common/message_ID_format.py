@@ -1,14 +1,5 @@
-import logging
-import re
-import sys
-
-# Needed for Message ID Domain
-import socket
-from ipwhois import IPWhois
-
-from collections import defaultdict
-
 import logs
+from detector import Detector
 
 class MessageIdDetectorOne(Detector):
     DELIMITERS = ['.', '-', '$', '/', '%']
