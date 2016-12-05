@@ -99,7 +99,7 @@ class OrderOfHeaderDetector(Detector):
             nords = max(nords, len(prof.orderings))
         if nords > 256:
             debug_logger = logging.getLogger('spear_phishing.debug')
-            debug_logger.info('Large number of orderings ({}) for sender; {}'.format(nords, logs.context))
+            debug_logger.info('Large number of orderings ({}) for sender, emails_with_sender={}; {}'.format(nords, self.emails_with_sender, logs.context))
 
     def trim_distributions(self, distr):
         while distr[len(distr)-1] == 0:
