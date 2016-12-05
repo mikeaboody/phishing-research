@@ -37,7 +37,7 @@ class OrderOfHeaderDetector(Detector):
     def classify(self, phish):
         sender = self.extract_from(phish)
         detect = [1, 0, 0]
-        ordering = self.find_ordering(phish, error=False)
+        ordering = self.find_ordering(phish)
         if sender in self.sender_profile:
             _, distance = self.sender_profile[sender].closest(ordering)
             if distance <= self.threshold:
@@ -59,34 +59,12 @@ class OrderOfHeaderDetector(Detector):
         else:
             self.entire_attribute[value] += 1
 
-    def find_ordering_real(self, msg, name=False):
-        """ Finds named header ordering from a given MSG. """
-        order = ""
-        for i, k in enumerate(msg.keys()):
-            k = k.lower()
-            if k not in self.header_map:
-                self.header_map[k] = len(self.header_map)
-            curr = self.header_map[k]
-            if name:
-                curr = k
-            order += (str(curr) + " ")
-        order = order[:-1]
-        return order
-
-    def find_ordering(self, msg, error=False):
+    def find_ordering(self, msg):
         """ Finds numbered header ordering from a given MSG. """
         order = []
         prev = None
-        for i, k in enumerate(msg.keys()):
-            k = self.modify_header(k.lower())
-            if k not in self.header_map:
-                self.header_map[k] = len(self.header_map)
-                if error is True:
-                    print(curr_len)
-                    print(k)
-                    print(i)
-                    raise Exception("could not find header in map")
-            curr = self.header_map[k]
+        for hdr in msg.keys():
+            curr = self.modify_header(hdr.lower())
             if curr != prev:
                 order.append(curr)
             prev = curr
@@ -116,38 +94,18 @@ class OrderOfHeaderDetector(Detector):
             res += parts[i] + "-"
         return res[:-1]
 
-    def ordering_to_name(self, ordering):
-        """ Takes ordering number string and converts to header name. """
-        named_order = ""
-        ind_to_name = {v: k for k, v in self.header_map.items()}
-        for n in ordering:
-            named_order += ind_to_name[n] + " "
-        return named_order
-
-    def print_header_mapping(self):
-        """ Prints mapping from index to header. """
-        ind_to_name = {v: k for k, v in self.header_map.items()}
-        pprint.pprint(ind_to_name)
-
     def create_sender_profile(self, num_samples):
         self.emails_with_sender = 0
         self.sender_profile = {}
-        self.header_map = {}
         self.entire_attribute = {}
-        self.full_order = {}
         avg_length = 0
         for i in range(num_samples):
             msg = self.inbox[i]
             sender = self.extract_from(msg)
             if sender:
                 order = self.find_ordering(msg)
-                named_order = self.ordering_to_name(order)
                 length = len(order)
                 avg_length += length
-                if named_order not in self.full_order:
-                    self.full_order[named_order] = 1
-                else:
-                    self.full_order[named_order] += 1
                 self.update_sender_profile(order, sender)
                 self.emails_with_sender += 1
                 self.update_entire_attribute(order)
@@ -205,8 +163,6 @@ class OrderOfHeaderDetector(Detector):
             ordering_used[num_orders] += 1
         ordering_used = self.trim_distributions(ordering_used)
         self.ordering_used = ordering_used
-        #pprint.pprint(self.header_map)
-        print("Length of map = " + str(len(self.header_map)))
         print(ordering_used)
 
         uniqueSenders = len(self.sender_profile)
