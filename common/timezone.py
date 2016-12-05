@@ -1,4 +1,6 @@
 from detector import Detector
+from collections import Counter
+from collections import defaultdict
 import re
 
 #Has timezone abbrev
@@ -6,50 +8,25 @@ import re
 #Has timezone in offset
 timezone_re = re.compile("([+-][0-9][0-9][0-9][0-9])")
 
+def extract_timezone(date_string):
+    match = re.search(timezone_re, date_string)
+    if match is not None:
+        return match.group(0)
+    return None
 
-class Timezone:
-    def __init__(self, date_string):
-        # Timezone
-        self.timezone = Timezone.convert_to_timezone_string(date_string)
+class Profile(object):
+    timezones = Counter()
+    num_emails = 0
 
-    def same_timezone(self, other):
-        if (self.timezone != other.timezone):
-            return False
-        return True
-
-    @staticmethod
-    def convert_to_timezone_string(date_string):
-        if not isinstance(date_string, str):
-            return None
-        match = re.search(timezone_re, date_string)
-        if match is not None:
-            return match.group(0)
-        return None
-
-class DateData:
-    def __init__(self, dates=[]):
-        self.dates = dates
-        self.timezones = {}
-
-    def process_timezone(self, date):
-        self.dates.append(date)
-        curr_timezone = Timezone(date)
-
-        is_new_timezone = True
-        for seen_timezone in self.timezones:
-            if curr_timezone.same_timezone(seen_timezone):
-                found_same = False
-                self.timezones[seen_timezone] += 1
-                break
-        if is_new_timezone:
-            self.timezones[curr_timezone] = 1
+    def add_timezone(self, tz):
+        self.timezones[tz] += 1
+        self.num_emails += 1
 
 class DateTimezoneDetector(Detector):
     NUM_HEURISTICS = 3
+    sender_profile = defaultdict(Profile)
 
     def __init__(self, inbox):
-        self.sender_profile = {}
-        self.sender_to_date_data = {}
         self.inbox = inbox
 
     def modify_phish(self, phish, msg):
@@ -60,17 +37,14 @@ class DateTimezoneDetector(Detector):
         sender = self.extract_from(phish)
         date = phish["Date"]
 
-        if sender in self.sender_to_date_data:
-            test_timezone = Timezone(date)
-            return self.detect(self.sender_to_date_data[sender], test_timezone)
+        if not date or not sender in self.sender_profile:
+            return [0, 0, 0]
 
-        return [0, 0, 0]
-
-    def detect(self, date_data, test_timezone):
-        for seen_timezone in date_data.timezones:
-            if seen_timezone.same_timezone(test_timezone):
-                return [0, date_data.timezones[seen_timezone], sum(date_data.timezones.itervalues())]
-        return [1, 0, sum(date_data.timezones.itervalues())]
+        tz = extract_timezone(date)
+        profile = self.sender_profile[sender]
+        if tz in profile.timezones:
+            return [0, profile.timezones[tz], profile.num_emails]
+        return [1, 0, profile.num_emails]
 
     def create_sender_profile(self, num_samples):
         for i in range(num_samples):
@@ -78,20 +52,7 @@ class DateTimezoneDetector(Detector):
             sender = self.extract_from(email)
             date = email["Date"]
 
-            if sender is None:
+            if sender is None or date is None:
                 continue
 
-            if sender not in self.sender_profile:
-                self.sender_profile[sender] = [date]
-            else:
-                self.sender_profile[sender].append(date)
-
-            num_detected = 0
-            timezone_count = {}
-    
-        for sender, emails in self.sender_profile.items():
-            date_data = DateData()
-            for date in emails:
-                date_data.process_timezone(date)
-            self.sender_to_date_data[sender] = date_data
-
+            self.sender_profile[sender].add_timezone(extract_timezone(date))
