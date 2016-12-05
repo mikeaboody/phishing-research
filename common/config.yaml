@@ -19,8 +19,8 @@ batch_threading_size:           100
 offline:                        1
 detectors:
     DateTimezoneDetector:       1
-    MessageIdDetectorOne:       1
-    messageIDDomain_Detector:   1
+    MessageIdFormatDetector:    1
+    MessageIdDomainDetector:    1
     ContentTypeDetector:        1
     OrderOfHeaderDetector:      1
     XMailerDetector:            1

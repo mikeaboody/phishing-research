@@ -94,7 +94,7 @@ class MessageIdFormatDetector(Detector):
         phish['Message-ID'] = msg['Message-ID']
         return phish
 
-class MessageIdDetectorTwo(MessageIdDetectorOne):
+class MessageIdDetectorTwo(MessageIdFormatDetector):
     def create_sender_profile(self, num_samples):
         self.sender_profile = {}
         for i in range(num_samples):
