@@ -6,6 +6,8 @@ import sys
 import socket
 from ipwhois import IPWhois
 
+from collections import defaultdict
+
 from content_type import ContentTypeDetector
 from date_att import DateFormatDetector
 from detector import Detector
@@ -138,28 +140,20 @@ class XMailerDetector(Detector):
         self.inbox = inbox
 
     def create_sender_profile(self, num_samples):
-        self.sender_profile = {}
+        self.sender_profile = defaultdict(set)
         for i in range(num_samples):
             msg = self.inbox[i]
             curr_sender = self.extract_from(msg)
             if curr_sender:
-                # per sender
-                curr_profile = self.sender_profile.get(curr_sender, set())
                 curr_xmailer = self.getXMailer(msg)
-                similar_xmailer = self.getSimilar(curr_xmailer, curr_profile)
-                if similar_xmailer == False:
-                    curr_profile.add(curr_xmailer)
-                self.sender_profile[curr_sender] = curr_profile
-        count = 0
+                self.sender_profile[curr_sender].add(curr_xmailer)
 
     def classify(self, phish):
         curr_sender = self.extract_from(phish)
+        if not curr_sender:
+            return
         curr_xmailer = self.getXMailer(phish)
-        curr_profile = self.sender_profile.get(curr_sender, None)
-        if not curr_profile:
-            return False
-        similar_xmailer = self.getSimilar(curr_xmailer, curr_profile)
-        return similar_xmailer == False
+        return curr_xmailer in self.sender_profile.get(curr_sender, set())
 
     def modify_phish(self, phish, msg):
         phish["X-Mailer"] = msg["X-Mailer"]
@@ -185,7 +179,10 @@ class XMailerDetector(Detector):
 
     def getXMailer(self, msg):
         xmailer = msg["X-Mailer"]
-        return None if not xmailer else self.removeSpaces(self.extractVersion(self.extractParentheticals(xmailer)))
+        if not xmailer:
+            return None
+        # was: return self.removeSpaces(self.extractVersion(self.extractParentheticals(xmailer)))
+        return self.extractVersion(self.extractParentheticals(xmailer)).strip().lower()
 
 
     def getSimilar(self, given_str, given_set):
