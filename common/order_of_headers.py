@@ -1,11 +1,7 @@
 from __future__ import division
 from detector import Detector
-import re
 import functools
 import pprint
-from random import randint
-import sys
-import numpy as np
 import editdistance
 import logging
 from edbag import EDBag
@@ -48,17 +44,6 @@ class OrderOfHeaderDetector(Detector):
             detect[0] = 0
         return detect
 
-    def update_sender_profile(self, value, sender):
-        if sender not in self.sender_profile:
-            self.sender_profile[sender] = Profile()
-        self.sender_profile[sender].add_order(value)
-
-    def update_entire_attribute(self, value):
-        if value not in self.entire_attribute:
-            self.entire_attribute[value] = 1
-        else:
-            self.entire_attribute[value] += 1
-
     def find_ordering(self, msg):
         """ Finds numbered header ordering from a given MSG. """
         order = []
@@ -97,18 +82,15 @@ class OrderOfHeaderDetector(Detector):
     def create_sender_profile(self, num_samples):
         self.emails_with_sender = 0
         self.sender_profile = {}
-        self.entire_attribute = {}
-        avg_length = 0
         for i in range(num_samples):
             msg = self.inbox[i]
             sender = self.extract_from(msg)
             if sender:
                 order = self.find_ordering(msg)
-                length = len(order)
-                avg_length += length
-                self.update_sender_profile(order, sender)
+                if sender not in self.sender_profile:
+                    self.sender_profile[sender] = Profile()
+                self.sender_profile[sender].add_order(order)
                 self.emails_with_sender += 1
-                self.update_entire_attribute(order)
         self._debug_large_senders()
 
     def _debug_large_senders(self):
@@ -123,35 +105,6 @@ class OrderOfHeaderDetector(Detector):
         while distr[len(distr)-1] == 0:
             distr = distr[:len(distr)-1]
         return distr
-
-    def analyzing_sender_profile(self):
-        len_ordering = {}
-        count = 1
-        for sender in self.sender_profile:
-            len_ordering[sender] = {}
-            for ordering in self.sender_profile[sender].orderings:
-                num = len(ordering.split(" "))
-                if num not in len_ordering[sender]:
-                    len_ordering[sender][num] = 1
-                else:
-                    len_ordering[sender][num] += 1
-                count += 1
-        # key: diff val: number of times I've seen
-        count_diff = {}
-        for sender, profile in self.sender_profile.items():
-            ordering = profile.orderings
-            if len(ordering) > 1:
-                one = list(ordering)[0].split(" ")
-                two = list(ordering)[1].split(" ")
-                count_diff = self.add_dict(count_diff, int(editdistance.eval(one, two)))
-        #pprint.pprint(len_ordering)
-
-    def add_dict(self, d, k):
-        if k not in d:
-            d[k] = 1
-        else:
-            d[k] += 1
-        return d
 
     def interesting_stats(self):
         ordering_used = [0]*20
