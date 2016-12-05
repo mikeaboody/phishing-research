@@ -25,6 +25,7 @@ MESS_ID_IND = 4
 TOTAL_SIZE = 5
 
 progress_logger = logging.getLogger('spear_phishing.progress')
+debug_logger = logging.getLogger("spear_phishing.debug")
 
 class Classify:
 
@@ -94,8 +95,32 @@ class Classify:
     def cross_validate(self):
         progress_logger.info("Starting cross validation.")
         validate_clf = linear_model.LogisticRegression(class_weight=self.weights)
-        self.validation_acc = cross_validation.cross_val_score(validate_clf, self.X, self.Y.ravel(), cv=5)
-        progress_logger.info("Validation Accuracy: {}".format(self.validation_acc.mean()))
+        predictions = cross_validation.cross_val_predict(validate_clf, self.X, self.Y.ravel(), cv=5)
+        fp_count = 0.0
+        tp_count = 0.0
+        fn_count = 0.0
+        tn_count = 0.0
+        miscount = 0.0
+        for i in range(len(predictions)):
+            prediction = predictions[i]
+            expected = self.Y[i][0]
+            if prediction == 1 and expected == 1:
+                tp_count += 1
+            elif prediction == 1 and expected == 0:
+                fp_count += 1
+            elif prediction == 0 and expected == 1:
+                fn_count += 1
+            elif prediction == 0 and expected == 0:
+                tn_count += 1
+            else:
+                miscount += 1
+        if miscount > 0:
+            debug_logger.warn("During cross validation, found {} miscounts.".format(miscount))
+        total_count = fp_count + tp_count + fn_count + tn_count
+        self.validation_accuracy = (tp_count + tn_count) / total_count if total_count != 0 else 0.0
+        progress_logger.info("Confusion matrix - True positives: {}, False positives: {}, False negatives: {}, True negatives: {}".format(
+            tp_count, fp_count, fn_count, tn_count))
+        progress_logger.info("Validation Accuracy: {}".format(self.validation_accuracy))
 
     def train_clf(self):
         progress_logger.info("Starting to train classifier. Training on {} data points and {} features.".format(self.X.shape[0], self.X.shape[1]))
@@ -275,7 +300,7 @@ class Classify:
             out.write("# phish detected: {}\n".format(self.num_phish))
             percent = round(self.num_phish / float(self.test_size), 3) if self.num_phish else None
             out.write("% phish detected: {}\n".format(percent))
-            out.write("Cross validation acc: {}\n".format(self.validation_acc.mean()))
+            out.write("Cross validation acc: {}\n".format(self.validation_accuracy))
             out.write("Features coefficients:\n")
             coefs = sorted(zip(map(lambda x: round(x, 4), self.clf_coef), self.feature_names), reverse=True)
             coefs = [x[1] + ": " + str(x[0]) for x in coefs]
