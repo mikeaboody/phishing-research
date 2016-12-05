@@ -28,19 +28,9 @@ import inbox
 import numpy as np
 import scipy.io as sio
 
-import feature_classes as fc
 import logs
 
 progress_logger = logging.getLogger('spear_phishing.progress')
-
-############
-# FEATURES #
-############
-"""
-Define your features in feature_classes.py, and add the class name to the
-features list below. Feature classes must inherit from the Detector class
-defined in detector.py.
-"""
 
 class FeatureGenerator(object):
     def __init__(self,
