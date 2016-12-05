@@ -101,6 +101,13 @@ class OrderOfHeaderDetector(Detector):
             debug_logger = logging.getLogger('spear_phishing.debug')
             debug_logger.info('Large number of orderings ({}) for sender, emails_with_sender={}; {}'.format(nords, self.emails_with_sender, logs.context))
 
+            # more debugging for Matt.
+            # TODO: delete this after we've tracked down what is going on
+            # with bug #94
+            for sender, prof in self.sender_profile.items():
+                debug_logger.info('  Sender {} has {} orderings across {} emails'.format(sender, len(prof.orderings), prof.num_emails))
+
+
     def trim_distributions(self, distr):
         while distr[len(distr)-1] == 0:
             distr = distr[:len(distr)-1]
