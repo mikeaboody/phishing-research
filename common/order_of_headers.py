@@ -31,7 +31,6 @@ class OrderOfHeaderDetector(Detector):
         """Returns True if ORIG and CURR are <= self.threshold edit
            distance apart. Assumes ORIG has been converted to a list,
            and CURR has not been. """
-        curr = self.convert_to_list(curr)
         diff = editdistance.eval(orig, curr)
         if diff <= self.threshold:
             return True
@@ -42,11 +41,10 @@ class OrderOfHeaderDetector(Detector):
         sender = self.extract_from(phish)
         detect = [1, 0, 0]
         ordering = self.find_ordering(phish, error=False)
-        new_val = self.convert_to_list(ordering)
         if sender in self.sender_profile:
             orderings = self.sender_profile[sender].formats
             for o in orderings:
-                if self.edit_distance_thresh(new_val, o):
+                if self.edit_distance_thresh(ordering, o):
                     # phishy? Nope.
                     detect[0] = 0
                     break
@@ -55,9 +53,6 @@ class OrderOfHeaderDetector(Detector):
         else:
             detect[0] = 0
         return detect
-
-    def convert_to_list(self, ordering):
-        return ordering.split(" ")
 
     def update_sender_profile(self, value, sender):
         if sender not in self.sender_profile:
@@ -87,13 +82,9 @@ class OrderOfHeaderDetector(Detector):
 
     def find_ordering(self, msg, error=False):
         """ Finds numbered header ordering from a given MSG. """
-        order = ""
+        order = []
         prev = None
-        curr_len = 0
         for i, k in enumerate(msg.keys()):
-            # cutoff
-            #if curr_len == 10:
-            #    break
             k = self.modify_header(k.lower())
             if k not in self.header_map:
                 self.header_map[k] = len(self.header_map)
@@ -104,11 +95,9 @@ class OrderOfHeaderDetector(Detector):
                     raise Exception("could not find header in map")
             curr = self.header_map[k]
             if curr != prev:
-                order += (str(curr) + " ")
-                curr_len += 1
+                order.append(curr)
             prev = curr
-        order = order[:-1]
-        return order
+        return tuple(order)
 
     def modify_header(self, header):
         """ Edits header name before lookup/adding in header map. 
@@ -137,10 +126,8 @@ class OrderOfHeaderDetector(Detector):
     def ordering_to_name(self, ordering):
         """ Takes ordering number string and converts to header name. """
         named_order = ""
-        ind = ordering.split(" ")
         ind_to_name = {v: k for k, v in self.header_map.items()}
-        for x in ind:
-            n = int(x)
+        for n in ordering:
             named_order += ind_to_name[n] + " "
         return named_order
 
@@ -162,7 +149,7 @@ class OrderOfHeaderDetector(Detector):
             if sender:
                 order = self.find_ordering(msg)
                 named_order = self.ordering_to_name(order)
-                length = len(self.convert_to_list(order))
+                length = len(order)
                 avg_length += length
                 if named_order not in self.full_order:
                     self.full_order[named_order] = 1
