@@ -1,15 +1,14 @@
 from __future__ import division
 from detector import Detector
 import functools
-import pprint
 import editdistance
 import logging
 from edbag import EDBag
 
-"""For each email, we extract the order in which the headers appeared;
-   this keeps track of all of the header-orders seen in any email from
-   a particular sender."""
 class Profile(object):
+    """For each email, we extract the order in which the headers appeared;
+       this keeps track of all of the header-orders seen in any email from
+       a particular sender."""
     num_emails = 0
     orderings = EDBag()
 
@@ -32,32 +31,32 @@ class OrderOfHeaderDetector(Detector):
 
     def classify(self, phish):
         sender = self.extract_from(phish)
-        detect = [1, 0, 0]
         ordering = self.find_ordering(phish)
-        if sender in self.sender_profile:
-            _, distance = self.sender_profile[sender].closest(ordering)
-            if distance <= self.threshold:
-                detect[0] = 0
-            detect[1] = self.sender_profile[sender].num_emails
-            detect[2] = len(self.sender_profile[sender].orderings)
-        else:
+        if not sender in self.sender_profile:
+            return [0, 0, 0]
+
+        _, distance = self.sender_profile[sender].closest(ordering)
+        detect = [1, 0, 0]
+        if distance <= self.threshold:
             detect[0] = 0
+        detect[1] = self.sender_profile[sender].num_emails
+        detect[2] = len(self.sender_profile[sender].orderings)
         return detect
 
     def find_ordering(self, msg):
-        """ Finds numbered header ordering from a given MSG. """
+        """ Finds header ordering from a given email message. """
         order = []
         prev = None
         for hdr in msg.keys():
-            curr = intern(self.modify_header(hdr.lower()))
+            # was: curr = intern(self.modify_header(hdr).lower())
+            curr = intern(hdr.split('-')[0].lower())
             if curr != prev:
                 order.append(curr)
             prev = curr
         return tuple(order)
 
     def modify_header(self, header):
-        """ Edits header name before lookup/adding in header map. 
-            Truncation happens here. """
+        """ Truncates header name. """
         ## Case 1: use entire header
         #if self.num_header > 3:
         #    return header
@@ -86,9 +85,9 @@ class OrderOfHeaderDetector(Detector):
             msg = self.inbox[i]
             sender = self.extract_from(msg)
             if sender:
-                order = self.find_ordering(msg)
                 if sender not in self.sender_profile:
                     self.sender_profile[sender] = Profile()
+                order = self.find_ordering(msg)
                 self.sender_profile[sender].add_order(order)
                 self.emails_with_sender += 1
         self._debug_large_senders()
