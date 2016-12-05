@@ -61,7 +61,7 @@ class RateLimitedLog(object):
         s = sorted(cls.all_tasks.values(), key=lambda l: l.times_called, reverse=True)
         for l in s:
             if l.times_called > 1:
-                progress_logger("{: >5} instances of {}".format(l.times_called, l.task))
+                progress_logger.info("{: >5} instances of {}".format(l.times_called, l.task))
 
 
 
