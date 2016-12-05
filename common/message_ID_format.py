@@ -93,27 +93,3 @@ class MessageIdFormatDetector(Detector):
     def modify_phish(self, phish, msg):
         phish['Message-ID'] = msg['Message-ID']
         return phish
-
-class MessageIdDetectorTwo(MessageIdFormatDetector):
-    def create_sender_profile(self, num_samples):
-        self.sender_profile = {}
-        for i in range(num_samples):
-            msg = self.inbox[i]
-            sender = self.extract_from(msg)
-            message_id = msg["Message-ID"]
-            split_msg_id = message_id.split('@')
-            if len(split_msg_id) < 2:
-                print("Message-ID misformatted: {}".format(message_id))
-                continue
-            domain = split_msg_id[1][:-1]
-            uid = split_msg_id[0][1:]
-            common_delimiter, delimiter_count = self.most_common_delimiter(uid)
-            partition_sizes = self.partition_length(uid, common_delimiter, delimiter_count)
-            features = (common_delimiter, delimiter_count, partition_sizes)
-            if sender in self.sender_profile:
-                is_valid = self.partition_within_error(self.sender_profile[sender], features, fudge_factor=2)
-                if not is_valid:
-                    self.sender_profile[sender].add(features)
-            else:
-                self.sender_profile[sender] = set([features])
-        return self.sender_profile
