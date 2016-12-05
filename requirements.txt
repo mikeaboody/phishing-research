@@ -9,3 +9,4 @@ scikit-learn==0.17
 whois==0.7
 guppy>=0.1.10
 psutil
+repoze.lru
