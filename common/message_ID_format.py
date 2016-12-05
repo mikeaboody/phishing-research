@@ -1,7 +1,7 @@
 import logs
 from detector import Detector
 
-class MessageIdDetectorOne(Detector):
+class MessageIdFormatDetector(Detector):
     DELIMITERS = ['.', '-', '$', '/', '%']
     NUM_HEURISTICS = 2
 

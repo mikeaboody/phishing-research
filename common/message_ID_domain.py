@@ -6,7 +6,7 @@ import sys, re, os
 # from ipwhois import IPWhois
 from lookup import Lookup
 
-class messageIDDomain_Detector(Detector):
+class MessageIdDomainDetector(Detector):
     GLOBAL_SET = {} # email domain : [MID domain 0, ...]
     domainCompanyPairing = {} # domain : company
     domain2domainPairing = {}
