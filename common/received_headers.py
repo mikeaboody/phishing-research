@@ -47,10 +47,10 @@ class Profile(EDBag):
 
 class ReceivedHeadersDetector(Detector):
     NUM_HEURISTICS = 3
-    sender_profile = defaultdict(Profile)
 
     def __init__(self, inbox):
         self.inbox = inbox
+        self.sender_profile = defaultdict(Profile)
 
     def modify_phish(self, phish, msg):
         phish["Received"] = None

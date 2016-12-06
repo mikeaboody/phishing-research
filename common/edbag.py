@@ -7,8 +7,10 @@ from repoze.lru import LRUCache
    Supports the interface of Counter.  Each element should be a
    tuple (or other hashable sequence)."""
 class EDBag(Counter):
-    cache1 = LRUCache(256) # values where distance=1
-    cache2 = LRUCache(256) # values where distance>1
+    def __init__(self):
+        super(EDBag, self).__init__()
+        self.cache1 = LRUCache(256) # values where distance=1
+        self.cache2 = LRUCache(256) # values where distance>1
 
     def add(self, x):
         if not x in self:

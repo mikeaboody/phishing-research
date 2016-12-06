@@ -15,8 +15,9 @@ def extract_timezone(date_string):
     return None
 
 class Profile(object):
-    timezones = Counter()
-    num_emails = 0
+    def __init__(self):
+        self.timezones = Counter()
+        self.num_emails = 0
 
     def add_timezone(self, tz):
         self.timezones[tz] += 1
@@ -24,10 +25,10 @@ class Profile(object):
 
 class DateTimezoneDetector(Detector):
     NUM_HEURISTICS = 3
-    sender_profile = defaultdict(Profile)
 
     def __init__(self, inbox):
         self.inbox = inbox
+        self.sender_profile = defaultdict(Profile)
 
     def modify_phish(self, phish, msg):
         phish["Date"] = msg["Date"]
