@@ -17,8 +17,8 @@
     
         cd /usr/ports/science/py-scikit-learn && make install clean
 
-5. Make sure you have the command-line program ```shuf``` installed.
-    * If not, if there’s a way to install GNU coreutils, you can install ```coreutils```, which provides ```gshuf```
+5. Make sure you have the GNU coreutils version of the command-line program ```shuf``` installed.
+    * If not, install GNU coreutils, which provides ```gshuf```.
     * Then symlink ```shuf``` -> ```gshuf``` somewhere in your PATH.
 
 ### Instructions
