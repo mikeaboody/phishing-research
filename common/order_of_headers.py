@@ -10,8 +10,9 @@ class Profile(object):
     """For each email, we extract the order in which the headers appeared;
        this keeps track of all of the header-orders seen in any email from
        a particular sender."""
-    num_emails = 0
-    orderings = EDBag()
+    def __init__(self):
+        self.num_emails = 0
+        self.orderings = EDBag()
 
     def add_order(self, order):
         self.orderings.add(order)
@@ -100,13 +101,6 @@ class OrderOfHeaderDetector(Detector):
         if nords > 256:
             debug_logger = logging.getLogger('spear_phishing.debug')
             debug_logger.info('Large number of orderings ({}) for sender, emails_with_sender={}; {}'.format(nords, self.emails_with_sender, logs.context))
-
-            # more debugging for Matt.
-            # TODO: delete this after we've tracked down what is going on
-            # with bug #94
-            for sender, prof in self.sender_profile.items():
-                debug_logger.info('  Sender {} has {} orderings across {} emails'.format(sender, len(prof.orderings), prof.num_emails))
-
 
     def trim_distributions(self, distr):
         while distr[len(distr)-1] == 0:
