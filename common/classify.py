@@ -118,9 +118,13 @@ class Classify:
             debug_logger.warn("During cross validation, found {} miscounts.".format(miscount))
         total_count = fp_count + tp_count + fn_count + tn_count
         self.validation_accuracy = (tp_count + tn_count) / total_count if total_count != 0 else 0.0
+        fp_rate = fp_count / (fp_count + tn_count) if fp_count + tn_count != 0 else 0.0
+        fn_rate = fn_count / (fn_count + tp_count) if fn_count + tp_count != 0 else 0.0
         progress_logger.info("Confusion matrix - True positives: {}, False positives: {}, False negatives: {}, True negatives: {}".format(
             tp_count, fp_count, fn_count, tn_count))
         progress_logger.info("Validation Accuracy: {}".format(self.validation_accuracy))
+        progress_logger.info("False positive rate: {}".format(fp_rate))
+        progress_logger.info("False negative rate: {}".format(fn_rate))
 
     def train_clf(self):
         progress_logger.info("Starting to train classifier. Training on {} data points and {} features.".format(self.X.shape[0], self.X.shape[1]))
