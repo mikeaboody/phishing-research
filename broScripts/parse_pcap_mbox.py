@@ -160,7 +160,9 @@ try:
     progress_logger.info('Done.  Created #{} directories.'.format(dir_num))
     senders_seen.close()
 
-    os.system('shuf {} > /dev/null'.format(SENDERS_FILE))
+    shuffle_command = "shuf {} --output={}".format(SENDERS_FILE, SENDERS_FILE)
+    progress_logger.info("Executing: {}".format(shuffle_command))
+    os.system(shuffle_command)
 
     # Generating phish emails
     senders_seen = open(SENDERS_FILE)
