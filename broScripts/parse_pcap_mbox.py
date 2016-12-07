@@ -104,7 +104,7 @@ try:
     # Generating legit emails
     senders_seen = open(SENDERS_FILE, 'a+')
     dir_num = 0
-    with open(MBOX_FILE, 'a+') as f:
+    with open(MBOX_FILE, 'r+') as f:
         for line in f:
             if line == "-" or line == "-\n":
                 total_only_hyphen += 1
@@ -167,7 +167,7 @@ try:
     # Generating phish emails
     senders_seen = open(SENDERS_FILE)
     for filename in glob.glob(BRO_LOG_DIRECTORY + '/*.log'):
-        with open(filename, 'a+') as f:
+        with open(filename, 'r+') as f:
             for line in f:
                 if line[0] == '[' and line[-2] == ']':
                     try:
