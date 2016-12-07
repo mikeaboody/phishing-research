@@ -19,43 +19,75 @@ att7 = re.compile(",\s\s\s")
 
 #Has a two-digit number with a leading zero (e.g., 02, 08)
 leading_zero = re.compile("(^|\s+)0[0-9]\s+")
-att8 = leading_zero
 #Has a single-digit number that has no leading zero (e.g., 3, 7)
 no_leading_zero = re.compile("(^|\s+)[1-9]\s+")
-att9 = no_leading_zero
 
-def date_to_templates(date_string):
-    """Returns a set of binary templates for a date string --
-       all possible templates that are consistent with the string."""
-
+def date_to_template(date_string):
+    """Returns a binary templates for a date string."""
     binary_template = 0
-    for att in [att1, att2, att3, att4, att5, att6, att7, att8, att9]:
+    for att in [att1, att2, att3, att4, att5, att6, att7]:
         if re.search(att, date_string):
             binary_template = binary_template | 1
         binary_template = binary_template << 1
     binary_template = binary_template >> 1
+    return binary_template
 
-    if binary_template & 3:
-        # Has a number like 07 (so we know sender uses leading zeros)
-        # or a number like 8 (so we know sender doesn't use leading zeros),
-        # so there's only one template consistent with the string.
-        return {binary_template}
-    else:
-        # All the numbers are like 27 or 13, so it's ambiguous
-        # whether the sender uses leading zeros.
-        # Both are possible, so return a set containing both possible
-        # binary templates.
-        return {binary_template|1, binary_template|2}
+def has_leading_zero(date_string):
+    return re.search(leading_zero, date_string)
+
+def has_no_leading_zero(date_string):
+    return re.search(no_leading_zero, date_string)
+
+def log_if_inconsistent(date_string):
+    if has_leading_zero(date_string) and has_no_leading_zero(date_string):
+        logs.RateLimitedLog.log('Date: has both leading-zero and no-leading-zero', private=date)
+
+class ZeroStatus(object):
+    """For a single template, keep track of how many emails we've seen
+       (from this sender) total, and how many of each zero type."""
+    def __init__(self):
+        self.num_with_leading_zero = 0
+        self.num_with_no_leading_zero = 0
+        self.total = 0
+
+    def add_date(self, date):
+        self.total += 1
+        if has_leading_zero(date):
+            self.num_with_leading_zero += 1
+        if has_no_leading_zero(date):
+            self.num_with_no_leading_zero += 1
+
+    def plausibly_consistent(self, date):
+        if self.num_with_leading_zero == 0 and self.num_with_no_leading_zero == 0:
+            # So far we haven't seen any emails with either the
+            # 'leading-zero' or the 'no-leading-zero' type, so we
+            # have no clue what this sender does with single-digit numbers.
+            # So we have to assume this date might be consistent with
+            # past history.
+            return True
+
+        # If we reach this point, we have enough history that we
+        # know whether this sender tends to format single-digit numbers
+        # in the date string with a leading zero or with no leading zero.
+        if has_leading_zero(date):
+            return self.num_with_leading_zero > 0
+        elif has_no_leading_zero(date):
+            return self.num_with_no_leading_zero > 0
+        else:
+            return True
 
 class Profile(object):
+    """For a single sender, keep track of information about emails
+       sent by that sender.  For each binary template, we keep some
+       information about how many emails that sender sent that matched
+       that template."""
     def __init__(self):
-        self.templates = defaultdict(int)
+        self.templates = defaultdict(ZeroStatus)
         self.num_emails = 0
 
     def add_date(self, date):
-        templates = date_to_templates(date)
-        for t in templates:
-            self.templates[t] += 1
+        template = date_to_template(date)
+        self.templates[template].add_date(date)
         self.num_emails += 1
 
 class DateFormatDetector(Detector):
@@ -73,15 +105,20 @@ class DateFormatDetector(Detector):
         sender = self.extract_from(phish)
         date = phish["Date"]
 
-        if (sender in self.sender_profile) and date:
-            profile = self.sender_profile[sender]
-            email_templates = date_to_templates(date)
-            for t in email_templates:
-                if t in profile.templates:
-                    return [0, profile.templates[t], profile.num_emails]
+        if not date or not (sender in self.sender_profile):
+            return [0, 0, 0]
+
+        profile = self.sender_profile[sender]
+        t = date_to_template(date)
+
+        if not (t in profile.templates):
             return [1, 0, profile.num_emails]
 
-        return [0, 0, 0]
+        rv = [0, profile.templates[t].total, profile.num_emails]
+        if not profile.templates[t].plausibly_consistent(date):
+            rv[0] = 1
+        # TODO: Add feature counting number of emails with similar zero
+        return rv
 
     def create_sender_profile(self, num_samples):
         for i in range(num_samples):
