@@ -39,6 +39,8 @@ def has_no_leading_zero(date_string):
     return re.search(no_leading_zero, date_string)
 
 def log_if_inconsistent(date_string):
+    """Safeguard against unforeseen edge cases.
+       Should hopefully be impossible for this to trigger."""
     if has_leading_zero(date_string) and has_no_leading_zero(date_string):
         logs.RateLimitedLog.log('Date: has both leading-zero and no-leading-zero', private=date)
 
@@ -91,6 +93,8 @@ class Profile(object):
         self.num_emails += 1
 
 class DateFormatDetector(Detector):
+    """Attempts to detect spoofed emails based upon how the contents
+       of the Date: header are formatted."""
     NUM_HEURISTICS = 3
 
     def __init__(self, inbox):
@@ -102,6 +106,12 @@ class DateFormatDetector(Detector):
         return phish
 
     def classify(self, phish):
+        """Returns [s,n1,n2], where
+           s = 1 if this email is suspicious (seems spoofed) or 0 if not,
+           n1 = number of emails previously sent by this sender that have
+                a Date: header formatted similarly,
+           n2 = total number of emails previously sent by this sender
+                (regardless of the format of their Date: header)."""
         sender = self.extract_from(phish)
         date = phish["Date"]
 
