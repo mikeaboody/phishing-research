@@ -29,6 +29,7 @@ import numpy as np
 import scipy.io as sio
 
 import logs
+from memtest import MemTracker
 
 progress_logger = logging.getLogger('spear_phishing.progress')
 
