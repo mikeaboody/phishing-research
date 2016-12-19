@@ -9,6 +9,7 @@ from subprocess import call
 import numpy as np
 
 from common import logs
+from common import parse_sender
 
 FILE_PATH = os.path.realpath(__file__)
 DIR_NAME = os.path.dirname(FILE_PATH)
@@ -124,22 +125,7 @@ try:
                         sender = v
                         senders_seen.write(v + '\n')
                         break
-                if not is_person_empty(sender):
-                    name, address = parseaddr(sender)
-                    name = name[:20].replace("/","")
-                    address = address[:50].replace("/","")
-                else:
-                    name, address = '', ''
-                if name:
-                    first_subdir = name[:3].replace("/", "")
-                    second_subdir = name[3:6].replace("/", "")
-                    if second_subdir == '':
-                        second_subdir = 'none'
-                    sender_dir = "{}/{}/{}/{}/{}".format(OUTPUT_DIRECTORY,
-                        first_subdir, second_subdir, name, address)
-                else:
-                    name = 'noname'
-                    sender_dir = "{}/{}/{}".format(OUTPUT_DIRECTORY, name, address)
+                sender_dir = parse_sender.dir_for_sender(sender, OUTPUT_DIRECTORY)
                 if not os.path.exists(sender_dir):
                     dir_num += 1
                     logs.RateLimitedLog.log('Creating directory', public=str(dir_num))
@@ -182,22 +168,7 @@ try:
                             headers.pop(from_index)
                             headers.insert(from_index, (k, sender))
                             break
-                    if not is_person_empty(sender):
-                        name, address = parseaddr(sender)
-                        name = name[:20].replace("/","")
-                        address = address[:50].replace("/","")
-                    else:
-                        name, address = '', ''
-                    if name:
-                        first_subdir = name[:3].replace("/","")
-                        second_subdir = name[3:6].replace("/","")
-                        if second_subdir == '':
-                            second_subdir = 'none'
-                        sender_dir = "{}/{}/{}/{}/{}".format(OUTPUT_DIRECTORY,
-                            first_subdir, second_subdir, name, address)
-                    else:
-                        name = 'noname'
-                        sender_dir = "{}/{}/{}".format(OUTPUT_DIRECTORY, name, address)
+                    sender_dir = parse_sender.dir_for_sender(sender, OUTPUT_DIRECTORY)
                     if not os.path.exists(sender_dir):
                         debug_logger.warning("Missing sender directory for {}".format(sender_dir))
                         continue

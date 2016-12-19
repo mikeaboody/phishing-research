@@ -1,7 +1,7 @@
 import abc
 from random import randint
-import re
 import inbox
+import parse_sender
 
 class Detector(object):
     __metaclass__ = abc.ABCMeta
@@ -70,9 +70,9 @@ class Detector(object):
         """
         from_header = msg["From"]
         if Detector.USE_NAME:
-            return extract_name(from_header)
+            return parse_sender.extract_name(from_header)
         else:
-            return extract_email(from_header)
+            return parse_sender.extract_full_from(from_header)
 
     def make_phish(self):
         """Generates a phishy email."""
@@ -90,23 +90,3 @@ class Detector(object):
         phish['Subject'] = random_msg['Subject'] 
         phish = self.modify_phish(phish, random_msg)
         return phish
-
-# returns apoorva.dornadula@berkeley.edu given "Apoorva Dornadula <apoorva.dornadula@berkeley.edu>"
-def extract_email(from_header):
-    if from_header == None:
-        return None
-    if ("<" in from_header and ">" in from_header):
-        leftBracket = from_header.index("<")
-        rightBracket = from_header.index(">")
-        return from_header[leftBracket+1:rightBracket]
-    return from_header
-
-def extract_name(from_header):
-    if not from_header:
-        return None
-    from_header = from_header.lower()
-    r = re.compile(" *<.*> *")
-    from_header = r.sub("", from_header)
-    r = re.compile("^ +")
-    from_header = r.sub("", from_header)
-    return from_header
