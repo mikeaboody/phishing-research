@@ -9,6 +9,10 @@ class MemTracker(object):
     heapy_instance = None
     proc = None
 
+    # Set this to true for verbose memory dumps, but beware:
+    # it's super-slow.  It can take 3 hours *per memory dump* or more.
+    verbose = False
+
     @classmethod
     def initialize(cls, logger):
         if MemTracker.logger != None:
@@ -18,7 +22,6 @@ class MemTracker(object):
         MemTracker.heapy_instance = hpy()
         MemTracker.heapy_instance.setrelheap()
         MemTracker.proc = psutil.Process()
-
 
     @staticmethod
     def cur_mem_usage():
@@ -30,6 +33,8 @@ class MemTracker(object):
             raise RuntimeError("Initialize before calling.")
         MemTracker.logger.info("Memory statistics for '" + section_name + "':")
         MemTracker.logger.info("Current total RSS: " + str(MemTracker.cur_mem_usage()))
+        if not MemTracker.verbose:
+            return
         start = dt.datetime.now()
         h = MemTracker.heapy_instance.heap()
         MemTracker.logger.info(str(h))
