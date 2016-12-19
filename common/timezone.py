@@ -47,13 +47,11 @@ class DateTimezoneDetector(Detector):
             return [0, profile.timezones[tz], profile.num_emails]
         return [1, 0, profile.num_emails]
 
-    def create_sender_profile(self, num_samples):
-        for i in range(num_samples):
-            email = self.inbox[i]
-            sender = self.extract_from(email)
-            date = email["Date"]
+    def update_sender_profile(self, email):
+        sender = self.extract_from(email)
+        date = email["Date"]
 
-            if sender is None or date is None:
-                continue
+        if sender is None or date is None:
+            return
 
-            self.sender_profile[sender].add_timezone(extract_timezone(date))
+        self.sender_profile[sender].add_timezone(extract_timezone(date))

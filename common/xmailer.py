@@ -5,15 +5,13 @@ from detector import Detector
 class XMailerDetector(Detector):
     def __init__(self, inbox):
         self.inbox = inbox
-
-    def create_sender_profile(self, num_samples):
         self.sender_profile = defaultdict(set)
-        for i in range(num_samples):
-            msg = self.inbox[i]
-            curr_sender = self.extract_from(msg)
-            if curr_sender:
-                curr_xmailer = self.getXMailer(msg)
-                self.sender_profile[curr_sender].add(curr_xmailer)
+
+    def update_sender_profile(self, msg):
+        curr_sender = self.extract_from(msg)
+        if curr_sender:
+            curr_xmailer = self.getXMailer(msg)
+            self.sender_profile[curr_sender].add(curr_xmailer)
 
     def classify(self, phish):
         curr_sender = self.extract_from(phish)

@@ -27,6 +27,8 @@ class OrderOfHeaderDetector(Detector):
         self.inbox = inbox
         self.threshold = 7
         self.num_header = 1
+        self.emails_with_sender = 0
+        self.sender_profile = {}
 
     def modify_phish(self, phish, msg):
         return phish
@@ -80,18 +82,19 @@ class OrderOfHeaderDetector(Detector):
             res += parts[i] + "-"
         return res[:-1]
 
+    def update_sender_profile(self, msg):
+        sender = self.extract_from(msg)
+        if sender:
+            if sender not in self.sender_profile:
+                self.sender_profile[sender] = Profile()
+            order = self.find_ordering(msg)
+            self.sender_profile[sender].add_order(order)
+            self.emails_with_sender += 1
+
     def create_sender_profile(self, num_samples):
-        self.emails_with_sender = 0
-        self.sender_profile = {}
         for i in range(num_samples):
-            msg = self.inbox[i]
-            sender = self.extract_from(msg)
-            if sender:
-                if sender not in self.sender_profile:
-                    self.sender_profile[sender] = Profile()
-                order = self.find_ordering(msg)
-                self.sender_profile[sender].add_order(order)
-                self.emails_with_sender += 1
+            email = self.inbox[i]
+            self.update_sender_profile(email)
         self._debug_large_senders()
 
     def _debug_large_senders(self):

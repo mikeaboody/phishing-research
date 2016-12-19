@@ -7,6 +7,8 @@ class MessageIdFormatDetector(Detector):
 
     def __init__(self, regular_mbox):
         self.inbox = regular_mbox
+        self.sender_profile = {}
+        self.sender_count = {}
 
     def most_common_delimiter(self, uid):
         highest_count = 0
@@ -38,34 +40,29 @@ class MessageIdFormatDetector(Detector):
         split_uid = uid.split(delimiter)
         return " ".join([str(len(split)) for split in split_uid])
 
-    def create_sender_profile(self, num_samples):
-        self.sender_profile = {}
-        self.sender_count = {}
-        for i in range(num_samples):
-            msg = self.inbox[i]
-            sender = self.extract_from(msg)
-            message_id = msg["Message-ID"]
-            if message_id == None:
-                logs.RateLimitedLog.log("No message ID found, during create_sender_profile().")
-                continue
-            split_msg_id = message_id.split('@')
-            if len(split_msg_id) < 2:
-                logs.RateLimitedLog.log("Message-ID misformatted", private=message_id)
-                continue
-            domain = split_msg_id[1][:-1]
-            uid = split_msg_id[0][1:]
-            common_delimiter, delimiter_count = self.most_common_delimiter(uid)
-            partition_sizes = self.partition_length(uid, common_delimiter, delimiter_count)
-            features = (common_delimiter, delimiter_count, partition_sizes)
-            if sender in self.sender_profile:
-                is_valid = self.partition_within_error(self.sender_profile[sender], features, fudge_factor=2)
-                if not is_valid:
-                    self.sender_profile[sender].add(features)
-                self.sender_count[sender] += 1
-            else:
-                self.sender_profile[sender] = set([features])
-                self.sender_count[sender] = 1
-        return self.sender_profile
+    def update_sender_profile(self, msg):
+        sender = self.extract_from(msg)
+        message_id = msg["Message-ID"]
+        if message_id == None:
+            logs.RateLimitedLog.log("No message ID found, during create_sender_profile().")
+            return
+        split_msg_id = message_id.split('@')
+        if len(split_msg_id) < 2:
+            logs.RateLimitedLog.log("Message-ID misformatted", private=message_id)
+            return
+        domain = split_msg_id[1][:-1]
+        uid = split_msg_id[0][1:]
+        common_delimiter, delimiter_count = self.most_common_delimiter(uid)
+        partition_sizes = self.partition_length(uid, common_delimiter, delimiter_count)
+        features = (common_delimiter, delimiter_count, partition_sizes)
+        if sender in self.sender_profile:
+            is_valid = self.partition_within_error(self.sender_profile[sender], features, fudge_factor=2)
+            if not is_valid:
+                self.sender_profile[sender].add(features)
+            self.sender_count[sender] += 1
+        else:
+            self.sender_profile[sender] = set([features])
+            self.sender_count[sender] = 1
 
     def classify(self, phish):
         sender = self.extract_from(phish)

@@ -13,6 +13,14 @@ class Detector(object):
         self.inbox = regular_mbox
 
     @abc.abstractmethod
+    def update_sender_profile(self, email):
+        """Updates sender to profile map with a single email.
+
+        Keyword arguments:
+        email -- the email message to add to the sender profile
+        """
+        return
+
     def create_sender_profile(self, num_samples):
         """Creates sender to profile map.
 
@@ -20,10 +28,10 @@ class Detector(object):
         num_samples -- number of samples to train sender profile on.
 
         Sets self.sender_profile to a dictionary mapping senders to profiles.
-
-        Returns self.sender_profile.
         """
-        return
+        for i in range(num_samples):
+            email = self.inbox[i]
+            self.update_sender_profile(email)
 
     @abc.abstractmethod
     def classify(self, phish):
