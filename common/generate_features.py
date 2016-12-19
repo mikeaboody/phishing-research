@@ -103,32 +103,35 @@ class FeatureGenerator(object):
         logs.context['step'] = 'generate_data_matrix'
         data_matrix = np.empty(shape=(self.data_matrix_num_emails*2, self.num_features))
     
-        row_index = 0
+        legit_row = 0
+        phish_row = self.data_matrix_num_emails
         for i in range(self.start_data_matrix_index, self.start_test_matrix_index):
             j = 0
             for detector in self.detectors:
                 heuristic = detector.classify(inbox[i])
                 if type(heuristic) == list:
                     for h in heuristic:
-                        data_matrix[row_index][j] = float(h)
+                        data_matrix[legit_row][j] = float(h)
                         j += 1
                 else:
-                    data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
+                    data_matrix[legit_row][j] = float(heuristic) if heuristic else 0.0
                     j += 1
-            row_index += 1
-        logs.Watchdog.reset()
-        for i in range(self.start_data_matrix_index, self.start_test_matrix_index):
+            legit_row += 1
             j = 0
             for detector in self.detectors:
                 heuristic = detector.classify(phish_inbox[i])
                 if type(heuristic) == list:
                     for h in heuristic:
-                        data_matrix[row_index][j] = float(h)
+                        data_matrix[phish_row][j] = float(h)
                         j += 1
                 else:
-                    data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
+                    data_matrix[phish_row][j] = float(heuristic) if heuristic else 0.0
                     j += 1
-            row_index += 1
+            phish_row += 1
+            for detector in self.detectors:
+                detector.update_sender_profile(inbox[i])
+        assert legit_row == self.data_matrix_num_emails
+        assert phish_row == 2*self.data_matrix_num_emails
         logs.Watchdog.reset()
         del logs.context['step']
         return data_matrix
