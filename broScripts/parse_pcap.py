@@ -114,7 +114,7 @@ try:
     # Generating legit emails
     senders_seen = open(SENDERS_FILE, 'a+')
     dir_num = 0
-    for filename in glob.glob(PCAP_DIRECTORY + '/*.pcap'):
+    for filename in sorted(glob.glob(PCAP_DIRECTORY + '/*.pcap')):
         try:
             call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
         except Exception as e:
@@ -191,7 +191,7 @@ try:
 
     # Generating phish emails
     senders_seen = open(SENDERS_FILE)
-    for filename in glob.glob(BRO_LOG_DIRECTORY + '/*.log'):
+    for filename in sorted(glob.glob(BRO_LOG_DIRECTORY + '/*.log')):
         with open(filename, 'a+') as f:
             for line in f:
                 if line[0] == '[' and line[-2] == ']':
