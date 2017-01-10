@@ -137,13 +137,13 @@ class MessageIdDomainDetector(Detector):
             self.domain2domainPairing[(newmID, afterAT)] = False
             return False
 
-    def update_sender_profile(self, msg):
-        # if "List-Unsubscribe" in msg.keys():
+    def update_sender_profile(self, email):
+        # if "List-Unsubscribe" in email.keys():
         #     continue
-        sender = self.extract_from(msg)
+        sender = self.extract_from(email)
         if sender:
             self.emails_with_sender += 1
-            mID = self.get_endMessageIDDomain(self.get_messageIDDomain(msg))
+            mID = self.get_endMessageIDDomain(self.get_messageIDDomain(email))
             if mID == None:
                 self.no_messageIDDomain += 1
                 if sender not in self.sender_profile:
@@ -166,7 +166,7 @@ class MessageIdDomainDetector(Detector):
                     if (self.GLOBAL_SET[email_domain]):
                         if self.checkGeneralMID(sender, mID):
                             if wasntInSenderProfile:
-                                if not (self.noreplyFP(sender, msg["Message-ID"]) or self.orgGroups(sender, mID)):
+                                if not (self.noreplyFP(sender, email["Message-ID"]) or self.orgGroups(sender, mID)):
                                     self.new_format_found += 1
                         self.GLOBAL_SET[email_domain].append(mID)
                     else:
