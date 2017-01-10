@@ -3,6 +3,7 @@ import datetime as dt
 import logging
 from multiprocessing import Pool
 import os
+import subprocess
 import time
 import traceback
 
@@ -16,8 +17,9 @@ from lookup import Lookup
 from memtest import MemTracker
 import logs
 
-progress_logger = logging.getLogger('spear_phishing.progress')
+debug_logger = logging.getLogger('spear_phishing.debug')
 memory_logger = logging.getLogger('spear_phishing.memory')
+progress_logger = logging.getLogger('spear_phishing.progress')
 
 class PhishDetector(object):
 
@@ -199,8 +201,17 @@ class PhishDetector(object):
         for dirpath, dirnames, filenames in os.walk(self.root_dir):
             if ((self.generate_data_matrix and self.regular_filename in filenames and self.phish_filename in filenames)
                 or (self.generate_test_matrix and self.regular_filename in filenames)):
-                dir_to_generate.append(dirpath)
-                logs.Watchdog.reset()
+                command = ["wc", "-l", "{}/{}".format(dirpath, self.regular_filename)]
+                try:
+                    wc_output = subprocess.check_output(command)
+                    wc_output_split = wc_output.split()
+                    line_count = int(wc_output_split[0])
+                    if line_count < 50000: # Ignore inboxes with more than 50,000 emails
+                        dir_to_generate.append(dirpath)
+                        logs.Watchdog.reset()
+                except subprocess.CalledProcessError:
+                    debug_logger.warn('Could not calculate line count for directory {}'.format(dirpath))
+                    continue
         end_time = time.time()
         min_elapsed, sec_elapsed = int((end_time - start_time) / 60), int((end_time - start_time) % 60)
         progress_logger.info('Finished directory aggregation in feature generation in {} minutes, {} seconds'.format(min_elapsed, sec_elapsed))
