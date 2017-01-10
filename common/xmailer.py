@@ -7,10 +7,10 @@ class XMailerDetector(Detector):
         self.inbox = inbox
         self.sender_profile = defaultdict(set)
 
-    def update_sender_profile(self, msg):
-        curr_sender = self.extract_from(msg)
+    def update_sender_profile(self, email):
+        curr_sender = self.extract_from(email)
         if curr_sender:
-            curr_xmailer = self.getXMailer(msg)
+            curr_xmailer = self.getXMailer(email)
             self.sender_profile[curr_sender].add(curr_xmailer)
 
     def classify(self, phish):
