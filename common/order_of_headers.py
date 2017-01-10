@@ -82,12 +82,12 @@ class OrderOfHeaderDetector(Detector):
             res += parts[i] + "-"
         return res[:-1]
 
-    def update_sender_profile(self, email):
-        sender = self.extract_from(email)
+    def update_sender_profile(self, msg):
+        sender = self.extract_from(msg)
         if sender:
             if sender not in self.sender_profile:
                 self.sender_profile[sender] = Profile()
-            order = self.find_ordering(email)
+            order = self.find_ordering(msg)
             self.sender_profile[sender].add_order(order)
             self.emails_with_sender += 1
 

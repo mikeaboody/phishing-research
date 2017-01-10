@@ -72,9 +72,9 @@ class ReceivedHeadersDetector(Detector):
         thresholds = [0, 1, 2]
         return [1 if d > t else 0 for t in thresholds]
         
-    def update_sender_profile(self, email):
-        sender = self.extract_from(email)
-        mailpath = extract_mailpath_from_email(email)
+    def update_sender_profile(self, msg):
+        sender = self.extract_from(msg)
+        mailpath = extract_mailpath_from_email(msg)
         if sender:
             self.sender_profile[sender].add_mailpath(mailpath)
 

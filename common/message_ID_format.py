@@ -40,9 +40,9 @@ class MessageIdFormatDetector(Detector):
         split_uid = uid.split(delimiter)
         return " ".join([str(len(split)) for split in split_uid])
 
-    def update_sender_profile(self, email):
-        sender = self.extract_from(email)
-        message_id = email["Message-ID"]
+    def update_sender_profile(self, msg):
+        sender = self.extract_from(msg)
+        message_id = msg["Message-ID"]
         if message_id == None:
             logs.RateLimitedLog.log("No message ID found, during create_sender_profile().")
             return
