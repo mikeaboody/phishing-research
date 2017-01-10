@@ -16,6 +16,7 @@ class MessageIdDomainDetector(Detector):
         self.no_messageIDDomain = 0
         self.new_format_found = 0
         self.sender_profile = {}
+        self._already_created = False
 
     def check_header(self, msg):
         mID = msg["Message-ID"]

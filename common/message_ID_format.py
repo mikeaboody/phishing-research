@@ -9,6 +9,7 @@ class MessageIdFormatDetector(Detector):
         self.inbox = regular_mbox
         self.sender_profile = {}
         self.sender_count = {}
+        self._already_created = False
 
     def most_common_delimiter(self, uid):
         highest_count = 0

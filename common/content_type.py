@@ -15,6 +15,7 @@ class ContentTypeDetector(Detector):
         self.false_alarm = {"content-type": 0, "charset": 0, "boundary": 0}
         self.sender_profile = {}
         self.entire_attribute = {}
+        self._already_created = False
 
     def modify_phish(self, phish, msg):
         phish["Content-Type"] = msg["Content-Type"]

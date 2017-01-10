@@ -6,6 +6,7 @@ class XMailerDetector(Detector):
     def __init__(self, inbox):
         self.inbox = inbox
         self.sender_profile = defaultdict(set)
+        self._already_created = False
 
     def update_sender_profile(self, email):
         curr_sender = self.extract_from(email)

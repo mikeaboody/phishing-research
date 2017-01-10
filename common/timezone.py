@@ -29,6 +29,7 @@ class DateTimezoneDetector(Detector):
     def __init__(self, inbox):
         self.inbox = inbox
         self.sender_profile = defaultdict(Profile)
+        self._already_created = False
 
     def modify_phish(self, phish, msg):
         phish["Date"] = msg["Date"]
