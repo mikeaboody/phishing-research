@@ -11,6 +11,7 @@ class Detector(object):
 
     def __init__(self, regular_mbox):
         self.inbox = regular_mbox
+        self._already_created = False
 
     @abc.abstractmethod
     def update_sender_profile(self, email):
@@ -29,9 +30,12 @@ class Detector(object):
 
         Sets self.sender_profile to a dictionary mapping senders to profiles.
         """
+        if self._already_created:
+            throw RuntimeError("Tried to call create_sender_profile() twice on same detector")
         for i in range(num_samples):
             email = self.inbox[i]
             self.update_sender_profile(email)
+        self._already_created = True
 
     @abc.abstractmethod
     def classify(self, phish):
