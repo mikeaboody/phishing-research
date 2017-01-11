@@ -100,6 +100,7 @@ class DateFormatDetector(Detector):
     def __init__(self, inbox):
         self.sender_profile = defaultdict(Profile)
         self.inbox = inbox
+        self._already_created = False
 
     def modify_phish(self, phish, msg):
         phish["Date"] = msg["Date"]
@@ -130,11 +131,9 @@ class DateFormatDetector(Detector):
         # TODO: Add feature counting number of emails with similar zero
         return rv
 
-    def create_sender_profile(self, num_samples):
-        for i in range(num_samples):
-            email = self.inbox[i]
-            sender = self.extract_from(email)
-            date = email["Date"]
-    
-            if sender and date:
-                self.sender_profile[sender].add_date(date)
+    def update_sender_profile(self, email):
+        sender = self.extract_from(email)
+        date = email["Date"]
+
+        if sender and date:
+            self.sender_profile[sender].add_date(date)

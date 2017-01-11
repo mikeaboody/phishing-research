@@ -9,6 +9,13 @@ class ContentTypeDetector(Detector):
         self.inbox = inbox
         # [content-type, charset, boundary]
         self.detections = {"content-type": 0, "charset": 0, "boundary": 0}
+        self.emails_with_sender = 0
+        self.no_content_type = 0
+        self.combined_false = 0
+        self.false_alarm = {"content-type": 0, "charset": 0, "boundary": 0}
+        self.sender_profile = {}
+        self.entire_attribute = {}
+        self._already_created = False
 
     def modify_phish(self, phish, msg):
         phish["Content-Type"] = msg["Content-Type"]
@@ -145,7 +152,7 @@ class ContentTypeDetector(Detector):
                 pass
         return detect
 
-    def update_sender_profile(self, attr, value, sender):
+    def update_sender_profile_with_attr(self, attr, value, sender):
         new_format = 0
         if sender not in self.sender_profile:
             self.sender_profile[sender] = {EMAILS: 0}
@@ -178,36 +185,25 @@ class ContentTypeDetector(Detector):
         plt.show()
         return
 
-    def create_sender_profile(self, num_samples):
-        self.emails_with_sender = 0
-        self.no_content_type = 0
-        # [content-type, charset, boundary]
-        self.false_alarm = [0, 0, 0]
-        self.combined_false = 0
-        self.false_alarm = {"content-type": 0, "charset": 0, "boundary": 0}
-        self.sender_profile = {}
-        self.entire_attribute = {}
-        for i in range(num_samples):
-            msg = self.inbox[i]
-            sender = self.extract_from(msg)
-            new_format = 0
-            if sender:
-                self.emails_with_sender += 1
-                entire_ct = self.get_entire_content(msg)
-                processed_ct = self.process(entire_ct)
-                # No content-type header
-                if not processed_ct:
-                    self.update_sender_profile(None, None, sender)
-                self.update_sender_profile(EMAILS, None, sender)
-                for attr, value in processed_ct.items():
-                    new = self.update_sender_profile(attr, value, sender) 
-                    new_format += new
-                    if new:
-                        self.false_alarm[attr] += 1
-                    self.update_entire_attribute(attr, value)
-            if new_format > 0:
-                self.combined_false += 1
-
+    def update_sender_profile(self, email):
+        sender = self.extract_from(email)
+        new_format = 0
+        if sender:
+            self.emails_with_sender += 1
+            entire_ct = self.get_entire_content(email)
+            processed_ct = self.process(entire_ct)
+            # No content-type header
+            if not processed_ct:
+                self.update_sender_profile_with_attr(None, None, sender)
+            self.update_sender_profile_with_attr(EMAILS, None, sender)
+            for attr, value in processed_ct.items():
+                new = self.update_sender_profile_with_attr(attr, value, sender) 
+                new_format += new
+                if new:
+                    self.false_alarm[attr] += 1
+                self.update_entire_attribute(attr, value)
+        if new_format > 0:
+            self.combined_false += 1
 
     def trim_distributions(self, distr):
         while distr[len(distr)-1] == 0:

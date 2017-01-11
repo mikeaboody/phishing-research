@@ -12,6 +12,11 @@ class MessageIdDomainDetector(Detector):
     domain2domainPairing = {}
     def __init__(self, inbox):
         self.inbox = inbox
+        self.emails_with_sender = 0
+        self.no_messageIDDomain = 0
+        self.new_format_found = 0
+        self.sender_profile = {}
+        self._already_created = False
 
     def check_header(self, msg):
         mID = msg["Message-ID"]
@@ -133,52 +138,41 @@ class MessageIdDomainDetector(Detector):
             self.domain2domainPairing[(newmID, afterAT)] = False
             return False
 
-    def create_sender_profile(self, numSamples):
-        emails_with_sender = 0
-        no_messageIDDomain = 0
-        new_format_found = 0
-        self.sender_profile = {}
-        # for msg in self.inbox:
-        for i in range(numSamples):
-            msg = self.inbox[i]
-            # if "List-Unsubscribe" in msg.keys():
-            #     continue
-            sender = self.extract_from(msg)
-            if sender:
-                emails_with_sender += 1
-                mID = self.get_endMessageIDDomain(self.get_messageIDDomain(msg))
-                if mID == None:
-                    no_messageIDDomain += 1
-                    if sender not in self.sender_profile:
-                        self.sender_profile[sender] = set([])
-                    self.sender_profile[sender].add("None")
+    def update_sender_profile(self, email):
+        # if "List-Unsubscribe" in email.keys():
+        #     continue
+        sender = self.extract_from(email)
+        if sender:
+            self.emails_with_sender += 1
+            mID = self.get_endMessageIDDomain(self.get_messageIDDomain(email))
+            if mID == None:
+                self.no_messageIDDomain += 1
+                if sender not in self.sender_profile:
+                    self.sender_profile[sender] = set([])
+                self.sender_profile[sender].add("None")
+            else:
+                wasntInSenderProfile = False
+                if sender in self.sender_profile:
+                    if mID not in self.sender_profile[sender]:
+                        if self.toFlag(sender, mID):
+                            wasntInSenderProfile = True
+                        self.sender_profile[sender].add(mID)
                 else:
-                    wasntInSenderProfile = False
-                    if sender in self.sender_profile:
-                        if mID not in self.sender_profile[sender]:
-                            if self.toFlag(sender, mID):
-                                wasntInSenderProfile = True
-                            self.sender_profile[sender].add(mID)
+                    self.sender_profile[sender] = set([mID])
+                email_domain = self.getEmailDomain(sender)
+                if email_domain not in self.GLOBAL_SET:
+                    self.GLOBAL_SET[email_domain] = []
+
+                if mID not in self.GLOBAL_SET[email_domain]:
+                    if (self.GLOBAL_SET[email_domain]):
+                        if self.checkGeneralMID(sender, mID):
+                            if wasntInSenderProfile:
+                                if not (self.noreplyFP(sender, email["Message-ID"]) or self.orgGroups(sender, mID)):
+                                    self.new_format_found += 1
+                        self.GLOBAL_SET[email_domain].append(mID)
                     else:
-                        self.sender_profile[sender] = set([mID])
-                    email_domain = self.getEmailDomain(sender)
-                    if email_domain not in self.GLOBAL_SET:
-                        self.GLOBAL_SET[email_domain] = []
+                        self.GLOBAL_SET[email_domain] = [mID]
 
-                    if mID not in self.GLOBAL_SET[email_domain]:
-                        if (self.GLOBAL_SET[email_domain]):
-                            if self.checkGeneralMID(sender, mID):
-                                if wasntInSenderProfile:
-                                    if not (self.noreplyFP(sender, msg["Message-ID"]) or self.orgGroups(sender, mID)):
-                                        new_format_found += 1
-                            self.GLOBAL_SET[email_domain].append(mID)
-                        else:
-                            self.GLOBAL_SET[email_domain] = [mID]
-
-        self.emails_with_sender = emails_with_sender
-        self.no_messageIDDomain = no_messageIDDomain
-        self.new_format_found = new_format_found
-        return self.sender_profile
 
     def toFlag(self, sender, mID):
         return self.checkGeneralMID(sender, mID)
