@@ -43,6 +43,8 @@ class MessageIdFormatDetector(Detector):
 
     def update_sender_profile(self, email):
         sender = self.extract_from(email)
+        if not sender:
+            return
         message_id = email["Message-ID"]
         if message_id == None:
             logs.RateLimitedLog.log("No message ID found, during create_sender_profile().")
