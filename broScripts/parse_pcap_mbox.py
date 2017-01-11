@@ -166,7 +166,7 @@ try:
 
     # Generating phish emails
     senders_seen = open(SENDERS_FILE)
-    for filename in glob.glob(BRO_LOG_DIRECTORY + '/*.log'):
+    for filename in sorted(glob.glob(BRO_LOG_DIRECTORY + '/*.log')):
         with open(filename, 'r+') as f:
             for line in f:
                 if line[0] == '[' and line[-2] == ']':

@@ -29,6 +29,7 @@ class OrderOfHeaderDetector(Detector):
         self.num_header = 1
         self.emails_with_sender = 0
         self.sender_profile = {}
+        self._already_created = False
 
     def modify_phish(self, phish, msg):
         return phish
@@ -82,12 +83,12 @@ class OrderOfHeaderDetector(Detector):
             res += parts[i] + "-"
         return res[:-1]
 
-    def update_sender_profile(self, msg):
-        sender = self.extract_from(msg)
+    def update_sender_profile(self, email):
+        sender = self.extract_from(email)
         if sender:
             if sender not in self.sender_profile:
                 self.sender_profile[sender] = Profile()
-            order = self.find_ordering(msg)
+            order = self.find_ordering(email)
             self.sender_profile[sender].add_order(order)
             self.emails_with_sender += 1
 

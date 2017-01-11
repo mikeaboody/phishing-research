@@ -15,6 +15,7 @@ class ContentTypeDetector(Detector):
         self.false_alarm = {"content-type": 0, "charset": 0, "boundary": 0}
         self.sender_profile = {}
         self.entire_attribute = {}
+        self._already_created = False
 
     def modify_phish(self, phish, msg):
         phish["Content-Type"] = msg["Content-Type"]
@@ -184,12 +185,12 @@ class ContentTypeDetector(Detector):
         plt.show()
         return
 
-    def update_sender_profile(self, msg):
-        sender = self.extract_from(msg)
+    def update_sender_profile(self, email):
+        sender = self.extract_from(email)
         new_format = 0
         if sender:
             self.emails_with_sender += 1
-            entire_ct = self.get_entire_content(msg)
+            entire_ct = self.get_entire_content(email)
             processed_ct = self.process(entire_ct)
             # No content-type header
             if not processed_ct:

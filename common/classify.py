@@ -10,7 +10,7 @@ import time
 
 import numpy as np
 import scipy.io as sio
-from sklearn import linear_model, cross_validation
+from sklearn import linear_model, model_selection
 from sklearn.utils import shuffle
 from sklearn.externals import joblib
 
@@ -95,7 +95,7 @@ class Classify:
     def cross_validate(self):
         progress_logger.info("Starting cross validation.")
         validate_clf = linear_model.LogisticRegression(class_weight=self.weights)
-        predictions = cross_validation.cross_val_predict(validate_clf, self.X, self.Y.ravel(), cv=5)
+        predictions = model_selection.cross_val_predict(validate_clf, self.X, self.Y.ravel(), cv=5)
         fp_count = 0.0
         tp_count = 0.0
         fn_count = 0.0
