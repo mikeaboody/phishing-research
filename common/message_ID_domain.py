@@ -4,7 +4,7 @@ import sys, re, os
 # IPWhois
 # import socket
 # from ipwhois import IPWhois
-from lookup import Lookup
+from lookup import Lookup, getBinaryRep
 
 class MessageIdDomainDetector(Detector):
     GLOBAL_SET = {} # email domain : [MID domain 0, ...]
@@ -45,7 +45,7 @@ class MessageIdDomainDetector(Detector):
                 indexNextDot = len(rest) - rest[::-1].index(".") - 1
                 return mID[indexNextDot+1:]
         return mID
-        
+
     def classify(self, phish):
         sender = self.extract_from(phish)
         mID = self.get_endMessageIDDomain(self.get_messageIDDomain(phish))
@@ -97,7 +97,12 @@ class MessageIdDomainDetector(Detector):
         try:
             newmID = mID
             afterAT = mID
-            afterAT = sender[sender.index("@")+1:]
+
+            if "@" in sender:
+                afterAT = sender[sender.index("@")+1:]
+            else:
+                self.domain2domainPairing[(newmID, afterAT)] = False
+                return False
 
             # if I have seen this pairing before, do not flag as FP
             if (newmID, afterAT) in self.domain2domainPairing:
@@ -115,26 +120,30 @@ class MessageIdDomainDetector(Detector):
             # if the domains are not in the file, then use CIDR blocks
             if newmID in self.domainCompanyPairing:
                 res11 = self.domainCompanyPairing[newmID]
-            else:
-                # createDomain2OrgPair(newmID)
+            elif newmID in Lookup.seen_domain_ip:
                 ip1 = Lookup.seen_domain_ip[newmID]
-                res11 = getBinaryRep(ip1, Lookup.getCIDR(ip1))
+                res11 = Lookup.getCIDR(ip1)
                 self.domainCompanyPairing[newmID] = res11
+            else:
+                self.domain2domainPairing[(newmID, afterAT)] = False
+                return False
 
             if afterAT in self.domainCompanyPairing:
                 res22 = self.domainCompanyPairing[afterAT]
-            else:
-                # createDomain2OrgPair[afterAT]
+            elif afterAT in Lookup.seen_domain_ip:
                 ip2 = Lookup.seen_domain_ip[afterAT]
-                res22 = getBinaryRep(ip2, Lookup.getCIDR(ip2))
+                res22 = Lookup.getCIDR(ip2)
                 self.domainCompanyPairing[afterAT] = res22
+            else:
+                self.domain2domainPairing[(newmID, afterAT)] = False
+                return False
 
             if res11 == res22:
                 self.domain2domainPairing[(newmID, afterAT)] = True
                 return True
             self.domain2domainPairing[(newmID, afterAT)] = False
             return False
-        except:
+        except ValueError:
             self.domain2domainPairing[(newmID, afterAT)] = False
             return False
 
@@ -189,7 +198,7 @@ class MessageIdDomainDetector(Detector):
         for m in distribution_of_num_mID_used[1:]:
             multipleContent += m
         multipleContent = (multipleContent*1.0 / uniqueSenders)*100.0
-        
+
         print("Total emails = " + str(total_emails))
         print("Emails with sender = " + str(self.emails_with_sender))
         print("Emails with no message ID domains = " + str(self.no_messageIDDomain))
@@ -198,7 +207,7 @@ class MessageIdDomainDetector(Detector):
         print("new_format_found = " + str(self.new_format_found))
         print("False alarm rate = %.9f percent" % (self.new_format_found*1.0 / self.emails_with_sender * 100.0 ))
         print("Percent of senders with only 1 message ID Domain, 1 + message ID Domain = %.3f, %.3f" % (singleContent, multipleContent))
-    
+
 
 def printInfo(msg):
     print(msg["From"])
