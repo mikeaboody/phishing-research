@@ -156,6 +156,8 @@ class FeatureGenerator(object):
                     test_data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             row_index += 1
+            for detector in self.detectors:
+                detector.update_sender_profile(test_mbox[i])
         test_email_index = np.arange(self.start_test_matrix_index, self.num_emails)
         logs.Watchdog.reset()
         del logs.context['step']
