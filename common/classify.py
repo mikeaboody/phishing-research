@@ -84,6 +84,7 @@ class Classify:
         X, Y = shuffle(X, Y)
         self.X = X
         self.Y = Y
+        self.num_features = X.shape[1]
         # Save training data matrix and training labels to training_data.npz.
         # np.savez("training_data", X=np.vstack([self.feature_names, self.X]), Y=self.Y)
         np.savez("training_data", X=self.X, Y=self.Y)
@@ -260,7 +261,10 @@ class Classify:
         path = path[:-16] + "test.mat"
         data = sio.loadmat(path)
         test_sample = data['test_data'][test_indx]
-        product = np.multiply(test_sample, self.clf_coef)
+        # get column averages
+        col_averages = np.mean(data['test_data'], axis=0).reshape((self.num_features,1))
+        test_sample_minus_mean = test_sample.reshape((self.num_features, 1)) - col_averages
+        product = np.multiply(test_sample_minus_mean.reshape(self.num_features), self.clf_coef)
         d_contribution = {}
         curr = None
         for i, d in enumerate(self.d_name_per_feat):
@@ -333,12 +337,25 @@ class Classify:
         predictions = self.clf.predict(test_X).reshape(sample_size, 1)
         prob_phish = self.clf.predict_proba(test_X)[:,1].reshape(sample_size, 1)
         prob_phish[prob_phish < float(0.0001)] = 0
+        top_three_detectors = self.get_top_3_detector_contribution(test_X)
         path_id = np.concatenate((path_array, indx), axis=1)
         res = np.empty(shape=(sample_size, 0))
         res = np.concatenate((res, path_id), 1)
         res = np.concatenate((res, prob_phish), 1)
         res = np.concatenate((res, test_indx), 1)
         res = np.concatenate((res, test_mess_id), 1)
+        res = np.concatenate((res, top_three_detectors), 1)
         # Assumes prob_phish is 3rd column (index 2) and sorts by that.
         res_sorted = res[res[:,PROBA_IND].argsort()][::-1]
         return res_sorted
+
+    # below function should be removed since detector contribution is being done in get_detector_contribution
+    def get_top_3_detector_contribution(self, test_X):
+        coefs = self.clf.coef_.reshape((test_X.shape[1], 1))
+        col_averages = np.mean(self.X, axis=0).reshape((test_X.shape[1],1))
+        value_minus_mean = test_X.T - col_averages
+        top_detectors = (value_minus_mean * coefs).T
+        top_3_detectors_index = np.argsort(top_detectors, axis=1)[:,-3:]
+        # make index order from greatest contribution to least
+        top_3_detectors_index = top_3_detectors_index[:,::-1]
+        return self.feature_names[top_3_detectors_index]
