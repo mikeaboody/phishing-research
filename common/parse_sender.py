@@ -34,6 +34,7 @@ def dir_for_sender(sender, output_dir):
     second_subdir = name[3:6]
     if second_subdir == "":
         second_subdir = "none"
+    third_subdir = name[:32]
 
     # We don't use the email address, because if use_name_in_from=1
     # we want all emails associated with this name in the same directory,
@@ -45,5 +46,5 @@ def dir_for_sender(sender, output_dir):
     # but if use_name_in_from=1, set addr='alladdrs'.  Not implemented
     # because of the difficulty of plumbing the config parsing here.)
 
-    return '{}/{}/{}/{}'.format(output_dir, first_subdir, second_subdir, name)
+    return '{}/{}/{}/{}'.format(output_dir, first_subdir, second_subdir, third_subdir)
 
