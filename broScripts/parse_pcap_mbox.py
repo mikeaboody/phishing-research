@@ -99,7 +99,7 @@ try:
             os.makedirs(OUTPUT_DIRECTORY)
         if not os.path.exists(BRO_LOG_DIRECTORY):
             os.makedirs(BRO_LOG_DIRECTORY)
-    except Exception as e:
+    except (Exception, Error) as e:
         debug_logger.exception(e)
 
     # Generating legit emails
@@ -132,7 +132,7 @@ try:
                     try:
                         os.makedirs(sender_dir)
                         total_senders += 1
-                    except Exception as e:
+                    except (Exception, Error) as e:
                         if mkdir_error_count < 10:
                             mkdir_error_count += 1
                             debug_logger.exception(e)
