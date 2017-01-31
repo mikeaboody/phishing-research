@@ -199,7 +199,13 @@ class Classify:
                     continue
                 test_indx = np.arange(sample_size).reshape(sample_size, 1)
                 indx = data['email_index'].reshape(sample_size, 1)
-                test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
+                try:
+                    test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
+                except ValueError:
+                    print("data['message_id']: " + str(data['message_id']))
+                    print("Size of data['message_id']: " + str(data['message_id'].shape))
+                    print("sample_size: " + str(sample_size))
+                    raise ValueError
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
                     for email in test_res:

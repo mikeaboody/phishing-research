@@ -32,6 +32,7 @@ import logs
 from memtest import MemTracker
 
 progress_logger = logging.getLogger('spear_phishing.progress')
+debug_logger = logging.getLogger('spear_phishing.debug')
 
 class FeatureGenerator(object):
     def __init__(self,
@@ -145,7 +146,11 @@ class FeatureGenerator(object):
         row_index = 0
         for i in range(self.start_test_matrix_index, self.num_emails):
             j = 0
-            test_mess_id[row_index] = test_mbox[i]["Message-ID"]
+            if test_mbox[i]["Message-ID"] == None:
+                debug_logger.info("Message-ID in test matrix is None.")
+                test_mess_id[row_index] = "None"
+            else:
+                test_mess_id[row_index] = test_mbox[i]["Message-ID"]
             for detector in self.detectors:
                 heuristic = detector.classify(test_mbox[i])
                 if type(heuristic) == list:
