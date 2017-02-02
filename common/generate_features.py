@@ -102,7 +102,7 @@ class FeatureGenerator(object):
     
     def generate_data_matrix(self, inbox, phish_inbox):
         logs.context['step'] = 'generate_data_matrix'
-        data_matrix = np.empty(shape=(self.data_matrix_num_emails*2, self.num_features))
+        data_matrix = np.zeros(shape=(self.data_matrix_num_emails*2, self.num_features), dtype='float64')
     
         legit_row = 0
         phish_row = self.data_matrix_num_emails
@@ -139,9 +139,9 @@ class FeatureGenerator(object):
     
     def generate_test_matrix(self, test_mbox):
         logs.context['step'] = 'generate_test_matrix'
-        test_data_matrix = np.empty(shape=(self.num_emails - self.start_test_matrix_index, self.num_features))
+        test_data_matrix = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, self.num_features), dtype='float64')
     
-        test_mess_id = np.empty(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype='S200')
+        test_mess_id = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype='S200')
         
         row_index = 0
         for i in range(self.start_test_matrix_index, self.num_emails):
@@ -169,7 +169,7 @@ class FeatureGenerator(object):
         return test_data_matrix, test_email_index, test_mess_id
     
     def generate_labels(self):
-        label_matrix = np.empty(shape=(self.data_matrix_num_emails*2, 1))
+        label_matrix = np.zeros(shape=(self.data_matrix_num_emails*2, 1), dtype='float64')
     
         for i in range(2 * self.data_matrix_num_emails):
             label_matrix[i][0] = 0 if i < self.data_matrix_num_emails else 1

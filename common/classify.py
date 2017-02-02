@@ -172,7 +172,7 @@ class Classify:
         start_time = time.time()
         last_logged_time = start_time
 
-        results = np.empty(shape=(0, TOTAL_SIZE), dtype='S200')
+        results = np.zeros(shape=(0, TOTAL_SIZE), dtype='S200')
 
         end_of_last_memory_track = dt.datetime.now()
         num_senders_completed = 0
