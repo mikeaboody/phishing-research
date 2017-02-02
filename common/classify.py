@@ -205,11 +205,11 @@ class Classify:
                 try:
                     test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
                 except ValueError as e:
-                    print("data['message_id']: " + str(data['message_id']))
-                    print("Size of data['message_id']: " + str(data['message_id'].shape))
-                    print("Size of data['test_data']: " + str(data['test_data'].shape))
-                    print("sample_size: " + str(sample_size))
-                    print(e)
+                    debug_logger.info("data['message_id']: " + str(data['message_id']))
+                    progress_logger.info("Size of data['message_id']: " + str(data['message_id'].shape))
+                    progress_logger.info("Size of data['test_data']: " + str(data['test_data'].shape))
+                    progress_logger.info("sample_size: " + str(sample_size))
+                    progress_logger.exception(e)
                     num_message_id_failed += 1
                     continue
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
@@ -239,8 +239,8 @@ class Classify:
                         # writes an email's message ID and phish probability to a file
                         email_probabilities.write(message_ID + "," + str(probability) + "\n")
                     total_completed += 1
-        print("total # of times size of data['message_id'] != sample_size: " + str(num_message_id_failed))
-        print("total # of successes: " + str(total_completed))
+        progress_logger.info("total # of times size of data['message_id'] != sample_size: " + str(num_message_id_failed))
+        progress_logger.info("total # of successes: " + str(total_completed))
 
         email_probabilities.close()
         self.num_phish, self.test_size = numPhish, testSize
