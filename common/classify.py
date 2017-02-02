@@ -177,6 +177,9 @@ class Classify:
         end_of_last_memory_track = dt.datetime.now()
         num_senders_completed = 0
 
+        num_message_id_failed = 0
+        total_completed = 0
+
         for root, dirs, files in os.walk(self.email_path):
             curr_time = time.time()
             if (curr_time - last_logged_time) > logging_interval * 60:
@@ -207,7 +210,8 @@ class Classify:
                     print("Size of data['test_data']: " + str(data['test_data'].shape))
                     print("sample_size: " + str(sample_size))
                     print(e)
-                    raise
+                    num_message_id_failed += 1
+                    continue
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
                     for email in test_res:
@@ -234,7 +238,10 @@ class Classify:
 
                         # writes an email's message ID and phish probability to a file
                         email_probabilities.write(message_ID + "," + str(probability) + "\n")
-    
+                    total_completed += 1
+        print("total # of times size of data['message_id'] != sample_size: " + str(num_message_id_failed))
+        print("total # of successes: " + str(total_completed))
+
         email_probabilities.close()
         self.num_phish, self.test_size = numPhish, testSize
         low_volume_output = low_volume_top_10.createOutput()
