@@ -201,11 +201,13 @@ class Classify:
                 indx = data['email_index'].reshape(sample_size, 1)
                 try:
                     test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
-                except ValueError:
+                except ValueError as e:
                     print("data['message_id']: " + str(data['message_id']))
                     print("Size of data['message_id']: " + str(data['message_id'].shape))
+                    print("Size of data['test_data']: " + str(data['test_data'].shape))
                     print("sample_size: " + str(sample_size))
-                    raise ValueError
+                    print(e)
+                    raise
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
                     for email in test_res:
