@@ -200,5 +200,8 @@ class FeatureGenerator(object):
             test_dict['email_index'] = test_index
             test_dict['message_id'] = test_mess_id
 
+            if test_mess_id.shape != test_X.shape[0]:
+                progress_logger.info('BUG: test.map shapes don't match: {} vs {}, at {}'.format(test_mess_id.shape, test_X.shape[0], logs.context))
+
             test_path = os.path.join(self.output_directory, 'test.mat')
             sio.savemat(test_path, test_dict)
