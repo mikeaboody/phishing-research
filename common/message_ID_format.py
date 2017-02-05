@@ -47,11 +47,11 @@ class MessageIdFormatDetector(Detector):
             return
         message_id = email["Message-ID"]
         if message_id == None:
-            logs.RateLimitedLog.log("No message ID found, during create_sender_profile().")
+            # logs.RateLimitedLog.log("No message ID found, during create_sender_profile().")
             return
         split_msg_id = message_id.split('@')
         if len(split_msg_id) < 2:
-            logs.RateLimitedLog.log("Message-ID misformatted", private=message_id)
+            # logs.RateLimitedLog.log("Message-ID misformatted", private=message_id)
             return
         domain = split_msg_id[1][:-1]
         uid = split_msg_id[0][1:]
@@ -71,11 +71,11 @@ class MessageIdFormatDetector(Detector):
         sender = self.extract_from(phish)
         message_id = phish["Message-ID"]
         if message_id == None:
-            logs.RateLimitedLog.log("No message ID found, during classify().")
+            # logs.RateLimitedLog.log("No message ID found, during classify().")
             return [0.0, 0.0]
         split_msg_id = message_id.split('@')
         if len(split_msg_id) < 2:
-            logs.RateLimitedLog.log("Message-ID misformatted", private=message_id)
+            # logs.RateLimitedLog.log("Message-ID misformatted", private=message_id)
             return [0.0, 0.0]
         domain = split_msg_id[1][:-1]
         uid = split_msg_id[0][1:]

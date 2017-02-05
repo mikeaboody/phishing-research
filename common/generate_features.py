@@ -147,7 +147,7 @@ class FeatureGenerator(object):
         for i in range(self.start_test_matrix_index, self.num_emails):
             j = 0
             if test_mbox[i]["Message-ID"] == None:
-                debug_logger.info("Message-ID in test matrix is None.")
+                # logs.RateLimitedLog.log("Message-ID in test matrix is None.")
                 test_mess_id[row_index] = "None"
             else:
                 test_mess_id[row_index] = test_mbox[i]["Message-ID"]
