@@ -238,7 +238,7 @@ class Classify:
                         # writes an email's message ID and phish probability to a file
                         email_probabilities.write(message_ID + "," + str(probability) + "\n")
                     total_completed += 1
-            num_senders_completed += 1
+                num_senders_completed += 1
         progress_logger.info("total # of times size of data['message_id'] != sample_size: " + str(num_message_id_failed))
         progress_logger.info("total # of successes: " + str(total_completed))
 
