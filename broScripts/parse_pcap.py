@@ -109,19 +109,21 @@ try:
             os.makedirs(OUTPUT_DIRECTORY)
         if not os.path.exists(BRO_LOG_DIRECTORY):
             os.makedirs(BRO_LOG_DIRECTORY)
-    except Exception as e:
+    except (Exception, Error) as e:
         debug_logger.exception(e)
 
     # Generating legit emails
     senders_seen = open(SENDERS_FILE, 'a+')
     dir_num = 0
     for filename in sorted(glob.glob(PCAP_DIRECTORY + '/*.pcap')):
+        progress_logger.info('Running bro on {}'.format(filename))
         try:
             call(['bro', '-r', filename, '-b', BRO_SCRIPT_PATH])
         except Exception as e:
             debug_logger.warn('Could not invoke bro on {}'.format(filename))
             num_pcaps_bro_failed += 1
             continue
+        progress_logger.info('Parsing bro output')
         with open(BRO_OUTPUT_FILE, 'a+') as f:
             for line in f:
                 if line == "-" or line == "-\n":
@@ -152,7 +154,7 @@ try:
                         try:
                             os.makedirs(sender_dir)
                             total_senders += 1
-                        except Exception as e:
+                        except (Exception, Error) as e:
                             if mkdir_error_count < 10:
                                 mkdir_error_count += 1
                                 debug_logger.exception(e)

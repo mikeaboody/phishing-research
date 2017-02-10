@@ -32,6 +32,7 @@ import logs
 from memtest import MemTracker
 
 progress_logger = logging.getLogger('spear_phishing.progress')
+debug_logger = logging.getLogger('spear_phishing.debug')
 
 class FeatureGenerator(object):
     def __init__(self,
@@ -101,7 +102,7 @@ class FeatureGenerator(object):
     
     def generate_data_matrix(self, inbox, phish_inbox):
         logs.context['step'] = 'generate_data_matrix'
-        data_matrix = np.empty(shape=(self.data_matrix_num_emails*2, self.num_features))
+        data_matrix = np.zeros(shape=(self.data_matrix_num_emails*2, self.num_features), dtype='float64')
     
         legit_row = 0
         phish_row = self.data_matrix_num_emails
@@ -138,14 +139,18 @@ class FeatureGenerator(object):
     
     def generate_test_matrix(self, test_mbox):
         logs.context['step'] = 'generate_test_matrix'
-        test_data_matrix = np.empty(shape=(self.num_emails - self.start_test_matrix_index, self.num_features))
+        test_data_matrix = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, self.num_features), dtype='float64')
     
-        test_mess_id = np.empty(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype='S200')
+        test_mess_id = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype='S200')
         
         row_index = 0
         for i in range(self.start_test_matrix_index, self.num_emails):
             j = 0
-            test_mess_id[row_index] = test_mbox[i]["Message-ID"]
+            if test_mbox[i]["Message-ID"] == None:
+                # logs.RateLimitedLog.log("Message-ID in test matrix is None.")
+                test_mess_id[row_index] = "None"
+            else:
+                test_mess_id[row_index] = test_mbox[i]["Message-ID"]
             for detector in self.detectors:
                 heuristic = detector.classify(test_mbox[i])
                 if type(heuristic) == list:
@@ -164,7 +169,7 @@ class FeatureGenerator(object):
         return test_data_matrix, test_email_index, test_mess_id
     
     def generate_labels(self):
-        label_matrix = np.empty(shape=(self.data_matrix_num_emails*2, 1))
+        label_matrix = np.zeros(shape=(self.data_matrix_num_emails*2, 1), dtype='float64')
     
         for i in range(2 * self.data_matrix_num_emails):
             label_matrix[i][0] = 0 if i < self.data_matrix_num_emails else 1
@@ -194,6 +199,9 @@ class FeatureGenerator(object):
             test_dict['feature_names'] = self.feature_names
             test_dict['email_index'] = test_index
             test_dict['message_id'] = test_mess_id
+
+            if test_mess_id.shape[0] != test_X.shape[0]:
+                progress_logger.info("BUG: test.map shapes don't match: {} vs {}, at {}".format(test_mess_id.shape, test_X.shape, logs.context))
 
             test_path = os.path.join(self.output_directory, 'test.mat')
             sio.savemat(test_path, test_dict)

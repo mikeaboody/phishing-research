@@ -173,10 +173,13 @@ class Classify:
         start_time = time.time()
         last_logged_time = start_time
 
-        results = np.empty(shape=(0, TOTAL_SIZE), dtype='S200')
+        results = np.zeros(shape=(0, TOTAL_SIZE), dtype='S200')
 
         end_of_last_memory_track = dt.datetime.now()
         num_senders_completed = 0
+
+        num_message_id_failed = 0
+        total_completed = 0
 
         for root, dirs, files in os.walk(self.email_path):
             curr_time = time.time()
@@ -200,7 +203,15 @@ class Classify:
                     continue
                 test_indx = np.arange(sample_size).reshape(sample_size, 1)
                 indx = data['email_index'].reshape(sample_size, 1)
-                test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
+                try:
+                    test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
+                except ValueError as e:
+                    #debug_logger.info("data['message_id']: " + str(data['message_id']))
+                    progress_logger.info("Size mismatch of data['message_id'], data['test_data']: {}, {}".format(data['message_id'].shape, data['test_data'].shape))
+                    debug_logger.info("Size mismatch in {}".format(path))
+                    #progress_logger.exception(e)
+                    num_message_id_failed += 1
+                    test_mess_id = np.zeros(shape=(sample_size, 1), dtype="S200")
                 test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
                     for email in test_res:
@@ -227,7 +238,11 @@ class Classify:
 
                         # writes an email's message ID and phish probability to a file
                         email_probabilities.write(message_ID + "," + str(probability) + "\n")
-    
+                    total_completed += 1
+                num_senders_completed += 1
+        progress_logger.info("total # of times size of data['message_id'] != sample_size: " + str(num_message_id_failed))
+        progress_logger.info("total # of successes: " + str(total_completed))
+
         email_probabilities.close()
         self.num_phish, self.test_size = numPhish, testSize
         low_volume_output = low_volume_top_10.createOutput()

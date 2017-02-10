@@ -9,7 +9,7 @@ use_name_in_from:               0
 
 #Model Training and Classification Settings
 weights:
-    positive:                   0.01
+    positive:                   0.02
     negative:                   1.0
 model_path_out:                 model.plk
 result_path_out:                output
