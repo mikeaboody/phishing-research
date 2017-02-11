@@ -5,7 +5,7 @@ root_dir:                       ../broScripts/output
 sender_profile_percentage:      0.1
 data_matrix_percentage:         0.2
 test_matrix_percentage:         0.7
-use_name_in_from:               1
+use_name_in_from:               0
 
 #Model Training and Classification Settings
 weights:
@@ -13,7 +13,7 @@ weights:
     negative:                   1.0
 model_path_out:                 model.plk
 result_path_out:                output
-results_size:                   10
+results_size:                   20
 emails_threshold:               1000
 batch_threading_size:           100
 offline:                        1

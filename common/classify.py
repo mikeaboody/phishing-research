@@ -84,6 +84,7 @@ class Classify:
         X, Y = shuffle(X, Y)
         self.X = X
         self.Y = Y
+        self.num_features = X.shape[1]
         # Save training data matrix and training labels to training_data.npz.
         # np.savez("training_data", X=np.vstack([self.feature_names, self.X]), Y=self.Y)
         np.savez("training_data", X=self.X, Y=self.Y)
@@ -160,9 +161,8 @@ class Classify:
 
         # creates this file in common/output
         email_probabilities = open(os.path.join("output", "email_probabilities.txt"), "w")
-
-        low_volume_top_10 = PriorityQueue()
-        high_volume_top_10 = PriorityQueue()
+        low_volume_top_10 = PriorityQueue(self.bucket_size)
+        high_volume_top_10 = PriorityQueue(self.bucket_size)
 
         numPhish, testSize = 0, 0
         numEmails4Sender = {}
@@ -261,21 +261,41 @@ class Classify:
         progress_logger.info("Finished testing on data in {} minutes, {} seconds. {} directories tested.".format(min_elapsed, sec_elapsed, num_senders_completed))
 
     def pretty_print(self, output, folder_name):
+	# create file that only contains the json file name, from, subject, and top 3 detectors
+        file_name = "results.txt"
+	full_path = os.path.join(self.results_dir, folder_name, file_name)
+        directory = os.path.dirname(full_path)
+	if not os.path.exists(directory):
+	    os.makedirs(directory)
+	results =  open(full_path, "w")
+	results.write("Results:\n")
+	
         for i, row in enumerate(output):
             path = row[PATH_IND]
             indx = int(row[LEGIT_IND])
             test_indx = int(row[TEST_IND])
             break_down = self.get_detector_contribution(path, test_indx)
+	    break_down_list = break_down.items()
             headers = eval(self.get_email(path, indx))
             headers_dict = self.to_dictionary(headers)
+	    
+            results.write(str(i) + ".json:\n")
+            results.write("\tFrom: " + headers_dict["FROM"] + "\n")
+	    results.write("\tSubject: " + headers_dict["Subject"] + "\n")
+	    results.write("\tTop 3 Detectors(in order): " + str(break_down_list[0][0]) + ", " + str(break_down_list[1][0]) + ", " + str(break_down_list[2][0]) + "\n\n")
+            
             self.write_file(folder_name, i, headers_dict, row[PROBA_IND], break_down)
+	results.close()
 
     def get_detector_contribution(self, path, test_indx):
         # Removing the ending "legit_emails.log" and adding "test.mat"
         path = path[:-16] + "test.mat"
         data = sio.loadmat(path)
         test_sample = data['test_data'][test_indx]
-        product = np.multiply(test_sample, self.clf_coef)
+        # get column averages
+        col_averages = np.mean(data['test_data'], axis=0).reshape((self.num_features,1))
+        test_sample_minus_mean = test_sample.reshape((self.num_features, 1)) - col_averages
+        product = np.multiply(test_sample_minus_mean.reshape(self.num_features), self.clf_coef)
         d_contribution = {}
         curr = None
         for i, d in enumerate(self.d_name_per_feat):
