@@ -161,9 +161,8 @@ class Classify:
 
         # creates this file in common/output
         email_probabilities = open(os.path.join("output", "email_probabilities.txt"), "w")
-
-        low_volume_top_10 = PriorityQueue()
-        high_volume_top_10 = PriorityQueue()
+        low_volume_top_10 = PriorityQueue(self.bucket_size)
+        high_volume_top_10 = PriorityQueue(self.bucket_size)
 
         numPhish, testSize = 0, 0
         numEmails4Sender = {}
@@ -262,14 +261,31 @@ class Classify:
         progress_logger.info("Finished testing on data in {} minutes, {} seconds. {} directories tested.".format(min_elapsed, sec_elapsed, num_senders_completed))
 
     def pretty_print(self, output, folder_name):
+	# create file that only contains the json file name, from, subject, and top 3 detectors
+        file_name = "results.txt"
+	full_path = os.path.join(self.results_dir, folder_name, file_name)
+        directory = os.path.dirname(full_path)
+	if not os.path.exists(directory):
+	    os.makedirs(directory)
+	results =  open(full_path, "w")
+	results.write("Results:\n")
+	
         for i, row in enumerate(output):
             path = row[PATH_IND]
             indx = int(row[LEGIT_IND])
             test_indx = int(row[TEST_IND])
             break_down = self.get_detector_contribution(path, test_indx)
+	    break_down_list = break_down.items()
             headers = eval(self.get_email(path, indx))
             headers_dict = self.to_dictionary(headers)
+	    
+            results.write(str(i) + ".json:\n")
+            results.write("\tFrom: " + headers_dict["FROM"] + "\n")
+	    results.write("\tSubject: " + headers_dict["Subject"] + "\n")
+	    results.write("\tTop 3 Detectors(in order): " + str(break_down_list[0][0]) + ", " + str(break_down_list[1][0]) + ", " + str(break_down_list[2][0]) + "\n\n")
+            
             self.write_file(folder_name, i, headers_dict, row[PROBA_IND], break_down)
+	results.close()
 
     def get_detector_contribution(self, path, test_indx):
         # Removing the ending "legit_emails.log" and adding "test.mat"
@@ -352,25 +368,12 @@ class Classify:
         predictions = self.clf.predict(test_X).reshape(sample_size, 1)
         prob_phish = self.clf.predict_proba(test_X)[:,1].reshape(sample_size, 1)
         prob_phish[prob_phish < float(0.0001)] = 0
-        top_three_detectors = self.get_top_3_detector_contribution(test_X)
         path_id = np.concatenate((path_array, indx), axis=1)
         res = np.empty(shape=(sample_size, 0))
         res = np.concatenate((res, path_id), 1)
         res = np.concatenate((res, prob_phish), 1)
         res = np.concatenate((res, test_indx), 1)
         res = np.concatenate((res, test_mess_id), 1)
-        res = np.concatenate((res, top_three_detectors), 1)
         # Assumes prob_phish is 3rd column (index 2) and sorts by that.
         res_sorted = res[res[:,PROBA_IND].argsort()][::-1]
         return res_sorted
-
-    # below function should be removed since detector contribution is being done in get_detector_contribution
-    def get_top_3_detector_contribution(self, test_X):
-        coefs = self.clf.coef_.reshape((test_X.shape[1], 1))
-        col_averages = np.mean(self.X, axis=0).reshape((test_X.shape[1],1))
-        value_minus_mean = test_X.T - col_averages
-        top_detectors = (value_minus_mean * coefs).T
-        top_3_detectors_index = np.argsort(top_detectors, axis=1)[:,-3:]
-        # make index order from greatest contribution to least
-        top_3_detectors_index = top_3_detectors_index[:,::-1]
-        return self.feature_names[top_3_detectors_index]

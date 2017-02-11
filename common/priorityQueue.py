@@ -1,12 +1,14 @@
 import bisect
 
 class PriorityQueue:
-    def __init__(self):
+    def __init__(self, maxQueueSize):
         # self._queue has a tuple with three values: (priority, self._id, and item)
         # The priority is the probability and the item is an email represented by a numpy array
         self._queue = []
         self._size = 0
         self._id = 0
+	self.MAX_SIZE = maxQueueSize 
+	
 
         # a unique sender is determined by the path to the sender's emails
         self._uniqueSenders = set([])
@@ -40,7 +42,7 @@ class PriorityQueue:
         self._size += 1
 
         # maintains the queue to have 10 elements or less
-        if self._size > 10:
+        if self._size > self.MAX_SIZE:
             popped = self._queue.pop(0)
             self._uniqueSenders.remove(popped[2][0])
             self._size -= 1
