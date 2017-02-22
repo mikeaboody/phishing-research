@@ -281,7 +281,10 @@ class Classify:
 	    
             results.write(str(i) + ".json:\n")
             results.write("\tFrom: " + headers_dict["FROM"] + "\n")
-	    results.write("\tSubject: " + headers_dict["Subject"] + "\n")
+            subject = ""
+            if 'Subject' in headers_dict:
+		subject = headers_dict["Subject"]
+	    results.write("\tSubject: " + subject + "\n")
 	    results.write("\tTop 3 Detectors(in order): " + str(break_down_list[0][0]) + ", " + str(break_down_list[1][0]) + ", " + str(break_down_list[2][0]) + "\n\n")
             
             self.write_file(folder_name, i, headers_dict, row[PROBA_IND], break_down)
