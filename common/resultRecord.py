@@ -11,8 +11,8 @@ class ResultRecord:
 	self.all_headers = all_headers
 	self.email_from = self.all_headers["FROM"]
 	subject = ""
-	if "Subject" in self.all_headers:
-	    subject = self.all_headers["Subject"]
+	if "SUBJECT" in self.all_headers:
+	    subject = self.all_headers["SUBJECT"]
 	self.email_subject = subject
 
     # functionality moved to classify.py	

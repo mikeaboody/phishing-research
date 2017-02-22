@@ -11,9 +11,7 @@ def createFile(inbox, num_emails):
             value = value.replace("\r", "")
             value = value.replace("\n", "")
             value = value.replace("'", "\\'")
-            header = header.replace("'", "\\'")
-            if header == "From":
-                header = "FROM"
+            header = header.replace("'", "\\'").upper()
             if len(line) == 1:
                 line += "('"+ header + "','" + value +"')"
             else:
