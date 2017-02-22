@@ -287,10 +287,6 @@ class Classify:
 	results.close()
 
     def get_detector_contribution(self, test_X, test_indx):
-        # Removing the ending "legit_emails.log" and adding "test.mat"
-        # don't need to load test matrix again
-	#path = path[:-16] + "test.mat"
-        #data = sio.loadmat(path)
         test_sample = test_X[test_indx]
         # get column averages
         col_averages = np.mean(test_X, axis=0).reshape((self.num_features,1))
@@ -373,29 +369,4 @@ class Classify:
             detector_contribution = self.get_detector_contribution(test_X, test_indx[i][0])
 	    header_breakdown = self.to_dictionary(eval(self.get_email(path, indx[i])))
             records.append(ResultRecord(path, indx[i][0], prob_phish[i][0], test_indx[i][0], test_mess_id[i][0], detector_contribution, header_breakdown))
-        return records
-
-
-    # obselete because of get_email_records 
-    def output_phish_probabilities(self, test_X, indx, path, test_indx, test_mess_id):
-        # Outputs matrix with columns:
-        # [path, index_in_legit_email, prob_phish, test_indx, message_id]
-        # test_indx necessary for relooking up the test_indxth sample of
-        # the test matrix when ranking feature contribution.
-        sample_size = test_X.shape[0]
-        if sample_size == 0:
-            return None
-        path_array = np.array([os.path.join(path, "legit_emails.log")])
-        path_array = np.repeat(path_array, sample_size, axis=0).reshape(sample_size, 1)
-        predictions = self.clf.predict(test_X).reshape(sample_size, 1)
-        prob_phish = self.clf.predict_proba(test_X)[:,1].reshape(sample_size, 1)
-        prob_phish[prob_phish < float(0.0001)] = 0
-        path_id = np.concatenate((path_array, indx), axis=1)
-        res = np.empty(shape=(sample_size, 0))
-        res = np.concatenate((res, path_id), 1)
-        res = np.concatenate((res, prob_phish), 1)
-        res = np.concatenate((res, test_indx), 1)
-        res = np.concatenate((res, test_mess_id), 1)
-        # Assumes prob_phish is 3rd column (index 2) and sorts by that.
-        res_sorted = res[res[:,PROBA_IND].argsort()][::-1]
-        return res_sorted
+        return records 
