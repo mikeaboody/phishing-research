@@ -18,10 +18,12 @@ class Inbox():
 		if os.path.isfile(root) and root.endswith(".log"):
 			logFileName = root
 			with open(logFileName, "r") as logFile:
+				i = 0
 				for line in logFile:
 					try:
 						header_tuples = eval(line)
-						self.emails.append(Email(header_tuples))	
+						self.emails.append(Email(i, header_tuples))
+						i += 1
 					except:
                                                 logs.RateLimitedLog("Invalid Email, during processEmails()", private=line)
 						self.num_invalid_emails += 1
@@ -55,7 +57,8 @@ class Inbox():
 		self.emails = sorted(self.emails, cmp=compare_emails)
 
 class Email():
-	def __init__(self, headers_arg=None):
+	def __init__(self, file_index=-1, headers_arg=None):
+		self.file_index = file_index
 		self.header_dict = {}
 		self.ordered_headers = []
 		if headers_arg != None:

@@ -142,7 +142,7 @@ class FeatureGenerator(object):
         test_data_matrix = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, self.num_features), dtype='float64')
     
         test_mess_id = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype='S200')
-        
+        test_email_index = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype="int32")
         row_index = 0
         for i in range(self.start_test_matrix_index, self.num_emails):
             j = 0
@@ -160,10 +160,11 @@ class FeatureGenerator(object):
                 else:
                     test_data_matrix[row_index][j] = float(heuristic) if heuristic else 0.0
                     j += 1
+            test_email_index[row_index] = test_mbox[i].file_index
             row_index += 1
             for detector in self.detectors:
                 detector.update_sender_profile(test_mbox[i])
-        test_email_index = np.arange(self.start_test_matrix_index, self.num_emails)
+        # test_email_index = np.arange(self.start_test_matrix_index, self.num_emails)
         logs.Watchdog.reset()
         del logs.context['step']
         return test_data_matrix, test_email_index, test_mess_id
