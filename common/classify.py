@@ -214,12 +214,12 @@ class Classify:
                     #progress_logger.exception(e)
                     num_message_id_failed += 1
                     test_mess_id = np.zeros(shape=(sample_size, 1), dtype="S200")
-                #test_res = self.output_phish_probabilities(test_X, indx, root, test_indx, test_mess_id)
 		test_res = self.get_email_records(test_X, indx, root, test_indx, test_mess_id)
 		if test_res is not None:
                     for email in test_res:
                         testSize += 1
-                        sender = self.get_sender(email.path)
+                        #sender = self.get_sender(email.path)
+			sender = email.email_from
                         emailPath = email.path
                         probability = float(email.probability_phish)
                         message_ID = email.message_id.strip(" ")
