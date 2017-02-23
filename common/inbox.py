@@ -23,10 +23,10 @@ class Inbox():
 					try:
 						header_tuples = eval(line)
 						self.emails.append(Email(i, header_tuples))
-						i += 1
 					except:
                                                 logs.RateLimitedLog("Invalid Email, during processEmails()", private=line)
 						self.num_invalid_emails += 1
+					i += 1
 		elif os.path.isdir(root):
 			for item in os.listdir(root):
 				subDir = os.path.join(root, item)
