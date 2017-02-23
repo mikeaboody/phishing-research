@@ -21,7 +21,7 @@ class XMailerDetector(Detector):
         curr_xmailer = self.getXMailer(phish)
         if curr_xmailer in self.sender_profile.get(curr_sender, set()):
             return 0.0
-        else
+        else:
             return 1.0
 
     def modify_phish(self, phish, msg):
