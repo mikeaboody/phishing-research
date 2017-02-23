@@ -17,9 +17,12 @@ class XMailerDetector(Detector):
     def classify(self, phish):
         curr_sender = self.extract_from(phish)
         if not curr_sender:
-            return
+            return 0.0
         curr_xmailer = self.getXMailer(phish)
-        return curr_xmailer in self.sender_profile.get(curr_sender, set())
+        if curr_xmailer in self.sender_profile.get(curr_sender, set()):
+            return 0.0
+        else
+            return 1.0
 
     def modify_phish(self, phish, msg):
         phish["X-Mailer"] = msg["X-Mailer"]
