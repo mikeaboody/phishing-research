@@ -8,9 +8,9 @@ class ResultRecord:
 	self.detector_contribution = detector_contribution.items()
 	self.all_headers = all_headers
 	from_header = ""
-	if "FROMM" in self.all_headers:
+	if "FROM" in self.all_headers:
 	    from_header = self.all_headers["FROM"]
-        self.email_from = from_header
+	self.email_from = from_header
 	subject = ""
 	if "SUBJECT" in self.all_headers:
 	    subject = self.all_headers["SUBJECT"]
