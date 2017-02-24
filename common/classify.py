@@ -69,7 +69,7 @@ class Classify:
                     self.feature_names = data['feature_names']
                 if len(part_X) == 0:
                     continue
-                if X == None:
+                if X is None:
                     X = part_X
                     Y = part_Y
                     continue
