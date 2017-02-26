@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from collections import defaultdict
 import datetime as dt
 import json
 import logging
@@ -218,8 +219,7 @@ class Classify:
 		if test_res is not None:
                     for email in test_res:
                         testSize += 1
-                        #sender = self.get_sender(email.path)
-			sender = email.email_from
+			sender = email.path
                         emailPath = email.path
                         probability = float(email.probability_phish)
                         message_ID = email.message_id.strip(" ")
@@ -286,19 +286,15 @@ class Classify:
             self.write_file(folder_name, i, headers_dict, record.probability_phish, record.detector_contribution)
 	results.close()
 
-    def get_detector_contribution(self, test_X, test_indx):
+    def get_detector_contribution(self, test_X, test_indx, col_averages):
         test_sample = test_X[test_indx]
-        # get column averages
-        col_averages = np.mean(test_X, axis=0).reshape((self.num_features,1))
+        # get column averages - compute col_averages outside loop that get_detector_contribution is called and just pass it in as a variable
+        #col_averages = np.mean(test_X, axis=0).reshape((self.num_features,1))
         test_sample_minus_mean = test_sample.reshape((self.num_features, 1)) - col_averages
         product = np.multiply(test_sample_minus_mean.reshape(self.num_features), self.clf_coef)
-        d_contribution = {}
-        curr = None
+	d_contribution = defaultdict(float)
         for i, d in enumerate(self.d_name_per_feat):
-            if curr is None or d != curr:
-                curr = d
-                d_contribution[curr] = 0
-            d_contribution[curr] += product[i]
+            d_contribution[d] += product[i]
         return OrderedDict(sorted(d_contribution.items(), key=lambda t: t[1], reverse=True))
 
     def parse_feature_names(self):
@@ -364,9 +360,12 @@ class Classify:
         prob_phish = self.clf.predict_proba(test_X)[:,1].reshape(sample_size,1)
         prob_phish[prob_phish < float(0.0001)] = 0
         
+	col_averages = np.mean(test_X, axis=0).reshape((self.num_features,1))	
+
         records = []
         for i in range(sample_size):
-            detector_contribution = self.get_detector_contribution(test_X, test_indx[i][0])
-	    header_breakdown = self.to_dictionary(eval(self.get_email(path, indx[i])))
+            detector_contribution = self.get_detector_contribution(test_X, test_indx[i][0], col_averages)
+	    # read Inbox object rather than each line of the legit emails file
+            header_breakdown = self.to_dictionary(eval(self.get_email(path, indx[i])))
             records.append(ResultRecord(path, indx[i][0], prob_phish[i][0], test_indx[i][0], test_mess_id[i][0], detector_contribution, header_breakdown))
         return records 
