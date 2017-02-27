@@ -8,6 +8,7 @@ import pprint as pp
 from subprocess import call
 import sys
 import time
+import inbox
 
 import numpy as np
 import scipy.io as sio
@@ -209,10 +210,8 @@ class Classify:
                 try:
                     test_mess_id = data['message_id'].reshape(sample_size, 1).astype("S200")
                 except ValueError as e:
-                    #debug_logger.info("data['message_id']: " + str(data['message_id']))
                     progress_logger.info("Size mismatch of data['message_id'], data['test_data']: {}, {}".format(data['message_id'].shape, data['test_data'].shape))
                     debug_logger.info("Size mismatch in {}".format(path))
-                    #progress_logger.exception(e)
                     num_message_id_failed += 1
                     test_mess_id = np.zeros(shape=(sample_size, 1), dtype="S200")
 		test_res = self.get_email_records(test_X, indx, root, test_indx, test_mess_id)
@@ -222,7 +221,7 @@ class Classify:
 			sender = email.path
                         emailPath = email.path
                         probability = float(email.probability_phish)
-                        message_ID = email.message_id.strip(" ")
+                        message_ID = email.email_message_id.strip(" ")
                         if probability > 0.5:
                             numPhish += 1
 
@@ -276,20 +275,18 @@ class Classify:
             path = record.path
             indx = record.email_index
             test_indx = record.test_index
-            headers_dict = record.all_headers
+            email = record.email
 	    
             results.write(str(i) + ".json:\n")
             results.write("\tFrom: " + record.email_from + "\n")
 	    results.write("\tSubject: " + record.email_subject + "\n")
 	    results.write("\tTop 3 Detectors(in order): " + str(record.detector_contribution[0]) + ", " + str(record.detector_contribution[1]) + ", " + str(record.detector_contribution[2]) + "\n\n")
             
-            self.write_file(folder_name, i, headers_dict, record.probability_phish, record.detector_contribution)
+            self.write_file(folder_name, i, email.header_dict, record.probability_phish, record.detector_contribution)
 	results.close()
 
     def get_detector_contribution(self, test_X, test_indx, col_averages):
         test_sample = test_X[test_indx]
-        # get column averages - compute col_averages outside loop that get_detector_contribution is called and just pass it in as a variable
-        #col_averages = np.mean(test_X, axis=0).reshape((self.num_features,1))
         test_sample_minus_mean = test_sample.reshape((self.num_features, 1)) - col_averages
         product = np.multiply(test_sample_minus_mean.reshape(self.num_features), self.clf_coef)
 	d_contribution = defaultdict(float)
@@ -307,11 +304,13 @@ class Classify:
         d_names = f_names.flatten()
         return list(d_names)
 
+
     def to_dictionary(self, headers):
         d = {}
         for tup in headers:
             d[tup[0]] = tup[1]
         return d
+
 
     def write_file(self, folder_name, i, headers_dict, confidence, break_down):
         file_name = str(i) + ".json"
@@ -341,13 +340,8 @@ class Classify:
 	    out.write("High Volume Senders: \n")
 	    out.write(str(output[1]) + "\n\n")
 
-    def get_email(self, path, indx):
-        with open(path) as fp:
-            for i, line in enumerate(fp):
-                if i == indx:
-                    return line
-
-    def get_sender(self, path):
+    
+def get_sender(self, path):
         return path.split('/')[-2]
 
 
@@ -356,16 +350,18 @@ class Classify:
         if sample_size == 0:
             return []
         
-        path = os.path.join(path, "legit_emails.log")
         prob_phish = self.clf.predict_proba(test_X)[:,1].reshape(sample_size,1)
         prob_phish[prob_phish < float(0.0001)] = 0
-        
 	col_averages = np.mean(test_X, axis=0).reshape((self.num_features,1))	
+	
+	path = os.path.join(path, "legit_emails.log")
+	senderInbox = inbox.Inbox(root=path, sort=False)
 
         records = []
         for i in range(sample_size):
             detector_contribution = self.get_detector_contribution(test_X, test_indx[i][0], col_averages)
-	    # read Inbox object rather than each line of the legit emails file
-            header_breakdown = self.to_dictionary(eval(self.get_email(path, indx[i])))
-            records.append(ResultRecord(path, indx[i][0], prob_phish[i][0], test_indx[i][0], test_mess_id[i][0], detector_contribution, header_breakdown))
+            email = senderInbox[indx[i][0]]
+	    # make sure that message ID in disk for this email is the same as the corresponding test_mess_id passed in
+	    assert (email["MESSAGE-ID"] == test_mess_id[i][0].strip(" ") or (test_mess_id[i][0].strip(" ") == 'None' and type(email["MESSAGE-ID"]) == type(None)))
+            records.append(ResultRecord(path, indx[i][0], prob_phish[i][0], test_indx[i][0], detector_contribution, email))
         return records 

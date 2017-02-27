@@ -8,12 +8,13 @@ import logging
 import logs
 
 class Inbox():
-	def __init__(self, root=None):
+	def __init__(self, root=None, sort=True):
 		self.emails = []
 		self.num_invalid_emails = 0
 		if root != None:
 			self.processEmails(root)
-			self.sort_emails()
+			if sort:
+				self.sort_emails()
 	def processEmails(self, root):
 		if os.path.isfile(root) and root.endswith(".log"):
 			logFileName = root
