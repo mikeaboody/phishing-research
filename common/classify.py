@@ -9,6 +9,7 @@ from subprocess import call
 import sys
 import time
 import inbox
+import logs
 
 import numpy as np
 import scipy.io as sio
@@ -358,6 +359,16 @@ class Classify:
             detector_contribution = self.get_detector_contribution(test_X, test_indx[i][0], col_averages)
             email = senderInbox[indx[i][0]]
             # make sure that message ID in disk for this email is the same as the corresponding test_mess_id passed in
-            assert (email["MESSAGE-ID"] == test_mess_id[i][0].strip(" ") or (test_mess_id[i][0].strip(" ") == 'None' and type(email["MESSAGE-ID"]) == type(None)))
+            self.check_message_id(email["MESSAGE-ID"], test_mess_id[i][0])
             records.append(ResultRecord(path, indx[i][0], prob_phish[i][0], test_indx[i][0], detector_contribution, email))
         return records 
+
+    def check_message_id(self, email, test):
+        m2 = test.strip(" ")
+        if email is None and m2 == 'None':
+            return
+        m1 = email.strip(" ")
+        if m1 == m2:
+            return
+        logs.RateLimitedLog.log("Message IDs don't match.")
+        debug_logger.info("Message IDs don't match.\n  Email msg id: |{}|\n  Test msg id:  |{}|".format(m1, m2))
