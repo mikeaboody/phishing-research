@@ -8,23 +8,26 @@ import logging
 import logs
 
 class Inbox():
-	def __init__(self, root=None):
+	def __init__(self, root=None, sort=True):
 		self.emails = []
 		self.num_invalid_emails = 0
 		if root != None:
 			self.processEmails(root)
-			self.sort_emails()
+			if sort:
+				self.sort_emails()
 	def processEmails(self, root):
 		if os.path.isfile(root) and root.endswith(".log"):
 			logFileName = root
 			with open(logFileName, "r") as logFile:
+				i = 0
 				for line in logFile:
 					try:
 						header_tuples = eval(line)
-						self.emails.append(Email(header_tuples))	
+						self.emails.append(Email(i, header_tuples))
 					except:
                                                 logs.RateLimitedLog("Invalid Email, during processEmails()", private=line)
 						self.num_invalid_emails += 1
+					i += 1
 		elif os.path.isdir(root):
 			for item in os.listdir(root):
 				subDir = os.path.join(root, item)
@@ -55,7 +58,8 @@ class Inbox():
 		self.emails = sorted(self.emails, cmp=compare_emails)
 
 class Email():
-	def __init__(self, headers_arg=None):
+	def __init__(self, file_index=-1, headers_arg=None):
+		self.file_index = file_index
 		self.header_dict = {}
 		self.ordered_headers = []
 		if headers_arg != None:
