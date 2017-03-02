@@ -46,6 +46,9 @@ class OrderOfHeaderDetector(Detector):
             detect[0] = 0
         detect[1] = self.sender_profile[sender].num_emails
         detect[2] = len(self.sender_profile[sender].orderings)
+
+        detect[1] = self.log_transform(detect[1])
+        detect[2] = self.log_transform(detect[2])
         return detect
 
     def find_ordering(self, msg):

@@ -2,6 +2,7 @@ import abc
 from random import randint
 import inbox
 import parse_sender
+import numpy as np
 
 class Detector(object):
     __metaclass__ = abc.ABCMeta
@@ -102,3 +103,6 @@ class Detector(object):
         phish['Subject'] = random_msg['Subject'] 
         phish = self.modify_phish(phish, random_msg)
         return phish
+
+    def log_transform(self, x):
+        return np.log(x + 1)

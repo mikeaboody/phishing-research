@@ -129,6 +129,9 @@ class DateFormatDetector(Detector):
         if not profile.templates[t].plausibly_consistent(date):
             rv[0] = 1
         # TODO: Add feature counting number of emails with similar zero
+
+        rv[1] = self.log_transform(rv[1])
+        rv[2] = self.log_transform(rv[2])
         return rv
 
     def update_sender_profile(self, email):
