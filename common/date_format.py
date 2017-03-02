@@ -123,7 +123,7 @@ class DateFormatDetector(Detector):
         t = date_to_template(date)
 
         if not (t in profile.templates):
-            return [1, 0, profile.num_emails]
+            return [1, 0, self.log_transform(profile.num_emails)]
 
         rv = [0, profile.templates[t].total, profile.num_emails]
         if not profile.templates[t].plausibly_consistent(date):
