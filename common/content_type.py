@@ -150,6 +150,10 @@ class ContentTypeDetector(Detector):
             else:
                 #print("Sender was not found in sender_profile: %s" % (sender))
                 pass
+        detect[NUM_EMAIL] = self.log_transform(detect[NUM_EMAIL])
+        detect[CONT_SEEN] = self.log_transform(detect[CONT_SEEN])
+        detect[CHAR_SEEN] = self.log_transform(detect[CHAR_SEEN])
+        detect[BOUND_SEEN] = self.log_transform(detect[BOUND_SEEN])
         return detect
 
     def update_sender_profile_with_attr(self, attr, value, sender):

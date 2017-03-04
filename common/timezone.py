@@ -45,8 +45,8 @@ class DateTimezoneDetector(Detector):
         tz = extract_timezone(date)
         profile = self.sender_profile[sender]
         if tz in profile.timezones:
-            return [0, profile.timezones[tz], profile.num_emails]
-        return [1, 0, profile.num_emails]
+            return [0, self.log_transform(profile.timezones[tz]), self.log_transform(profile.num_emails)]
+        return [1, 0, self.log_transform(profile.num_emails)]
 
     def update_sender_profile(self, email):
         sender = self.extract_from(email)

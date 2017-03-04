@@ -3,7 +3,7 @@ from detector import Detector
 
 class MessageIdFormatDetector(Detector):
     DELIMITERS = ['.', '-', '$', '/', '%']
-    NUM_HEURISTICS = 2
+    NUM_HEURISTICS = 3
 
     def __init__(self, regular_mbox):
         self.inbox = regular_mbox
@@ -72,11 +72,11 @@ class MessageIdFormatDetector(Detector):
         message_id = phish["Message-ID"]
         if message_id == None:
             # logs.RateLimitedLog.log("No message ID found, during classify().")
-            return [0.0, 0.0]
+            return [0.0, 0.0, 0.0]
         split_msg_id = message_id.split('@')
         if len(split_msg_id) < 2:
             # logs.RateLimitedLog.log("Message-ID misformatted", private=message_id)
-            return [0.0, 0.0]
+            return [0.0, 0.0, 0.0]
         domain = split_msg_id[1][:-1]
         uid = split_msg_id[0][1:]
         common_delimiter, delimiter_count = self.most_common_delimiter(uid)
@@ -85,10 +85,14 @@ class MessageIdFormatDetector(Detector):
         if sender in self.sender_profile:
             is_valid = self.partition_within_error(self.sender_profile[sender], features, fudge_factor=0)
             h1 = float(not is_valid)
-            h2 = -self.sender_count[sender] if is_valid else self.sender_count[sender]
-            return [h1, h2]
+            h2 = self.sender_count[sender]
+            if is_valid:
+                return [h1, 0, self.log_transform(h2)]
+            else:
+                return [h1, self.log_transform(h2), 0]
+            
         else:
-            return [0.0, 0.0]
+            return [0.0, 0.0, 0.0]
 
     def modify_phish(self, phish, msg):
         phish['Message-ID'] = msg['Message-ID']
