@@ -271,6 +271,12 @@ class Classify:
 	    os.makedirs(directory)
 	results =  open(full_path, "w")
 	results.write("Results:\n")
+
+        def fmt(contrib):
+            return "{}: {:.3f}".format(contrib[0][:-8], contrib[1])
+        def fmt_contrib(record):
+            c = record.detector_contribution
+            return "{}, {}, {}".format(fmt(c[0]), fmt(c[1]), fmt(c[2]))
 	
         for i, record in enumerate(output):
             path = record.path
@@ -279,9 +285,9 @@ class Classify:
             email = record.email
 	    
             results.write(str(i) + ".json:\n")
-            results.write("\tFrom: " + record.email_from + "\n")
-            results.write("\tSubject: " + record.email_subject + "\n")
-            results.write("\tTop 3 Detectors(in order): " + str(record.detector_contribution[0]) + ", " + str(record.detector_contribution[1]) + ", " + str(record.detector_contribution[2]) + "\n\n")
+            results.write("From: " + record.email_from + "\n")
+            results.write("Subject: " + record.email_subject + "\n")
+            results.write("Top 3 Detectors: {}\n\n".format(fmt_contrib(record)))
             
             self.write_file(folder_name, i, email.header_dict, record.probability_phish, record.detector_contribution)
 	results.close()
@@ -336,10 +342,11 @@ class Classify:
             coefs = sorted(zip(map(lambda x: round(x, 4), self.clf_coef), self.feature_names), reverse=True)
             coefs = [x[1] + ": " + str(x[0]) for x in coefs]
             out.write(json.dumps(coefs, indent=2))
-            out.write("Low Volume Senders: \n")
-            out.write(str(output[0]) + "\n\n")
-            out.write("High Volume Senders: \n")
-            out.write(str(output[1]) + "\n\n")
+            out.write("\n")
+            # out.write("Low Volume Senders: \n")
+            # out.write(str(output[0]) + "\n\n")
+            # out.write("High Volume Senders: \n")
+            # out.write(str(output[1]) + "\n\n")
 
 
     def get_email_records(self, test_X, indx, path, test_indx, test_mess_id):
