@@ -18,7 +18,10 @@ def sent_from_yahoo(email):
 
 def parse_app(email):
     try:
-        before_at = email['Message-ID'].split('@')[0].lstrip('< ')
+        msgid = email['Message-ID']
+        if msgid is None:
+            return 'none'
+        before_at = msgid.split('@')[0].lstrip('< ')
         app = before_at.split('.')[-1]
         return app
     except Exception as e:
@@ -64,7 +67,8 @@ class YahooDetector(Detector):
             return fv
         prof = self.sender_profile[curr_sender]
 
-        if sent_from_yahoo(phish):
+        is_from_yahoo = sent_from_yahoo(phish)
+        if is_from_yahoo:
             if prof.emails > 0 and prof.yahoo_emails == 0:
                 fv[0] = 1.0
             fv[1] = logprob(prof.yahoo_emails, prof.emails)
@@ -73,7 +77,7 @@ class YahooDetector(Detector):
                 fv[2] = 1.0
             fv[3] = logprob(prof.emails - prof.yahoo_emails, prof.emails)
         app = parse_app(phish)
-        if not app in prof.client_apps:
+        if is_from_yahoo and prof.yahoo_emails > 0 and not app in prof.client_apps:
             fv[4] = 1.0
             fv[5] = logprob(len(prof.client_apps), prof.emails)
         return fv
