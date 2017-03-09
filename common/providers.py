@@ -119,7 +119,7 @@ class ProvidersDetector(Detector):
             return fv
         prof = self.sender_profile[curr_sender]
 
-        v = infer_provider(email)
+        v = infer_provider(phish)
         if prof.emails > 0 and prof.counts[v] == 0:
             fv[0] = 1.0
             fv[1] = logprob(0, prof.emails)

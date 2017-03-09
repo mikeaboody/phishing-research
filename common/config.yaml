@@ -26,6 +26,7 @@ detectors:
     XMailerDetector:            1
     ReceivedHeadersDetector:    1
     DateFormatDetector:         1
+    ProvidersDetector:          1
 
 #Parallel Settings
 parallel:                       0
