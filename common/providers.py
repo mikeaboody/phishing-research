@@ -83,20 +83,48 @@ def infer_provider(email):
     else:
         return 'other'
 
+def is_gmail_webmail(email):
+    rhdrs = email.get_all('Received')
+    if len(rhdrs) == 0:
+        return False
+    earliest_rcvd = rhdrs[-1]
+    return 'with http' in earliest_rcvd.lower()
 
-def logprob(k, n):
-    '''log of probability that next outcome is c, given we've
-       observed n previous outcomes and k of them were c.'''
-    # Apply add-one Laplace smoothing, then take the log.
-    return -np.log(float(k+1) / float(n+NUM_CATEGORIES))
+def is_aol_webmail(email):
+    rhdrs = email.get_all('Received')
+    if len(rhdrs) == 0:
+        return False
+    earliest_rcvd = rhdrs[-1].lower()
+    if 'with http' in earliest_rcvd or 'webmailui' in earliest_rcvd:
+        return True
+    mbsrc = email['X-MB-Message-Source']
+    if mbsrc is not None and 'webui' in mbsrc.lower():
+        return True
+    xm = email['X-Mailer']
+    if xm is not None and 'webmail' in xm.lower():
+        return True
+    ct = email['Content-Type']
+    if ct is not None and 'webmail' in ct.lower():
+        return True
+    return False
+
+def logprob(k, n, ncategories):
+    '''log-transform of probability that next outcome is c, given
+       that we've observed n previous outcomes and k of them were c.'''
+    # Apply add-one Laplace smoothing to compute log
+    p = float(k+1) / float(n+ncategories)
+    # log-transform
+    return np.log((1.0/p) - 1.0)
 
 class Profile(object):
     def __init__(self):
         self.emails = 0
         self.counts = Counter()
+        self.aol_webmail = Counter()    # num emails sent via AOL webmail
+        self.gmail_webmail = Counter()  # num emails sent via gmail webmail
 
 class ProvidersDetector(Detector):
-    NUM_HEURISTICS = 3
+    NUM_HEURISTICS = 6
 
     def __init__(self, inbox):
         self.inbox = inbox
@@ -110,9 +138,13 @@ class ProvidersDetector(Detector):
             prof.emails += 1
             v = infer_provider(email)
             prof.counts[v] += 1
+            if v == 'aol':
+                prof.aol_webmail[is_aol_webmail(email)] += 1
+            if v == 'gmail':
+                prof.gmail_webmail[is_gmail_webmail(email)] += 1
 
     def classify(self, phish):
-        fv = [0.0, 0.0, 0.0]
+        fv = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         curr_sender = self.extract_from(phish)
         if not curr_sender or not curr_sender in self.sender_profile:
@@ -122,8 +154,27 @@ class ProvidersDetector(Detector):
         v = infer_provider(phish)
         if prof.emails > 0 and prof.counts[v] == 0:
             fv[0] = 1.0
-            fv[1] = logprob(0, prof.emails)
-        fv[2] = logprob(prof.counts[v], prof.emails)
+            fv[1] = logprob(0, prof.emails, NUM_CATEGORIES)
+        fv[2] = logprob(prof.counts[v], prof.emails, NUM_CATEGORIES)
+
+        if v == 'aol':
+            w = is_aol_webmail(phish)
+            k = prof.aol_webmail[w]
+            n = prof.counts['aol']
+            assert prof.aol_webmail[w] + prof.aol_webmail[not w] == n
+        elif v == 'gmail':
+            w = is_gmail_webmail(phish)
+            k = prof.gmail_webmail[w]
+            n = prof.counts['gmail']
+            assert prof.gmail_webmail[w] + prof.gmail_webmail[not w] == n
+        else:
+            w, k, n = True, 0, 0
+
+        if k == 0 and n > 0:
+            fv[3] = 1.0
+            fv[4] = logprob(0, n, 2)
+        fv[5] = logprob(k, n, 2)
+
         return fv
 
     def modify_phish(self, phish, msg):
