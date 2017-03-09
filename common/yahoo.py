@@ -3,8 +3,8 @@ from detector import Detector
 import numpy as np
 
 def sent_from_yahoo(email):
-    mid = email['Message-ID']
-    if mid is not None and 'yahoo' in mid:
+    msgid = email['Message-ID']
+    if msgid is not None and 'yahoo' in msgid.lower():
         return True
     if email['X-YMail-OSG'] is not None:
         return True
@@ -22,11 +22,12 @@ def parse_app(email):
         if msgid is None:
             return 'none'
         before_at = msgid.split('@')[0].lstrip('< ')
-        app = before_at.split('.')[-1]
-        return app
+        app = before_at.split('.')[-1].lower()
+        if app == 'qm' or app[0:5] == 'yahoo' or app[0:7] == 'android' or app[0:6] == 'bpmail':
+            return app
     except Exception as e:
         print(e)
-        return 'none'
+    return 'none'
 
 def logprob(k, n):
     '''log of probability that next toss is heads, given we've
