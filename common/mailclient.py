@@ -54,7 +54,7 @@ def infer_mailer(email):
     else:
         return 'other'
 
-def logprob(k, n)
+def logprob(k, n):
     '''log-transform of probability that next outcome is c, given
        that we've observed n previous outcomes and k of them were c.'''
     # Apply add-one Laplace smoothing to compute log
