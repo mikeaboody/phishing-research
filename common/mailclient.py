@@ -33,8 +33,6 @@ def is_apple_mailer(email):
         return True
     return has_apple_msgid(email)
 
-# MS_HDRS = ['X-MimeOLE', 'X-MS-Attach', 'X-MS-TNEF-Correlator', 'Thread-Index', 'acceptlanguage', 'Accept-Language', 'Content-Language']
-
 def is_microsoft_mailer(email):
     if email['X-MimeOLE'] is not None:
         return True
@@ -56,11 +54,11 @@ def infer_mailer(email):
     else:
         return 'other'
 
-def logprob(k, n, ncategories):
+def logprob(k, n)
     '''log-transform of probability that next outcome is c, given
        that we've observed n previous outcomes and k of them were c.'''
     # Apply add-one Laplace smoothing to compute log
-    p = float(k+1) / float(n+ncategories)
+    p = float(k+1) / float(n+NUM_CATEGORIES)
     # log-transform
     return np.log((1.0/p) - 1.0)
 
@@ -96,8 +94,8 @@ class MailClientDetector(Detector):
         m = infer_mailer(phish)
         if prof.emails > 0 and prof.counts[m] == 0:
             fv[0] = 1.0
-            fv[1] = logprob(0, prof.emails, NUM_CATEGORIES)
-        fv[2] = logprob(prof.counts[m], prof.emails, NUM_CATEGORIES)
+            fv[1] = logprob(0, prof.emails)
+        fv[2] = logprob(prof.counts[m], prof.emails)
 
         return fv
 
