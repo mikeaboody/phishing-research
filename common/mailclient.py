@@ -44,11 +44,27 @@ def is_microsoft_mailer(email):
         return True
     return False
 
-NUM_CATEGORIES = 3
+ANDROID_MSG_ID1 = re.compile('<[a-z0-9]{24}\.[0-9]{13}@')
+ANDROID_MSG_ID2 = re.compile('<.*@email.android.com>')
+ANDROID_CT = re.compile('boundary="--_com.android.email_[0-9]{14,16}"')
+
+def is_android(email):
+    msgid = email['Message-ID']
+    ct = email['Content-Type']
+    if msgid is not None:
+        if ANDROID_MSG_ID1.match(msgid) or ANDROID_MSG_ID2.match(msgid):
+            return True
+    if ct is not None and ANDROID_CT.search(ct):
+        return True
+    return False
+
+NUM_CATEGORIES = 4
 
 def infer_mailer(email):
     if is_apple_mailer(email):
         return 'apple'
+    elif is_android(email):
+        return 'android'
     elif is_microsoft_mailer(email):
         return 'microsoft'
     else:
