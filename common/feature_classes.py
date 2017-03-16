@@ -8,3 +8,4 @@ from received_headers import ReceivedHeadersDetector
 from message_ID_format import MessageIdFormatDetector
 from xmailer import XMailerDetector
 from mailclient import MailClientDetector
+from providers import ProvidersDetector
