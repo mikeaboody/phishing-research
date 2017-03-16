@@ -27,6 +27,7 @@ detectors:
     ReceivedHeadersDetector:    1
     DateFormatDetector:         1
     SenderIPDetector:           1
+    ProvidersDetector:          1
 
 #Parallel Settings
 parallel:                       0
