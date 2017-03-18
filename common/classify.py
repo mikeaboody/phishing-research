@@ -34,7 +34,7 @@ debug_logger = logging.getLogger("spear_phishing.debug")
 
 class Classify:
 
-    def __init__(self, w, email_path, volume_split, bucket_size, results_dir="output", serial_path="clf.pkl", memlog_freq=-1, debug_training=False, filterTargets=False, recipientTargetFile=None):
+    def __init__(self, w, email_path, volume_split, bucket_size, results_dir="output", serial_path="clf.pkl", memlog_freq=-1, debug_training=False, filterRecipients=False, recipientTargetFile=None):
         self.weights = {1.0: w['positive'], 0.0: w['negative']}
         self.clf = linear_model.LogisticRegression(class_weight=self.weights)
         self.email_path = email_path
@@ -47,7 +47,7 @@ class Classify:
         self.memlog_freq = memlog_freq
         self.debug_training = debug_training
 
-	self.filterTargets = filterTargets
+	self.filterRecipients = filterRecipients
 	self.recipientTargetFile = recipientTargetFile
 
     def generate_training(self):
@@ -167,6 +167,8 @@ class Classify:
 	return rNames, rEmails
     
     def isTargetRecipient(self, targetNames, targetEmails, currTo):
+	if currTo == None:
+	    return False
 	currTo = currTo.lower()
 	for i in range(len(targetNames)):
 	    firstName, lastName = targetNames[i].split(" ")[0], targetNames[i].split(" ")[1]
@@ -209,7 +211,7 @@ class Classify:
 
         self.d_name_per_feat = self.parse_feature_names()
         
-	if (self.filterTargets):
+	if (self.filterRecipients):
 	    targetRecipientName, targetRecipientEmail = self.createTargetRecipientList()
  
         for root, dirs, files in os.walk(self.email_path):
@@ -245,7 +247,7 @@ class Classify:
                 if test_res is not None:
                     for email in test_res:
 			filtered = False
-			if self.filterTargets:
+			if self.filterRecipients:
 			    filtered = not self.isTargetRecipient(targetRecipientName, targetRecipientEmail, email.email["TO"])
 			if not filtered:
                             testSize += 1

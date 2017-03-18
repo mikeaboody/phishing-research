@@ -84,9 +84,12 @@ class PhishDetector(object):
         parser.add_argument('--mbox',
                             action='store_true',
                             help=('Use emails from mbox rather than pcaps'))
-	parser.add_argument('--filter_targets',
+	parser.add_argument('--filter_senders',
 			    action='store_true',
-			    help=('Only train and report on names and emails in target files'))
+			    help=('Only train on names and emails in target sender file'))
+	parser.add_argument('--filter_recipients',
+			    action='store_true',
+			    help=('Only test and report on names and emails in the target recipient file'))
         
         args = parser.parse_args()
 
@@ -122,8 +125,14 @@ class PhishDetector(object):
             self.classify = True
             self.debug_training = True
             run = True
-	if args.filter_targets:
-	    self.filter_targets = True
+	if args.filter_senders:
+	    self.filter_senders = True
+	else:
+	    self.filter_senders = False
+	if args.filter_recipients:
+	    self.filter_recipients = True
+	else:
+	    self.filter_recipients = False
 
 
         if not run:
@@ -226,7 +235,7 @@ class PhishDetector(object):
 
         dir_to_generate = []
 	
-	if (self.filter_targets):
+	if (self.filter_senders):
 	    targetSenderNames, targetSenderEmails = self.createTargetSendersSet()
 
         progress_logger.info('Starting directory aggregation in feature generation.')
@@ -240,7 +249,7 @@ class PhishDetector(object):
                     wc_output_split = wc_output.split()
                     line_count = int(wc_output_split[0])
 		    filtered = False
-		    if (self.filter_targets):
+		    if (self.filter_senders):
 			lastPartofPath = os.path.basename(os.path.normpath(dirpath))
 			targetMatch = self.isTargetSender(targetSenderNames, targetSenderEmails, lastPartofPath)
 			filtered = not targetMatch
@@ -314,7 +323,7 @@ class PhishDetector(object):
                                    serial_path=self.model_path_out,
                                    memlog_freq=self.memlog_classify_frequency,
                                    debug_training=self.debug_training,
-				   filterTargets=self.filter_targets,
+				   filterRecipients=self.filter_recipients,
 				   recipientTargetFile=self.recipients)
         logs.Watchdog.reset()
         self.classifier.generate_training()
