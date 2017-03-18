@@ -205,11 +205,12 @@ class PhishDetector(object):
 	with open(self.senders) as f:
 	   for line in f.readlines():
 		name, email = parse_sender.parse_sender(line)
-		senderNames.append(name)
-		senderEmails.append(email)
+		senderNames.append(name.lower())
+		senderEmails.append(email.lower())
 	return senderNames, senderEmails
     
     def isTargetSender(self, targetNames, targetEmails, currSender):
+	currSender = currSender.lower()
 	currSenderStripped = currSender.translate(None, string.punctuation).split()
 	for i in range(len(targetNames)):
 	    firstName, lastName = targetNames[i].split(" ")[0], targetNames[i].split(" ")[1]
@@ -312,7 +313,9 @@ class PhishDetector(object):
                                    results_dir=self.result_path_out,
                                    serial_path=self.model_path_out,
                                    memlog_freq=self.memlog_classify_frequency,
-                                   debug_training=self.debug_training)
+                                   debug_training=self.debug_training,
+				   filterTargets=self.filter_targets,
+				   recipientTargetFile=self.recipients)
         logs.Watchdog.reset()
         self.classifier.generate_training()
         logs.Watchdog.reset()
