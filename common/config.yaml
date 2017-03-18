@@ -44,5 +44,5 @@ phish_filename:                 phish_emails.log
 logging_interval:               10
 
 # Filter Inputs
-senders:			sender_targets.txt
-recipients:			recipient_targets.txt
+senders:                        sender_targets.txt
+recipients:                     recipient_targets.txt
