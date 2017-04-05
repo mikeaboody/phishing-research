@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from collections import defaultdict
 import datetime as dt
+import string
 import json
 import logging
 import os
@@ -170,8 +171,9 @@ class Classify:
 	if currTo == None:
 	    return False
 	currTo = currTo.lower()
+        currTo = currTo.translate(None, string.punctuation).strip()
 	for i in range(len(targetNames)):
-	    firstName, lastName = targetNames[i].split(" ")[0], targetNames[i].split(" ")[1]
+	    firstName, lastName = targetNames[i].split(" ")[0], targetNames[i].split(" ")[-1]
 	    email = targetEmails[i]
 	    if (firstName in currTo and lastName in currTo) or email in currTo:
 		return True
