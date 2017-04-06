@@ -220,10 +220,10 @@ class PhishDetector(object):
     
     def isTargetSender(self, targetNames, targetEmails, currSender):
 	currSender = currSender.lower()
-	currSender = currSender.translate(None, string.punctuation).strip()
+	currSenderStripped = currSender.translate(None, string.punctuation).strip()
 	for i in range(len(targetNames)):
 	    firstName, lastName = targetNames[i].split(" ")[0], targetNames[i].split(" ")[-1]
-	    if firstName in currSender and lastName in currSender:
+	    if firstName in currSenderStripped and lastName in currSenderStripped:
 		return True
 	    if targetEmails[i] in currSender:
 		return True

@@ -171,11 +171,12 @@ class Classify:
 	if currTo == None:
 	    return False
 	currTo = currTo.lower()
-        currTo = currTo.translate(None, string.punctuation).strip()
+        currToStripped = currTo.translate(None, string.punctuation).strip()
 	for i in range(len(targetNames)):
 	    firstName, lastName = targetNames[i].split(" ")[0], targetNames[i].split(" ")[-1]
-	    email = targetEmails[i]
-	    if (firstName in currTo and lastName in currTo) or email in currTo:
+	    if firstName in currToStripped and lastName in currToStripped:
+		return True
+            if targetEmails[i] in currTo:
 		return True
 	return False
 
