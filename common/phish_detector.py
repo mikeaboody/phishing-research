@@ -244,19 +244,21 @@ class PhishDetector(object):
             if ((self.generate_data_matrix and self.regular_filename in filenames and self.phish_filename in filenames)
                 or (self.generate_test_matrix and self.regular_filename in filenames)):
                 command = ["wc", "-l", "{}/{}".format(dirpath, self.regular_filename)]
+		filtered = False
+		if (self.filter_senders):
+		    lastPartofPath = os.path.basename(os.path.normpath(dirpath))
+		    targetMatch = self.isTargetSender(targetSenderNames, targetSenderEmails, lastPartofPath)
+		    filtered = not targetMatch
+                if filtered:
+                    continue
                 try:
                     wc_output = subprocess.check_output(command)
                     wc_output_split = wc_output.split()
                     line_count = int(wc_output_split[0])
-		    filtered = False
-		    if (self.filter_senders):
-			lastPartofPath = os.path.basename(os.path.normpath(dirpath))
-			targetMatch = self.isTargetSender(targetSenderNames, targetSenderEmails, lastPartofPath)
-			filtered = not targetMatch
 			
                     if line_count < 50000 and not filtered: # Ignore inboxes with more than 50,000 emails
 			dir_to_generate.append(dirpath)
-                        logs.Watchdog.reset()
+                    logs.Watchdog.reset()
                 except subprocess.CalledProcessError:
                     debug_logger.warn('Could not calculate line count for directory {}'.format(dirpath))
                     continue
