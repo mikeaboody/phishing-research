@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from collections import defaultdict
 import datetime as dt
+import string
 import json
 import logging
 import os
@@ -10,6 +11,7 @@ import sys
 import time
 import inbox
 import logs
+import parse_sender
 
 import numpy as np
 import scipy.io as sio
@@ -33,7 +35,7 @@ debug_logger = logging.getLogger("spear_phishing.debug")
 
 class Classify:
 
-    def __init__(self, w, email_path, volume_split, bucket_size, results_dir="output", serial_path="clf.pkl", memlog_freq=-1, debug_training=False):
+    def __init__(self, w, email_path, volume_split, bucket_size, results_dir="output", serial_path="clf.pkl", memlog_freq=-1, debug_training=False, filterRecipients=False, recipientTargetFile=None):
         self.weights = {1.0: w['positive'], 0.0: w['negative']}
         self.clf = linear_model.LogisticRegression(class_weight=self.weights)
         self.email_path = email_path
@@ -45,6 +47,9 @@ class Classify:
 
         self.memlog_freq = memlog_freq
         self.debug_training = debug_training
+
+	self.filterRecipients = filterRecipients
+	self.recipientTargetFile = recipientTargetFile
 
     def generate_training(self):
         X = None
@@ -151,6 +156,29 @@ class Classify:
             call(['rm', '-r', self.results_dir])
         except Exception as e:
             pass
+    
+    def createTargetRecipientList(self):
+        rNames = []
+	rEmails = []
+	with open(self.recipientTargetFile) as f:
+	    for line in f.readlines():
+	        name, email = parse_sender.parse_sender(line)
+		rNames.append(name.lower())
+		rEmails.append(email.lower())
+	return rNames, rEmails
+    
+    def isTargetRecipient(self, targetNames, targetEmails, currTo):
+	if currTo == None:
+	    return False
+	currTo = currTo.lower()
+        currToStripped = currTo.translate(None, string.punctuation).strip()
+	for i in range(len(targetNames)):
+	    firstName, lastName = targetNames[i].split(" ")[0], targetNames[i].split(" ")[-1]
+	    if firstName in currToStripped and lastName in currToStripped:
+		return True
+            if targetEmails[i] in currTo:
+		return True
+	return False
 
     def test_and_report(self):
         """ Assumptions:
@@ -186,6 +214,9 @@ class Classify:
 
         self.d_name_per_feat = self.parse_feature_names()
         
+	if (self.filterRecipients):
+	    targetRecipientName, targetRecipientEmail = self.createTargetRecipientList()
+ 
         for root, dirs, files in os.walk(self.email_path):
             curr_time = time.time()
             if (curr_time - last_logged_time) > logging_interval * 60:
@@ -218,29 +249,33 @@ class Classify:
                 test_res = self.get_email_records(test_X, indx, root, test_indx, test_mess_id)
                 if test_res is not None:
                     for email in test_res:
-                        testSize += 1
-                        sender = email.path
-                        emailPath = email.path
-                        probability = float(email.probability_phish)
-                        message_ID = email.email_message_id.strip(" ")
-                        if probability > 0.5:
-                            numPhish += 1
+			filtered = False
+			if self.filterRecipients:
+			    filtered = not self.isTargetRecipient(targetRecipientName, targetRecipientEmail, email.email["TO"])
+			if not filtered:
+                            testSize += 1
+                            sender = email.path
+                            emailPath = email.path
+                            probability = float(email.probability_phish)
+                            message_ID = email.email_message_id.strip(" ")
+                            if probability > 0.5:
+                                numPhish += 1
 
-                        # caches the num_emails value for each sender
-                        if sender not in numEmails4Sender:
-                            num_emails = sum(1 for line in open(emailPath))
-                            numEmails4Sender[sender] = num_emails
-                        else:
-                            num_emails = numEmails4Sender[sender]
+                            # caches the num_emails value for each sender
+                            if sender not in numEmails4Sender:
+                                num_emails = sum(1 for line in open(emailPath))
+                                numEmails4Sender[sender] = num_emails
+                            else:
+                                num_emails = numEmails4Sender[sender]
 
-                        # checks which priority queue to add item to
-                        if num_emails < self.bucket_thres:
-                            low_volume_top_10.push(email, probability)
-                        else:
-                            high_volume_top_10.push(email, probability)
+                            # checks which priority queue to add item to
+                            if num_emails < self.bucket_thres:
+                                low_volume_top_10.push(email, probability)
+                            else:
+                                high_volume_top_10.push(email, probability)
 
-                        # writes an email's message ID and phish probability to a file
-                        email_probabilities.write(message_ID + "," + str(probability) + "\n")
+                            # writes an email's message ID and phish probability to a file
+                            email_probabilities.write(message_ID + "," + str(probability) + "\n")
                     total_completed += 1
                 num_senders_completed += 1
         progress_logger.info("total # of times size of data['message_id'] != sample_size: " + str(num_message_id_failed))

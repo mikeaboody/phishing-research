@@ -1,6 +1,7 @@
 import argparse
 import datetime as dt
 import logging
+import string
 from multiprocessing import Pool
 import os
 import subprocess
@@ -8,6 +9,7 @@ import time
 import traceback
 
 import yaml
+import parse_sender
 
 from classify import Classify
 from detector import Detector
@@ -30,6 +32,7 @@ class PhishDetector(object):
         self.generate_model = False
         self.classify = False
         self.config_path = 'config.yaml'
+	self.filter_targets = False
 
         #Config File Configurations
         self.root_dir = None
@@ -81,6 +84,12 @@ class PhishDetector(object):
         parser.add_argument('--mbox',
                             action='store_true',
                             help=('Use emails from mbox rather than pcaps'))
+	parser.add_argument('--filter_senders',
+			    action='store_true',
+			    help=('Only train on names and emails in target sender file'))
+	parser.add_argument('--filter_recipients',
+			    action='store_true',
+			    help=('Only test and report on names and emails in the target recipient file'))
         
         args = parser.parse_args()
 
@@ -116,6 +125,14 @@ class PhishDetector(object):
             self.classify = True
             self.debug_training = True
             run = True
+	if args.filter_senders:
+	    self.filter_senders = True
+	else:
+	    self.filter_senders = False
+	if args.filter_recipients:
+	    self.filter_recipients = True
+	else:
+	    self.filter_recipients = False
 
 
         if not run:
@@ -153,7 +170,9 @@ class PhishDetector(object):
             'num_threads',
             'logging_interval',
             'memlog_gen_features_frequency',
-            'memlog_classify_frequency'
+            'memlog_classify_frequency', 
+	    'senders',
+	    'recipients'
         ]
 
         try:
@@ -188,13 +207,36 @@ class PhishDetector(object):
         feature_generator.do_generate_data_matrix = self.generate_data_matrix
         feature_generator.do_generate_test_matrix = self.generate_test_matrix
         return feature_generator
-
+    
+    def createTargetSendersSet(self):
+	senderNames = []
+	senderEmails = []
+	with open(self.senders) as f:
+	   for line in f.readlines():
+		name, email = parse_sender.parse_sender(line)
+		senderNames.append(name.lower())
+		senderEmails.append(email.lower())
+	return senderNames, senderEmails
+    
+    def isTargetSender(self, targetNames, targetEmails, currSender):
+	currSender = currSender.lower()
+	currSenderStripped = currSender.translate(None, string.punctuation).strip()
+	for i in range(len(targetNames)):
+	    firstName, lastName = targetNames[i].split(" ")[0], targetNames[i].split(" ")[-1]
+	    if firstName in currSenderStripped and lastName in currSenderStripped:
+		return True
+	    if targetEmails[i] in currSender:
+		return True
+	return False
 
     def generate_features(self):
         if self.use_name_in_from != 0:
             Detector.USE_NAME = True
 
         dir_to_generate = []
+	
+	if (self.filter_senders):
+	    targetSenderNames, targetSenderEmails = self.createTargetSendersSet()
 
         progress_logger.info('Starting directory aggregation in feature generation.')
         start_time = time.time()
@@ -202,13 +244,21 @@ class PhishDetector(object):
             if ((self.generate_data_matrix and self.regular_filename in filenames and self.phish_filename in filenames)
                 or (self.generate_test_matrix and self.regular_filename in filenames)):
                 command = ["wc", "-l", "{}/{}".format(dirpath, self.regular_filename)]
+		filtered = False
+		if (self.filter_senders):
+		    lastPartofPath = os.path.basename(os.path.normpath(dirpath))
+		    targetMatch = self.isTargetSender(targetSenderNames, targetSenderEmails, lastPartofPath)
+		    filtered = not targetMatch
+                if filtered:
+                    continue
                 try:
                     wc_output = subprocess.check_output(command)
                     wc_output_split = wc_output.split()
                     line_count = int(wc_output_split[0])
-                    if line_count < 50000: # Ignore inboxes with more than 50,000 emails
-                        dir_to_generate.append(dirpath)
-                        logs.Watchdog.reset()
+			
+                    if line_count < 50000 and not filtered: # Ignore inboxes with more than 50,000 emails
+			dir_to_generate.append(dirpath)
+                    logs.Watchdog.reset()
                 except subprocess.CalledProcessError:
                     debug_logger.warn('Could not calculate line count for directory {}'.format(dirpath))
                     continue
@@ -274,7 +324,9 @@ class PhishDetector(object):
                                    results_dir=self.result_path_out,
                                    serial_path=self.model_path_out,
                                    memlog_freq=self.memlog_classify_frequency,
-                                   debug_training=self.debug_training)
+                                   debug_training=self.debug_training,
+				   filterRecipients=self.filter_recipients,
+				   recipientTargetFile=self.recipients)
         logs.Watchdog.reset()
         self.classifier.generate_training()
         logs.Watchdog.reset()
