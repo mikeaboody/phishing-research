@@ -163,6 +163,7 @@ class Classify:
 	with open(self.recipientTargetFile) as f:
 	    for line in f.readlines():
 	        name, email = parse_sender.parse_sender(line)
+                name = name.translate(None, string.punctuation).strip()
 		rNames.append(name.lower())
 		rEmails.append(email.lower())
 	return rNames, rEmails

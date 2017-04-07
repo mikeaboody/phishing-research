@@ -214,6 +214,7 @@ class PhishDetector(object):
 	with open(self.senders) as f:
 	   for line in f.readlines():
 		name, email = parse_sender.parse_sender(line)
+                name = name.translate(None, string.punctuation).strip()
 		senderNames.append(name.lower())
 		senderEmails.append(email.lower())
 	return senderNames, senderEmails
