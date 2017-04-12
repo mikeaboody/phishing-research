@@ -30,6 +30,7 @@ import scipy.io as sio
 
 import logs
 from memtest import MemTracker
+import time
 
 progress_logger = logging.getLogger('spear_phishing.progress')
 debug_logger = logging.getLogger('spear_phishing.debug')
@@ -86,18 +87,65 @@ class FeatureGenerator(object):
             start_data_matrix_index = start_sender_profile_index + self.sender_profile_num_emails
             start_test_matrix_index = start_data_matrix_index + self.data_matrix_num_emails
 
-            self.sender_profile_index_range = range(start_sender_profile_index, start_data_matrix_index)
+            self.sender_profile_indeces = range(start_sender_profile_index, start_data_matrix_index)
 
-            self.data_matrix_index_range = range(start_data_matrix_index, start_test_matrix_index)
-            self.test_matrix_index_range = range(start_test_matrix_index, self.num_emails)
+            self.data_matrix_indeces = range(start_data_matrix_index, start_test_matrix_index)
+            self.test_matrix_indeces = range(start_test_matrix_index, self.num_emails)
 
             self.data_matrix_num_phish_emails = self.data_matrix_num_emails
-            self.data_matrix_phish_index_range = range(start_data_matrix_index, start_test_matrix_index)
+            self.data_matrix_phish_indeces = range(start_data_matrix_index, start_test_matrix_index)
 
         else:
+            index_intervals = self.split_legit_emails_by_time(self.emails, sender_profile_time_interval, self.train_time_interval, self.test_time_interval)
+            self.sender_profile_indeces, self.data_matrix_indeces, self.test_matrix_indeces = index_intervals
+            self.data_matrix_phish_indeces = self.split_phish_emails_by_time(self.phish_emails, self.train_time_interval)
 
-            #Find indeces
-            pass
+            self.sender_profile_num_emails = len(self.sender_profile_indeces)
+            self.data_matrix_num_emails = len(self.data_matrix_indeces)
+            self.test_matrix_num_emails = len(self.test_matrix_indeces)
+            self.data_matrix_num_phish_emails = len(self.data_matrix_phish_indeces)
+
+    def split_legit_emails_by_time(self, legit_inbox, sender_profile_time_interval, train_time_interval, test_time_interval):
+        """ Returns 3 sets of indeces corresponding to legit emails that go into the sender profile,
+            the data matrix, and the test matrix based on their given time intervals"""
+        sender_profile_start_time = sender_profile_time_interval[0]
+        sender_profile_end_time = sender_profile_time_interval[1]
+        train_start_time = train_time_interval[0]
+        train_end_time = train_time_interval[1]
+        test_start_time = test_time_interval[0]
+        test_end_time = test_time_interval[1]
+
+        sender_profile_indeces = []
+        train_indeces = []
+        test_indeces = []
+
+        for i in range(len(legit_inbox)):
+            email = legit_inbox[i]
+            email_time = email.get_time()
+
+            if email_time != None and email_time >= sender_profile_start_time and email_time < sender_profile_end_time:
+                sender_profile_indeces.append(i)
+            elif email_time != None and email_time >= train_start_time and email_time < train_end_time:
+                train_indeces.append(i)
+            elif email_time == None or (email_time >= test_start_time and email_time < test_end_time):
+                test_indeces.append(i)
+
+        return sender_profile_indeces, train_indeces, test_indeces
+
+    def split_phish_emails_by_time(self, phish_inbox, train_time_interval):
+        """ Returns 1 set of indeces corresponding to phishing emails that go into the data matrix
+            based on their given time intervals """
+        train_start_time = train_time_interval[0]
+        train_end_time = train_time_interval[1]
+        train_indeces = []
+
+        for i in range(len(phish_inbox)):
+            email = phish_inbox[i]
+            email_time = email.get_time()
+            if email_time != None and email_time >= train_start_time and email_time < train_end_time:
+                train_indeces.append(i)
+        return train_indeces
+
 
 
     def should_enable_extra_debugging(self, inbox, detectors):
@@ -113,7 +161,7 @@ class FeatureGenerator(object):
         verbose = self.should_enable_extra_debugging(inbox, detectors)
         for i, detector in enumerate(detectors):
             logs.context['detector'] = type(detector).__name__
-            detector.create_sender_profile(self.sender_profile_index_range)
+            detector.create_sender_profile(self.sender_profile_indeces)
             logs.Watchdog.reset()
             if verbose:
                 progress_logger.info('Finished creating {} sender profile, RSS = {}'.format(type(detector).__name__, MemTracker.cur_mem_usage()))
@@ -130,7 +178,7 @@ class FeatureGenerator(object):
     
         legit_row = 0
         phish_row = self.data_matrix_num_emails
-        for i in self.data_matrix_index_range:
+        for i in self.data_matrix_indeces:
             j = 0
             for detector in self.detectors:
                 heuristic = detector.classify(inbox[i])
@@ -142,7 +190,7 @@ class FeatureGenerator(object):
                     data_matrix[legit_row][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             legit_row += 1
-        for i in self.data_matrix_phish_index_range:
+        for i in self.data_matrix_phish_indeces:
             j = 0
             for detector in self.detectors:
                 heuristic = detector.classify(phish_inbox[i])
@@ -169,7 +217,7 @@ class FeatureGenerator(object):
         test_mess_id = np.zeros(shape=(self.test_matrix_num_emails, 1), dtype='S200')
         test_email_index = np.zeros(shape=(self.test_matrix_num_emails, 1), dtype="int32")
         row_index = 0
-        for i in self.test_matrix_index_range:
+        for i in self.test_matrix_indeces:
             j = 0
             if test_mbox[i]["Message-ID"] == None:
                 # logs.RateLimitedLog.log("Message-ID in test matrix is None.")

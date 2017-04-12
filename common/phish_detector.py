@@ -196,14 +196,14 @@ class PhishDetector(object):
         phish_path = os.path.join(directory, self.phish_filename)
 
 
-        use_percentages = True
+        use_percentages = False
 
-        sender_profile_time_begin = 1
-        sender_profile_time_end = 1
-        train_time_begin = 1
-        train_time_end = 1
-        test_time_begin = 1
-        test_time_end = 1
+        sender_profile_time_begin = 1394061604
+        sender_profile_time_end = 1394290492
+        train_time_begin = 1394290492
+        train_time_end = 1411705202
+        test_time_begin = 1412310032
+        test_time_end = 1423199989 + 1
 
         sender_profile_time_interval = (sender_profile_time_begin, sender_profile_time_end)
         train_time_interval = (train_time_begin, train_time_end)
