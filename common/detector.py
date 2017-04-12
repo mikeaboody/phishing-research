@@ -23,17 +23,17 @@ class Detector(object):
         """
         return
 
-    def create_sender_profile(self, num_samples):
+    def create_sender_profile(self, sample_indeces):
         """Creates sender to profile map.
 
         Keyword arguments:
-        num_samples -- number of samples to train sender profile on.
+        sample_indeces -- indeces of sample emails to train sender profile on.
 
         Sets self.sender_profile to a dictionary mapping senders to profiles.
         """
         if self._already_created:
             raise RuntimeError("Tried to call create_sender_profile() twice on same detector")
-        for i in range(num_samples):
+        for i in sample_indeces:
             email = self.inbox[i]
             self.update_sender_profile(email)
         self._already_created = True

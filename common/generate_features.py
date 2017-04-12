@@ -87,9 +87,12 @@ class FeatureGenerator(object):
             start_test_matrix_index = start_data_matrix_index + self.data_matrix_num_emails
 
             self.sender_profile_index_range = range(start_sender_profile_index, start_data_matrix_index)
+
             self.data_matrix_index_range = range(start_data_matrix_index, start_test_matrix_index)
             self.test_matrix_index_range = range(start_test_matrix_index, self.num_emails)
 
+            self.data_matrix_num_phish_emails = self.data_matrix_num_emails
+            self.data_matrix_phish_index_range = range(start_data_matrix_index, start_test_matrix_index)
 
         else:
 
@@ -110,7 +113,7 @@ class FeatureGenerator(object):
         verbose = self.should_enable_extra_debugging(inbox, detectors)
         for i, detector in enumerate(detectors):
             logs.context['detector'] = type(detector).__name__
-            detector.create_sender_profile(self.sender_profile_num_emails)
+            detector.create_sender_profile(self.sender_profile_index_range)
             logs.Watchdog.reset()
             if verbose:
                 progress_logger.info('Finished creating {} sender profile, RSS = {}'.format(type(detector).__name__, MemTracker.cur_mem_usage()))
@@ -123,7 +126,7 @@ class FeatureGenerator(object):
     
     def generate_data_matrix(self, inbox, phish_inbox):
         logs.context['step'] = 'generate_data_matrix'
-        data_matrix = np.zeros(shape=(self.data_matrix_num_emails*2, self.num_features), dtype='float64')
+        data_matrix = np.zeros(shape=(self.data_matrix_num_emails + self.data_matrix_num_phish_emails, self.num_features), dtype='float64')
     
         legit_row = 0
         phish_row = self.data_matrix_num_emails
@@ -139,6 +142,7 @@ class FeatureGenerator(object):
                     data_matrix[legit_row][j] = float(heuristic) if heuristic else 0.0
                     j += 1
             legit_row += 1
+        for i in self.data_matrix_phish_index_range:
             j = 0
             for detector in self.detectors:
                 heuristic = detector.classify(phish_inbox[i])
@@ -153,7 +157,7 @@ class FeatureGenerator(object):
             for detector in self.detectors:
                 detector.update_sender_profile(inbox[i])
         assert legit_row == self.data_matrix_num_emails
-        assert phish_row == 2*self.data_matrix_num_emails
+        assert phish_row == self.data_matrix_num_emails + self.data_matrix_num_phish_emails
         logs.Watchdog.reset()
         del logs.context['step']
         return data_matrix
@@ -191,10 +195,13 @@ class FeatureGenerator(object):
         return test_data_matrix, test_email_index, test_mess_id
     
     def generate_labels(self):
-        label_matrix = np.zeros(shape=(self.data_matrix_num_emails*2, 1), dtype='float64')
+        data_matrix_total_num_emails = self.data_matrix_num_emails + self.data_matrix_num_phish_emails
+        label_matrix = np.zeros(shape=(data_matrix_total_num_emails, 1), dtype='float64')
     
-        for i in range(2 * self.data_matrix_num_emails):
-            label_matrix[i][0] = 0 if i < self.data_matrix_num_emails else 1
+        for i in range(self.data_matrix_num_emails):
+            label_matrix[i][0] = 0
+        for i in range(self.data_matrix_num_emails, data_matrix_total_num_emails):
+            label_matrix[i][0] = 1
         return label_matrix
     
 ######################
