@@ -178,32 +178,35 @@ class FeatureGenerator(object):
     
         legit_row = 0
         phish_row = self.data_matrix_num_emails
-        for i in self.data_matrix_indeces:
-            j = 0
-            for detector in self.detectors:
-                heuristic = detector.classify(inbox[i])
-                if type(heuristic) == list:
-                    for h in heuristic:
-                        data_matrix[legit_row][j] = float(h)
+        for indeces_index in range(max(len(self.data_matrix_indeces), len(self.data_matrix_phish_indeces))):
+            if indeces_index < len(self.data_matrix_indeces):
+                i = self.data_matrix_indeces[indeces_index]
+                j = 0
+                for detector in self.detectors:
+                    heuristic = detector.classify(inbox[i])
+                    if type(heuristic) == list:
+                        for h in heuristic:
+                            data_matrix[legit_row][j] = float(h)
+                            j += 1
+                    else:
+                        data_matrix[legit_row][j] = float(heuristic) if heuristic else 0.0
                         j += 1
-                else:
-                    data_matrix[legit_row][j] = float(heuristic) if heuristic else 0.0
-                    j += 1
-            legit_row += 1
-        for i in self.data_matrix_phish_indeces:
-            j = 0
-            for detector in self.detectors:
-                heuristic = detector.classify(phish_inbox[i])
-                if type(heuristic) == list:
-                    for h in heuristic:
-                        data_matrix[phish_row][j] = float(h)
+                legit_row += 1
+                for detector in self.detectors:
+                    detector.update_sender_profile(inbox[i])
+            if indeces_index < len(self.data_matrix_phish_indeces):
+                i = self.data_matrix_phish_indeces[indeces_index]
+                j = 0
+                for detector in self.detectors:
+                    heuristic = detector.classify(phish_inbox[i])
+                    if type(heuristic) == list:
+                        for h in heuristic:
+                            data_matrix[phish_row][j] = float(h)
+                            j += 1
+                    else:
+                        data_matrix[phish_row][j] = float(heuristic) if heuristic else 0.0
                         j += 1
-                else:
-                    data_matrix[phish_row][j] = float(heuristic) if heuristic else 0.0
-                    j += 1
-            phish_row += 1
-            for detector in self.detectors:
-                detector.update_sender_profile(inbox[i])
+                phish_row += 1
         assert legit_row == self.data_matrix_num_emails
         assert phish_row == self.data_matrix_num_emails + self.data_matrix_num_phish_emails
         logs.Watchdog.reset()
