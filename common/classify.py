@@ -194,11 +194,12 @@ class Classify:
 
         # creates this file in common/output
         email_probabilities = open(os.path.join("output", "email_probabilities.txt"), "w")
-        low_volume_top_10 = PriorityQueue(self.bucket_size)
-        high_volume_top_10 = PriorityQueue(self.bucket_size)
+        #low_volume_top_10 = PriorityQueue(self.bucket_size)
+        #high_volume_top_10 = PriorityQueue(self.bucket_size)
+	
+	top_emails = PriorityQueue(self.bucket_size)
 
         numPhish, testSize = 0, 0
-        numEmails4Sender = {}
 
         logging_interval = 60 # TODO(matthew): Move to config.yaml
         progress_logger.info("Starting to test on data.")
@@ -262,19 +263,7 @@ class Classify:
                             if probability > 0.5:
                                 numPhish += 1
 
-                            # caches the num_emails value for each sender
-                            if sender not in numEmails4Sender:
-                                num_emails = sum(1 for line in open(emailPath))
-                                numEmails4Sender[sender] = num_emails
-                            else:
-                                num_emails = numEmails4Sender[sender]
-
-                            # checks which priority queue to add item to
-                            if num_emails < self.bucket_thres:
-                                low_volume_top_10.push(email, probability)
-                            else:
-                                high_volume_top_10.push(email, probability)
-
+			    top_emails.push(email, probability)
                             # writes an email's message ID and phish probability to a file
                             email_probabilities.write(message_ID + "," + str(probability) + "\n")
                     total_completed += 1
@@ -284,14 +273,12 @@ class Classify:
 
         email_probabilities.close()
         self.num_phish, self.test_size = numPhish, testSize
-        low_volume_output = low_volume_top_10.createOutput()
-        high_volume_output = high_volume_top_10.createOutput()
-        output = [low_volume_output, high_volume_output]
+        top_emails_output = top_emails.createOutput()
+        output = [top_emails_output]
 
         # DEBUG information - don't print to main log
         # debug_logger.info(pp.pformat(output))
-        self.pretty_print(low_volume_output, "low_volume")
-        self.pretty_print(high_volume_output, "high_volume")
+	self.pretty_print(top_emails_output, "all_emails")
         self.write_summary_output(output)
 
         end_time = time.time()
