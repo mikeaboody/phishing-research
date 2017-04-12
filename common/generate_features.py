@@ -42,12 +42,21 @@ class FeatureGenerator(object):
                  sender_profile_percentage,
                  data_matrix_percentage,
                  test_matrix_percentage,
+                 sender_profile_time_interval,
+                 train_time_interval,
+                 test_time_interval,
+                 use_percentages,
                  features):
 
         self.output_directory = output_directory
         self.sender_profile_percentage = sender_profile_percentage
         self.data_matrix_percentage = data_matrix_percentage
         self.test_matrix_percentage = test_matrix_percentage
+        self.sender_profile_time_interval = sender_profile_time_interval
+        self.train_time_interval = train_time_interval
+        self.test_time_interval = test_time_interval
+        self.use_percentages = use_percentages
+
         self.do_generate_data_matrix = False
         self.do_generate_test_matrix = False
 
@@ -60,20 +69,32 @@ class FeatureGenerator(object):
         self.phish_emails = inbox.Inbox(phish_filename)
         self.num_emails = len(self.emails)
 
-        #Convert from percentages to number of emails in each
-        if self.num_emails <= 1:
-            self.sender_profile_num_emails = 0
-            self.data_matrix_num_emails = 0
-            self.test_matrix_num_emails = self.num_emails
+        if self.use_percentages:
+
+            #Convert from percentages to number of emails in each
+            if self.num_emails <= 1:
+                self.sender_profile_num_emails = 0
+                self.data_matrix_num_emails = 0
+                self.test_matrix_num_emails = self.num_emails
+            else:
+                self.sender_profile_num_emails = int(np.ceil(self.sender_profile_percentage * self.num_emails))
+                self.data_matrix_num_emails = int(np.ceil(self.data_matrix_percentage * self.num_emails))
+                self.test_matrix_num_emails = self.num_emails - self.sender_profile_num_emails - self.data_matrix_num_emails
+
+
+            start_sender_profile_index = 0
+            start_data_matrix_index = start_sender_profile_index + self.sender_profile_num_emails
+            start_test_matrix_index = start_data_matrix_index + self.data_matrix_num_emails
+
+            self.sender_profile_index_range = range(start_sender_profile_index, start_data_matrix_index)
+            self.data_matrix_index_range = range(start_data_matrix_index, start_test_matrix_index)
+            self.test_matrix_index_range = range(start_test_matrix_index, self.num_emails)
+
+
         else:
-            self.sender_profile_num_emails = int(np.ceil(self.sender_profile_percentage * self.num_emails))
-            self.data_matrix_num_emails = int(np.ceil(self.data_matrix_percentage * self.num_emails))
-            self.test_matrix_num_emails = self.num_emails - self.sender_profile_num_emails - self.data_matrix_num_emails
 
-
-        self.start_sender_profile_index = 0
-        self.start_data_matrix_index = self.start_sender_profile_index + self.sender_profile_num_emails
-        self.start_test_matrix_index = self.start_data_matrix_index + self.data_matrix_num_emails
+            #Find indeces
+            pass
 
 
     def should_enable_extra_debugging(self, inbox, detectors):
@@ -106,7 +127,7 @@ class FeatureGenerator(object):
     
         legit_row = 0
         phish_row = self.data_matrix_num_emails
-        for i in range(self.start_data_matrix_index, self.start_test_matrix_index):
+        for i in self.data_matrix_index_range:
             j = 0
             for detector in self.detectors:
                 heuristic = detector.classify(inbox[i])
@@ -139,12 +160,12 @@ class FeatureGenerator(object):
     
     def generate_test_matrix(self, test_mbox):
         logs.context['step'] = 'generate_test_matrix'
-        test_data_matrix = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, self.num_features), dtype='float64')
+        test_data_matrix = np.zeros(shape=(self.test_matrix_num_emails, self.num_features), dtype='float64')
     
-        test_mess_id = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype='S200')
-        test_email_index = np.zeros(shape=(self.num_emails - self.start_test_matrix_index, 1), dtype="int32")
+        test_mess_id = np.zeros(shape=(self.test_matrix_num_emails, 1), dtype='S200')
+        test_email_index = np.zeros(shape=(self.test_matrix_num_emails, 1), dtype="int32")
         row_index = 0
-        for i in range(self.start_test_matrix_index, self.num_emails):
+        for i in self.test_matrix_index_range:
             j = 0
             if test_mbox[i]["Message-ID"] == None:
                 # logs.RateLimitedLog.log("Message-ID in test matrix is None.")

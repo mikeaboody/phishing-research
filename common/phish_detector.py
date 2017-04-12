@@ -195,12 +195,32 @@ class PhishDetector(object):
         regular_path = os.path.join(directory, self.regular_filename)
         phish_path = os.path.join(directory, self.phish_filename)
 
+
+        use_percentages = True
+
+        sender_profile_time_begin = 1
+        sender_profile_time_end = 1
+        train_time_begin = 1
+        train_time_end = 1
+        test_time_begin = 1
+        test_time_end = 1
+
+        sender_profile_time_interval = (sender_profile_time_begin, sender_profile_time_end)
+        train_time_interval = (train_time_begin, train_time_end)
+        test_time_interval = (test_time_begin, test_time_end)
+
+
+
         feature_generator = FeatureGenerator(directory,
                                              regular_path,
                                              phish_path,
                                              self.sender_profile_percentage,
                                              self.data_matrix_percentage,
                                              self.test_matrix_percentage,
+                                             sender_profile_time_interval,
+                                             train_time_interval,
+                                             test_time_interval,
+                                             use_percentages,
                                              self.detectors
                                             )
 
