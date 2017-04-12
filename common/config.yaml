@@ -2,10 +2,25 @@
 
 #Data and Test Matrix Configurations
 root_dir:                       ../broScripts/output
+use_name_in_from:               1
+
+#Config for splits
+use_percentage:                 1
+
+#if use_percentage = 1
 sender_profile_percentage:      0.1
 data_matrix_percentage:         0.2
 test_matrix_percentage:         0.7
-use_name_in_from:               1
+
+#if use_percentage = 0
+#Format: Month Day Year
+#interval = [start, end)
+sender_profile_start_time:      "March 5 2014"
+sender_profile_end_time:        "March 9 2014"
+train_start_time:               "March 9 2014"
+train_end_time:                 "September 27 2014"
+test_start_time:                "September 27 2014"
+test_end_time:                  "February 7 2015"
 
 #Model Training and Classification Settings
 weights:

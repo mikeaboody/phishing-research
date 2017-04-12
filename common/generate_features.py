@@ -46,7 +46,7 @@ class FeatureGenerator(object):
                  sender_profile_time_interval,
                  train_time_interval,
                  test_time_interval,
-                 use_percentages,
+                 use_percentage,
                  features):
 
         self.output_directory = output_directory
@@ -56,7 +56,7 @@ class FeatureGenerator(object):
         self.sender_profile_time_interval = sender_profile_time_interval
         self.train_time_interval = train_time_interval
         self.test_time_interval = test_time_interval
-        self.use_percentages = use_percentages
+        self.use_percentage = use_percentage
 
         self.do_generate_data_matrix = False
         self.do_generate_test_matrix = False
@@ -70,7 +70,7 @@ class FeatureGenerator(object):
         self.phish_emails = inbox.Inbox(phish_filename)
         self.num_emails = len(self.emails)
 
-        if self.use_percentages:
+        if self.use_percentage:
 
             #Convert from percentages to number of emails in each
             if self.num_emails <= 1:

@@ -146,7 +146,7 @@ try:
     progress_logger.info('Done.  Created #{} directories.'.format(dir_num))
     senders_seen.close()
 
-    shuffle_command = "gshuf {} --output={}".format(SENDERS_FILE, SENDERS_FILE)
+    shuffle_command = "shuf {} --output={}".format(SENDERS_FILE, SENDERS_FILE)
     progress_logger.info("Executing: {}".format(shuffle_command))
     os.system(shuffle_command)
 
