@@ -94,6 +94,11 @@ class Classify:
         self.X = X
         self.Y = Y
         self.num_features = X.shape[1]
+
+        num_data_matrix = len(self.Y)
+        num_phish = np.count_nonzero(self.Y == 1)
+        num_legit = np.count_nonzero(self.Y == 0)
+        progress_logger.info("{} samples in data matrix, {} legit, {} phish".format(num_data_matrix, num_legit, num_phish))
         # Save training data matrix and training labels to training_data.npz.
         # np.savez("training_data", X=np.vstack([self.feature_names, self.X]), Y=self.Y)
         np.savez("training_data", X=self.X, Y=self.Y)

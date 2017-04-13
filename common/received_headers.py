@@ -79,8 +79,8 @@ class ReceivedHeadersDetector(Detector):
         if sender:
             self.sender_profile[sender].add_mailpath(mailpath)
 
-    def create_sender_profile(self, num_samples):
-        for i in range(num_samples):
+    def create_sender_profile(self, sample_indeces):
+        for i in sample_indeces:
             email = self.inbox[i]
             self.update_sender_profile(email)
         self._log_large_profiles()

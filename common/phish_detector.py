@@ -6,6 +6,7 @@ from multiprocessing import Pool
 import os
 import subprocess
 import time
+import calendar
 import traceback
 
 import yaml
@@ -154,6 +155,13 @@ class PhishDetector(object):
             'root_dir',
             'regular_filename',
             'phish_filename',
+            'use_percentage',
+            'sender_profile_start_time',
+            'sender_profile_end_time',
+            'train_start_time',
+            'train_end_time',
+            'test_start_time',
+            'test_end_time',
             'sender_profile_percentage',
             'data_matrix_percentage',
             'test_matrix_percentage',
@@ -171,8 +179,8 @@ class PhishDetector(object):
             'logging_interval',
             'memlog_gen_features_frequency',
             'memlog_classify_frequency', 
-	    'senders',
-	    'recipients'
+	        'senders',
+	        'recipients'
         ]
 
         try:
@@ -191,9 +199,24 @@ class PhishDetector(object):
         self.root_dir = os.path.abspath(self.root_dir)
         Lookup.initialize(offline=self.offline)
 
+        if not self.use_percentage:
+            self.sender_profile_start_time = calendar.timegm(time.strptime(self.sender_profile_start_time, "%B %d %Y"))
+            self.sender_profile_end_time = calendar.timegm(time.strptime(self.sender_profile_end_time, "%B %d %Y"))
+            self.train_start_time = calendar.timegm(time.strptime(self.train_start_time, "%B %d %Y"))
+            self.train_end_time = calendar.timegm(time.strptime(self.train_end_time, "%B %d %Y"))
+            self.test_start_time = calendar.timegm(time.strptime(self.test_start_time, "%B %d %Y"))
+            self.test_end_time = calendar.timegm(time.strptime(self.test_end_time, "%B %d %Y"))
+
+
     def prep_features(self, directory):   
         regular_path = os.path.join(directory, self.regular_filename)
         phish_path = os.path.join(directory, self.phish_filename)
+
+        sender_profile_time_interval = (self.sender_profile_start_time, self.sender_profile_end_time)
+        train_time_interval = (self.train_start_time, self.train_end_time)
+        test_time_interval = (self.test_start_time, self.test_end_time)
+
+
 
         feature_generator = FeatureGenerator(directory,
                                              regular_path,
@@ -201,6 +224,10 @@ class PhishDetector(object):
                                              self.sender_profile_percentage,
                                              self.data_matrix_percentage,
                                              self.test_matrix_percentage,
+                                             sender_profile_time_interval,
+                                             train_time_interval,
+                                             test_time_interval,
+                                             self.use_percentage,
                                              self.detectors
                                             )
 

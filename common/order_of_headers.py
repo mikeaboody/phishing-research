@@ -95,8 +95,8 @@ class OrderOfHeaderDetector(Detector):
             self.sender_profile[sender].add_order(order)
             self.emails_with_sender += 1
 
-    def create_sender_profile(self, num_samples):
-        for i in range(num_samples):
+    def create_sender_profile(self, sample_indeces):
+        for i in sample_indeces:
             email = self.inbox[i]
             self.update_sender_profile(email)
         self._debug_large_senders()
