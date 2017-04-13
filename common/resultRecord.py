@@ -18,6 +18,10 @@ class ResultRecord:
         if "MESSAGE-ID" in self.email:
             mess_id = self.email["MESSAGE-ID"]
         self.email_message_id = mess_id
+        to = ""
+        if "TO" in self.email:
+            to = self.email["TO"]
+        self.email_to = to
 
     def __str__(self):
         return str(self.email.header_dict)
