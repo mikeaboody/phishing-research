@@ -314,7 +314,10 @@ class Classify:
 	    
             results.write(str(i) + ".json:\n")
             results.write("From: " + record.email_from + "\n")
+            results.write("To: " + record.email_to + "\n")
             results.write("Subject: " + record.email_subject + "\n")
+            results.write("Message-ID: " + record.email_message_id + "\n")
+            results.write("Probability this is spoofed: {}\n".format(record.probability_phish))
             results.write("Top 3 Detectors: {}\n\n".format(fmt_contrib(record)))
             
             self.write_file(folder_name, i, email.header_dict, record.probability_phish, record.detector_contribution)
