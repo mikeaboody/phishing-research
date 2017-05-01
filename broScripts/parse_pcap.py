@@ -124,7 +124,7 @@ try:
             num_pcaps_bro_failed += 1
             continue
         progress_logger.info('Parsing bro output')
-        with open(BRO_OUTPUT_FILE, 'a+') as f:
+        with open(BRO_OUTPUT_FILE, 'r') as f:
             for line in f:
                 if line == "-" or line == "-\n":
                     total_only_hyphen += 1
@@ -180,7 +180,7 @@ try:
     # Generating phish emails
     senders_seen = open(SENDERS_FILE)
     for filename in sorted(glob.glob(BRO_LOG_DIRECTORY + '/*.log')):
-        with open(filename, 'a+') as f:
+        with open(filename, 'r') as f:
             for line in f:
                 if line[0] == '[' and line[-2] == ']':
                     try:
